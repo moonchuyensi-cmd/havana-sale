@@ -7,21 +7,22 @@ import shutil
 import datetime
 import subprocess
 import unicodedata
+import urllib.parse
 import urllib.request
 import zipfile as zf_mod
 
 # ==============================================================================
-# AUTO_SYNC_SAPO.PY (v12 - KHONG LAY ANH SAPO, 100% ANH/VIDEO TU UP NHU FILE SI)
-# - Chi lay Ton kho 5 chi nhanh + Gia goc tu Sapo. TUYET DOI KHONG lay anh san kho Sapo.
-# - Tu dong go sach moi link anh Sapo cu (dktcdn.net, mysapogo.com...) neu con sot.
-# - Tu dong giai nen media/*.zip va gan anh/video/bang size tu images/, videos/, sizes/.
-# - Ke ca khi Cookie Sapo tam het han, up anh moi len GitHub van tu cap nhat len web ngay!
+# AUTO_SYNC_SAPO.PY (v13 - QUET TOAN BO REPO + TU BUNG ZIP + 0% ANH SAPO)
 # ==============================================================================
 
 DEFAULT_COOKIE = ""
 DOMAIN = os.environ.get("SAPO_DOMAIN", "havanago.mysapogo.com").strip()
 SKU_REGEX = re.compile(r"^([A-Z]{1,5}\d{1,5})", re.I)
 SAPO_IMG_RX = re.compile(r"(dktcdn\.net|mysapogo\.com|sapo\.vn|sapogo\.com)", re.I)
+
+IMG_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".jfif", ".avif", ".gif", ".bmp")
+VID_EXTS = (".mp4", ".mov", ".webm", ".m4v")
+SKIP_DIRS = {".git", ".github", "functions", "__pycache__", "node_modules"}
 
 
 def vn_now_str() -> str:
@@ -46,13 +47,16 @@ def clean_base_code(val) -> str:
 
 def is_sapo_cdn_url(url: str) -> bool:
     u = str(url or "").strip()
-    if not u:
-        return False
-    return bool(SAPO_IMG_RX.search(u))
+    return bool(u and SAPO_IMG_RX.search(u))
+
+
+def encode_rel_url(rel_path: str) -> str:
+    clean = rel_path.replace("\\", "/").lstrip("./")
+    parts = [urllib.parse.quote(p) for p in clean.split("/")]
+    return "./" + "/".join(parts)
 
 
 def sanitize_custom_media_item(prod: dict) -> dict:
-    """Xoa sach anh san kho Sapo, chi giu lai anh/video/size do shop tu up."""
     raw_imgs = prod.get("images") if isinstance(prod.get("images"), list) else []
     clean_imgs = [u for u in raw_imgs if u and not is_sapo_cdn_url(u) and not str(u).startswith("data:image/svg+xml")]
     main_img = str(prod.get("image") or "").strip()
@@ -82,9 +86,7 @@ def parse_money(val) -> int:
         return 0
     if isinstance(val, (int, float)):
         v = float(val)
-        if 0 < v < 1000:
-            return int(round(v * 1000))
-        return int(round(v))
+        return int(round(v * 1000)) if 0 < v < 1000 else int(round(v))
     s = str(val).strip().lower()
     if not s or "quà" in s or "qua tang" in strip_accents(s).lower() or "#n/a" in s:
         return -1 if "quà" in s else 0
@@ -92,9 +94,7 @@ def parse_money(val) -> int:
     if not s_digits:
         return 0
     num = int(s_digits)
-    if 0 < num < 1000:
-        num *= 1000
-    return num
+    return num * 1000 if 0 < num < 1000 else num
 
 
 def parse_pct(val) -> float:
@@ -220,65 +220,84 @@ def load_black_friday_rules() -> dict:
     return sale_rules
 
 
-def unpack_media_dropzone():
-    """Tu dong giai nen file .zip hoac thu muc ma trong media/ sang images/, videos/, sizes/ va don sach media/."""
+def build_sku_matcher(codes: list):
+    """Tao bo nhan dien SKU chinh xac cao (ho tro ca CV593, CV-593, CV_593, CV 593), sap xep ma dai truoc."""
+    sorted_codes = sorted(set(c.upper() for c in codes if c), key=len, reverse=True)
+    compiled = []
+    for c in sorted_codes:
+        m = re.match(r"^([A-Z]+)(\d+)$", c)
+        if m:
+            pfx, num = re.escape(m.group(1)), re.escape(m.group(2))
+            rx = re.compile(rf"(^|[^A-Z0-9]){pfx}[\s_\-]*{num}([^0-9]|$)", re.I)
+        else:
+            rx = re.compile(rf"(^|[^A-Z0-9]){re.escape(c)}([^A-Z0-9]|$)", re.I)
+        compiled.append((c, rx))
+    return compiled
+
+
+def unpack_any_zip_archives():
+    """Tu dong bung nen file .zip o thu muc goc, media/, hoac images/."""
     os.makedirs("images", exist_ok=True)
     os.makedirs("videos", exist_ok=True)
     os.makedirs("sizes", exist_ok=True)
-    if not os.path.isdir("media"):
-        return
 
-    # 1. Giai nen moi file .zip trong media/
-    for zpath in sorted(glob.glob("media/*.zip")):
+    zip_candidates = []
+    for pat in ("*.zip", "media/*.zip", "media/**/*.zip", "images/*.zip"):
+        zip_candidates.extend(glob.glob(pat, recursive=True))
+
+    for zpath in sorted(set(zip_candidates)):
+        low_z = os.path.basename(zpath).lower()
+        if "havana_sale" in low_z or "deploy" in low_z or "auto_cloud" in low_z:
+            continue
         base_zip_sku = os.path.splitext(os.path.basename(zpath))[0].upper()
         extract_dir = os.path.join("media", "_unzipped_" + base_zip_sku)
+        os.makedirs(extract_dir, exist_ok=True)
         try:
             with zf_mod.ZipFile(zpath, "r") as zf:
                 zf.extractall(extract_dir)
             os.remove(zpath)
-            print(f"[+] Da giai nen {zpath}")
+            print(f"[+] Da giai nen {zpath} -> {extract_dir}")
         except Exception as e:
             print(f"[!] Loi giai nen {zpath}: {e}")
 
-    # 2. Di chuyen anh/video/size tu media/ vao dung thu muc images/, videos/, sizes/
-    for root, _, files in os.walk("media"):
-        folder_hint = os.path.basename(root).replace("_unzipped_", "").upper()
-        sku_prefix = clean_base_code(folder_hint) if folder_hint != "MEDIA" else ""
-        for fname in sorted(files):
-            if fname.startswith(".") or fname.lower() == "keep.txt":
-                continue
-            src_path = os.path.join(root, fname)
-            low = fname.lower()
-            target_name = fname
-            if sku_prefix and sku_prefix not in fname.upper():
-                target_name = f"{sku_prefix}_{fname}"
+    if os.path.isdir("media"):
+        for root, _, files in os.walk("media"):
+            folder_hint = os.path.basename(root).replace("_unzipped_", "").upper()
+            sku_prefix = clean_base_code(folder_hint) if folder_hint not in ("MEDIA", "") else ""
+            for fname in sorted(files):
+                if fname.startswith(".") or fname.lower() == "keep.txt":
+                    continue
+                src_path = os.path.join(root, fname)
+                low = fname.lower()
+                target_name = fname
+                if sku_prefix and sku_prefix not in re.sub(r"[\s_\-]+", "", fname.upper()):
+                    target_name = f"{sku_prefix}_{fname}"
 
-            if low.endswith((".mp4", ".mov", ".webm")):
-                shutil.copy2(src_path, os.path.join("videos", target_name))
-                os.remove(src_path)
-            elif low.endswith((".jpg", ".jpeg", ".png", ".webp")):
-                if "size" in low or "bang_size" in low or "bangsize" in low:
-                    shutil.copy2(src_path, os.path.join("sizes", target_name))
-                else:
-                    shutil.copy2(src_path, os.path.join("images", target_name))
-                os.remove(src_path)
+                if low.endswith(VID_EXTS):
+                    shutil.copy2(src_path, os.path.join("videos", target_name))
+                    os.remove(src_path)
+                elif low.endswith(IMG_EXTS):
+                    if "size" in low or "bang_size" in low or "bangsize" in low:
+                        shutil.copy2(src_path, os.path.join("sizes", target_name))
+                    else:
+                        shutil.copy2(src_path, os.path.join("images", target_name))
+                    os.remove(src_path)
 
-    # Xoa cac thu muc tam trong media/ sau khi da phan loai xong, giu lai media/keep.txt
-    for entry in os.listdir("media"):
-        full_e = os.path.join("media", entry)
-        if os.path.isdir(full_e):
-            shutil.rmtree(full_e, ignore_errors=True)
-    keep_file = os.path.join("media", "keep.txt")
-    if not os.path.exists(keep_file):
-        with open(keep_file, "w", encoding="utf-8") as f:
-            f.write("Drop SKU folders, images, videos, or .zip files here.\n")
+        for entry in os.listdir("media"):
+            full_e = os.path.join("media", entry)
+            if os.path.isdir(full_e):
+                shutil.rmtree(full_e, ignore_errors=True)
+        keep_file = os.path.join("media", "keep.txt")
+        if not os.path.exists(keep_file):
+            with open(keep_file, "w", encoding="utf-8") as f:
+                f.write("Drop SKU folders, images, videos, or .zip files here.\n")
 
 
 def scan_repo_media_folders(codes: list) -> dict:
-    """Quet thu muc images/, videos/, sizes/ voi Regex bien gioi nghiem ngat (sap xep ma dai truoc)."""
-    unpack_media_dropzone()
-    sorted_codes = sorted(set(c.upper() for c in codes if c), key=len, reverse=True)
-    compiled = [(c, re.compile(rf"(^|[^A-Z0-9]){re.escape(c)}([^A-Z0-9]|$)")) for c in sorted_codes]
+    """Quet TOAN BO thu muc trong repo (images/, videos/, sizes/, thu muc goc hoac bat ky thu muc con nao user tao)
+    de du user keo tha anh vao dau cung tu dong nhan dien 100%!"""
+    unpack_any_zip_archives()
+    compiled = build_sku_matcher(codes)
     media_map = {}
 
     def ensure_entry(c):
@@ -286,37 +305,55 @@ def scan_repo_media_folders(codes: list) -> dict:
             media_map[c] = {"images": [], "video": "", "sizeChart": ""}
         return media_map[c]
 
-    if os.path.isdir("images"):
-        for fname in sorted(os.listdir("images")):
-            if fname.startswith(".") or not fname.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+    all_repo_files = []
+    for root, dirs, files in os.walk("."):
+        dirs[:] = [d for d in sorted(dirs) if d not in SKIP_DIRS and not d.startswith(".")]
+        for fname in sorted(files):
+            if fname.startswith(".") or fname.lower() in ("keep.txt", "readme.md"):
                 continue
-            up = fname.upper()
-            for code, rx in compiled:
-                if rx.search(up):
-                    ensure_entry(code)["images"].append(f"./images/{fname}")
-                    break
+            rel = os.path.join(root, fname).replace("\\", "/")
+            if rel.startswith("./"):
+                rel = rel[2:]
+            all_repo_files.append(rel)
 
-    if os.path.isdir("videos"):
-        for fname in sorted(os.listdir("videos")):
-            if fname.startswith(".") or not fname.lower().endswith((".mp4", ".mov", ".webm")):
-                continue
-            up = fname.upper()
-            for code, rx in compiled:
-                if rx.search(up):
-                    if not ensure_entry(code)["video"]:
-                        ensure_entry(code)["video"] = f"./videos/{fname}"
-                    break
+    # Uu tien thu muc chuan images/, videos/, sizes/ truoc, sau do den moi thu muc khac trong repo
+    all_repo_files.sort(key=lambda p: (0 if p.startswith(("images/", "videos/", "sizes/")) else 1, p.lower()))
 
-    if os.path.isdir("sizes"):
-        for fname in sorted(os.listdir("sizes")):
-            if fname.startswith(".") or not fname.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
-                continue
-            up = fname.upper()
+    for rel_path in all_repo_files:
+        low = rel_path.lower()
+        is_img = low.endswith(IMG_EXTS)
+        is_vid = low.endswith(VID_EXTS)
+        if not (is_img or is_vid):
+            continue
+
+        # Kiem tra ten file truoc, neu ten file la "1.jpg" thi kiem tra ten thu muc cha (VD: "CV593/1.jpg")
+        fname_only = os.path.basename(rel_path)
+        parent_dirs = os.path.dirname(rel_path)
+        matched_code = ""
+        for code, rx in compiled:
+            if rx.search(fname_only):
+                matched_code = code
+                break
+        if not matched_code and parent_dirs:
             for code, rx in compiled:
-                if rx.search(up):
-                    if not ensure_entry(code)["sizeChart"]:
-                        ensure_entry(code)["sizeChart"] = f"./sizes/{fname}"
+                if rx.search(parent_dirs):
+                    matched_code = code
                     break
+        if not matched_code:
+            continue
+
+        encoded_url = encode_rel_url(rel_path)
+        entry = ensure_entry(matched_code)
+        if is_vid:
+            if not entry["video"]:
+                entry["video"] = encoded_url
+        elif is_img:
+            if rel_path.startswith("sizes/") or "size" in fname_only.lower() or "bangsize" in fname_only.lower():
+                if not entry["sizeChart"]:
+                    entry["sizeChart"] = encoded_url
+            else:
+                if encoded_url not in entry["images"]:
+                    entry["images"].append(encoded_url)
 
     return media_map
 
@@ -360,9 +397,7 @@ def infer_category(code: str, pname: str, sub_type: str = "") -> str:
     if up.startswith("ATH"):
         return "AO_THUN"
     if up.startswith(("AO", "AE")):
-        if "sơ mi" in name_l or "sơmi" in name_l:
-            return "AO_SO_MI"
-        return "AO_KIEU"
+        return "AO_SO_MI" if ("sơ mi" in name_l or "sơmi" in name_l) else "AO_KIEU"
     if up.startswith(("AK", "HD")):
         return "AO_KHOAC"
     if up.startswith("LEN"):
@@ -441,8 +476,6 @@ def apply_custom_media_to_list(products_list: list, preserved_by_sku: dict) -> l
         prev = preserved_by_sku.get(code, {})
         repo_m = repo_media.get(code, {})
 
-        # Uu tien 1: File trong images/, videos/, sizes/ tren kho GitHub
-        # Uu tien 2: Media tu up da luu truoc do (khong phai link Sapo)
         imgs = repo_m.get("images") or prev.get("images") or p.get("images") or []
         vid = repo_m.get("video") or prev.get("video") or p.get("video") or ""
         szc = repo_m.get("sizeChart") or prev.get("sizeChart") or p.get("sizeChart") or ""
@@ -459,7 +492,6 @@ def main():
     sale_rules = load_black_friday_rules()
     filter_only_bf = len(sale_rules) > 0
 
-    # Doc du lieu cu (neu co) de bao toan media tu up & lam fallback khi Sapo tam ngat
     existing_warehouses = []
     existing_products = []
     preserved_media_by_sku = {}
@@ -487,7 +519,7 @@ def main():
 
     if "cookie" in headers or "X-Sapo-Access-Token" in headers:
         try:
-            print(f"[{vn_now_str()}] Dang dong bo ton kho 5 chi nhanh Sapo (KHONG lay anh Sapo)...")
+            print(f"[{vn_now_str()}] Dang dong bo ton kho 5 chi nhanh Sapo (0% anh Sapo)...")
             try:
                 ldata = fetch_json("/admin/locations.json", headers)
                 for idx, loc in enumerate(ldata.get("locations", [])):
@@ -510,17 +542,16 @@ def main():
                 page += 1
             print(f"[*] Da quet {len(all_products)} san pham tren Sapo.")
         except Exception as err:
-            print(f"[!] Sapo API tam ngat ({err}) -> Van tiep tuc go anh Sapo cu & cap nhat anh/video tu up!")
+            print(f"[!] Sapo API tam ngat ({err}) -> Van quet toan bo repo & cap nhat anh/video tu up!")
 
     if not all_products:
-        # Fallback: van giai nen media/*.zip, go sach anh Sapo cu va cap nhat anh tu up ngay lap tuc!
         if existing_products:
             cleaned = apply_custom_media_to_list(existing_products, preserved_media_by_sku)
             write_outputs(existing_warehouses, cleaned, vn_now_str())
             with_img = sum(1 for x in cleaned if x.get("image") or x.get("video"))
-            print(f"[+] Da go sach anh Sapo & cap nhat Media tu up cho {with_img}/{len(cleaned)} ma!")
+            print(f"[+] Da gan Media tu up cho {with_img}/{len(cleaned)} ma!")
         else:
-            unpack_media_dropzone()
+            unpack_any_zip_archives()
         return
 
     grouped_by_code = {}
@@ -571,7 +602,6 @@ def main():
         if key in grouped_by_code:
             grouped_by_code[key]["variants"].extend(v_list)
         else:
-            # TUYET DOI KHONG lay p["images"] tu Sapo! De trong de gan anh tu up.
             grouped_by_code[key] = {
                 "sku": key,
                 "name": pname_nfc,
@@ -596,7 +626,7 @@ def main():
     now_stamp = vn_now_str()
     write_outputs(warehouses_sorted, products_out, now_stamp)
     with_media = sum(1 for x in products_out if x.get("image") or x.get("video"))
-    print(f"[+] Hoan tat Auto-Sync v12 (0% anh Sapo): {len(products_out)} ma ({with_media} ma da co anh/video tu up) luc {now_stamp}!")
+    print(f"[+] Hoan tat Auto-Sync v13: {len(products_out)} ma ({with_media} ma da co anh/video tu up) luc {now_stamp}!")
 
 
 if __name__ == "__main__":

@@ -1468,7 +1468,7 @@
         <span class="brand-badge" title="Đúp chuột để mở bảng nạp mã Sale" ondblclick="document.body.classList.toggle('is-admin')" style="cursor:pointer;user-select:none;">SALE OFF</span>
         <div>
           <div class="brand-title" id="mainBrandTitle">BLACK FRIDAY</div>
-          <div style="font-size:12px;font-weight:600;color:var(--text-muted);display:flex;align-items:center;flex-wrap:wrap;gap:4px;"><span id="subBrandText">Giá gốc tại kho</span><span class="live-sync-tag" id="liveSyncBadge" onclick="refreshLiveSapoStock(false)" style="cursor:pointer;" title="Bấm để làm mới tồn kho 5 chi nhánh ngay lập tức"><span class="live-sync-dot"></span><span id="liveSyncTimeText">Tồn Sapo: Live</span></span></div>
+          <div style="font-size:12px;font-weight:600;color:var(--text-muted);display:flex;align-items:center;flex-wrap:wrap;gap:4px;"><span id="subBrandText">Giá gốc tại kho</span><span class="live-sync-tag" id="liveSyncBadge" onclick="refreshLiveSapoStock(false); discoverRepoMediaLive(true);" style="cursor:pointer;" title="Bấm để làm mới tồn kho 5 chi nhánh ngay lập tức"><span class="live-sync-dot"></span><span id="liveSyncTimeText">Tồn Sapo: Live</span></span></div>
         </div>
       </div>
 
@@ -2258,6 +2258,148 @@
       });
     }
 
+    // === v13: TU DONG QUET TRUC TIEP KHO ANH TREN GITHUB REPO (HIEN ANH TUC THI 100%) ===
+    const GITHUB_REPO_SLUG = "moonchuyensi-cmd/havana-sale";
+    const GITHUB_BRANCH = "main";
+    let repoLiveMediaBySku = {};
+
+    function buildClientSkuMatchers(codes) {
+      const uniqueSorted = Array.from(new Set(codes.filter(Boolean).map((c) => c.toUpperCase())))
+        .sort((a, b) => b.length - a.length);
+      return uniqueSorted.map((code) => {
+        const m = code.match(/^([A-Z]+)(\d+)$/);
+        if (m) {
+          return {
+            code,
+            rx: new RegExp(`(^|[^A-Z0-9])${m[1]}[\\s_\\-]*${m[2]}([^0-9]|$)`, "i")
+          };
+        }
+        const esc = code.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        return { code, rx: new RegExp(`(^|[^A-Z0-9])${esc}([^A-Z0-9]|$)`, "i") };
+      });
+    }
+
+    function encodeRepoPathUrl(relPath) {
+      const encoded = relPath.split("/").map((seg) => encodeURIComponent(seg)).join("/");
+      // Dung link CDN raw.githubusercontent.com hoac relative path (Cloudflare Pages deu phuc vu muot)
+      if (location.protocol === "file:") {
+        return `https://raw.githubusercontent.com/${GITHUB_REPO_SLUG}/${GITHUB_BRANCH}/${encoded}`;
+      }
+      return "./" + encoded;
+    }
+
+    async function discoverRepoMediaLive(forceRefresh = false) {
+      try {
+        const cacheKey = "havana_gh_tree_v13";
+        let treePaths = null;
+        if (!forceRefresh) {
+          try {
+            const cached = JSON.parse(sessionStorage.getItem(cacheKey) || "null");
+            if (cached && (Date.now() - cached.ts < 90 * 1000) && Array.isArray(cached.paths)) {
+              treePaths = cached.paths;
+            }
+          } catch (_) {}
+        }
+
+        if (!treePaths) {
+          const apiUrl = `https://api.github.com/repos/${GITHUB_REPO_SLUG}/git/trees/${GITHUB_BRANCH}?recursive=1&t=${Date.now()}`;
+          const res = await fetch(apiUrl, { headers: { "Accept": "application/vnd.github.v3+json" } });
+          if (!res.ok) return false;
+          const data = await res.json();
+          if (!data || !Array.isArray(data.tree)) return false;
+          treePaths = data.tree
+            .filter((item) => item.type === "blob" && item.path && !item.path.startsWith("."))
+            .map((item) => item.path);
+          try {
+            sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), paths: treePaths }));
+          } catch (_) {}
+        }
+
+        const matchers = buildClientSkuMatchers(PRODUCTS.map((p) => p.sku));
+        const imgRx = /\.(jpe?g|png|webp|jfif|avif|gif|bmp)$/i;
+        const vidRx = /\.(mp4|mov|webm|m4v)$/i;
+
+        // Sap xep uu tien thu muc images/, videos/, sizes/ truoc
+        const sortedPaths = [...treePaths].sort((a, b) => {
+          const aPri = /^(images|videos|sizes)\//i.test(a) ? 0 : 1;
+          const bPri = /^(images|videos|sizes)\//i.test(b) ? 0 : 1;
+          return aPri - bPri || a.localeCompare(b);
+        });
+
+        const discovered = {};
+        let matchedFiles = 0;
+
+        for (const path of sortedPaths) {
+          const isImg = imgRx.test(path);
+          const isVid = vidRx.test(path);
+          if (!isImg && !isVid) continue;
+
+          const parts = path.split("/");
+          const fname = parts[parts.length - 1];
+          const parentDir = parts.slice(0, -1).join("/");
+
+          let hitCode = "";
+          for (const m of matchers) {
+            if (m.rx.test(fname)) { hitCode = m.code; break; }
+          }
+          if (!hitCode && parentDir) {
+            for (const m of matchers) {
+              if (m.rx.test(parentDir)) { hitCode = m.code; break; }
+            }
+          }
+          if (!hitCode) continue;
+
+          if (!discovered[hitCode]) {
+            discovered[hitCode] = { images: [], video: "", sizeChart: "" };
+          }
+          const url = encodeRepoPathUrl(path);
+          if (isVid) {
+            if (!discovered[hitCode].video) {
+              discovered[hitCode].video = url;
+              matchedFiles++;
+            }
+          } else if (isImg) {
+            const lowName = fname.toLowerCase();
+            if (path.toLowerCase().startsWith("sizes/") || lowName.includes("size") || lowName.includes("bangsize")) {
+              if (!discovered[hitCode].sizeChart) {
+                discovered[hitCode].sizeChart = url;
+                matchedFiles++;
+              }
+            } else if (!discovered[hitCode].images.includes(url)) {
+              discovered[hitCode].images.push(url);
+              matchedFiles++;
+            }
+          }
+        }
+
+        repoLiveMediaBySku = discovered;
+        if (matchedFiles > 0) {
+          PRODUCTS.forEach((p) => {
+            const m = discovered[p.sku.toUpperCase()];
+            if (!m) return;
+            if ((!p.images || !p.images.length) && m.images.length) {
+              p.images = m.images;
+              p.image = m.images[0];
+            }
+            if (!p.video && m.video) p.video = m.video;
+            if (!p.sizeChart && m.sizeChart) p.sizeChart = m.sizeChart;
+          });
+          renderCatalog();
+          return true;
+        }
+      } catch (_) {}
+      return false;
+    }
+
+    function handleMediaFallbackError(el) {
+      if (el.dataset.rawTried) return;
+      const rawAttr = el.getAttribute('src') || '';
+      if (rawAttr.startsWith('./')) {
+        el.dataset.rawTried = '1';
+        el.src = `https://raw.githubusercontent.com/${GITHUB_REPO_SLUG}/${GITHUB_BRANCH}/` + rawAttr.slice(2);
+      }
+    }
+
     function hasCustomProductMedia(p) {
       const vLocal = vaultObjectUrlsBySku[p.sku];
       if (vLocal && ((vLocal.images && vLocal.images.length) || vLocal.video)) return true;
@@ -2581,7 +2723,7 @@
       if (curSlide.type === "video") {
         mediaElementHtml = `
           <video src="${curSlide.src}" poster="${curSlide.poster}" autoplay loop playsinline ${videoMutedState ? "muted" : ""} preload="metadata"
-            onloadeddata="this.parentElement.classList.add('loaded')"
+            onloadeddata="this.parentElement.classList.add('loaded')" onerror="handleMediaFallbackError(this)"
             onclick="openProductZoom('${p.sku}', ${slideIdx})"></video>
           <button type="button" class="video-sound-btn" onclick="event.stopPropagation(); toggleVideoSound(this)">
             ${videoMutedState ? "🔇 Bật tiếng" : "🔊 Tắt tiếng"}
@@ -2590,7 +2732,7 @@
         mediaElementHtml = `
           <img src="${curSlide.src}" alt="${displayName}"
             ${isPriority ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async"
-            onload="this.parentElement.classList.add('loaded')"
+            onload="this.parentElement.classList.add('loaded')" onerror="handleMediaFallbackError(this)"
             onclick="openProductZoom('${p.sku}', ${slideIdx})" />`;
       }
 
@@ -3515,6 +3657,7 @@
             showToast("Đã làm mới tồn kho 5 chi nhánh Sapo (" + data.synced_at + ")");
           }
           lastSyncedStamp = data.synced_at || "";
+          discoverRepoMediaLive(false);
           renderCatalog();
           updateCartBar();
           const billModalEl = document.getElementById("billModal");
@@ -3532,7 +3675,7 @@
     renderCatalog();
     updateCartBar();
     restoreVaultFromDB();
-    refreshLiveSapoStock(true);
+    refreshLiveSapoStock(true).then(() => discoverRepoMediaLive(false));
     setInterval(() => refreshLiveSapoStock(true), 5 * 60 * 1000);
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") refreshLiveSapoStock(true);
