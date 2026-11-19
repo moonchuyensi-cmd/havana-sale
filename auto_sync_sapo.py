@@ -3,19 +3,25 @@ import re
 import sys
 import glob
 import json
+import shutil
 import datetime
 import subprocess
 import unicodedata
 import urllib.request
+import zipfile as zf_mod
 
 # ==============================================================================
-# AUTO_SYNC_SAPO.PY (v10 - DYNAMIC CATEGORIES + PK TUI/GIAY/PHU KIEN + 5 KHO)
+# AUTO_SYNC_SAPO.PY (v12 - KHONG LAY ANH SAPO, 100% ANH/VIDEO TU UP NHU FILE SI)
+# - Chi lay Ton kho 5 chi nhanh + Gia goc tu Sapo. TUYET DOI KHONG lay anh san kho Sapo.
+# - Tu dong go sach moi link anh Sapo cu (dktcdn.net, mysapogo.com...) neu con sot.
+# - Tu dong giai nen media/*.zip va gan anh/video/bang size tu images/, videos/, sizes/.
+# - Ke ca khi Cookie Sapo tam het han, up anh moi len GitHub van tu cap nhat len web ngay!
 # ==============================================================================
 
-DEFAULT_COOKIE = '_ga=GA1.1.1979031352.1792116728; _fbp=fb.1.1792116728809.817733756256028406; ajs_anonymous_id=ca11853b-0818-4793-bcfe-026c09b55a6d; report_ver=3; ajs_user_id=havanago.mysapogo.com; _hjSessionUser_1081489=eyJpZCI6Ijc5NWM1NzQxLWZjMWYtNTFkMy1iYzQyLTAzNzY1MmJiYjIzYiIsImNyZWF0ZWQiOjE3OTI0NjQ1NjcwMTAsImV4aXN0aW5nIjp0cnVlfQ==; _gcl_au=1.1.1746560884.1792979800; _ga=GA1.3.1979031352.1792116728; promotion-v3=true; limitSuppliers=20; saveSettingPrintBulk=false; lang=vi; .AspNetCore.Session=CfDJ8DA1016STPdNrAaTdK2HgWdcBxfo8AgqDVnes%2F0679ty0Hk%2Fmg0l2OFbSkFlWiZMNf7TznALBbwZb%2Bj1LL4cKHruxmK%2B%2Bgc3O4DP%2BMdt6r8gRgWEEXBq24oGVhpCWIf96vOIRC4HvuCgvajQ1BM9tHUCWVyMtUKC67PjdxT4odBS; sapo-admin=CfDJ8DA1016STPdNrAaTdK2HgWeaKcobyzxTOswWEeLMFIbAXSNA-6RepjyX8BwGQdJV8vr80m30h-3bwPP5w7PdcEstsI9yx95WMieUYoditvJxOH5UZ-IgB_XSbM-CvHnXTrJ7UG0b0G_VtOeqDkeluNnncLmCPDdrfr7-1XTtBOk7Wy7byqfK6h1Ei1hz5wxg_L2v-aFcG2OkHPJZX4BWvc2LALPzaCWvV1_3NmX-gSvGhcTIzCVccvHJ1FI35WA2SrrW5G8XY7mlwBedGZfBZZPcLvsO_pjO3rocy2orMQXk9_HgeDeZ_UFm07Md5wsFlaD-o_0HV0xA4Y948wzusKI1bzYscwdGrYk3hZ7A33Hp-5yPevNkR_FkCqbCZxcy9ltjtG31iN1MkwZWKVouJMw07KycXZHgDIUPeGY45xLtNjUi532BYM8bSWJEgmJ3qVI_zbEaUTL6W6KyG46mHkHbF_iFIFzIQ12qDZeBEKnJh3kt8TmuJyZP7Z0xUK5CdyUV3ySFiV2704_CBUYMtoNxoHGVGNtwWcOVn4deWRumuU4rMMti8kymFTq4g9Ed9Yk502WLYNdJat8ex1oORnTE7xOu0JC4GbYcivfI7Q8Ahd_Z0bUUZxMhWyIiJofq_DKgKiGEQ7G4b5gzSebP3_LDIJ_rz1G2Vf_kA25KYBwhrMgATyGMKTm1bMyevINfDBtUfyKGErEIPH9x334pPOxb5G9tKQKFzMXQBNb0NDt370xo9VYYFsXoPJvop_m34Y2RhJhelMs23F8QYMLik6w; _admin_session_id=2c2a5c7d-fb8d-0054-4940-5a6f41dfb19e; _ga_4NX0F91DEX=GS2.1.s1794983461$o159$g1$t1794984328$j54$l0$h0; _ga_Z1V9QDBF2Q=GS2.1.s1794983460$o137$g1$t1794984329$j53$l0$h0'
-
+DEFAULT_COOKIE = ""
 DOMAIN = os.environ.get("SAPO_DOMAIN", "havanago.mysapogo.com").strip()
 SKU_REGEX = re.compile(r"^([A-Z]{1,5}\d{1,5})", re.I)
+SAPO_IMG_RX = re.compile(r"(dktcdn\.net|mysapogo\.com|sapo\.vn|sapogo\.com)", re.I)
 
 
 def vn_now_str() -> str:
@@ -36,6 +42,39 @@ def clean_base_code(val) -> str:
     raw = str(val or "").strip().upper().rstrip("-")
     m = SKU_REGEX.match(raw)
     return m.group(1).upper() if m else ""
+
+
+def is_sapo_cdn_url(url: str) -> bool:
+    u = str(url or "").strip()
+    if not u:
+        return False
+    return bool(SAPO_IMG_RX.search(u))
+
+
+def sanitize_custom_media_item(prod: dict) -> dict:
+    """Xoa sach anh san kho Sapo, chi giu lai anh/video/size do shop tu up."""
+    raw_imgs = prod.get("images") if isinstance(prod.get("images"), list) else []
+    clean_imgs = [u for u in raw_imgs if u and not is_sapo_cdn_url(u) and not str(u).startswith("data:image/svg+xml")]
+    main_img = str(prod.get("image") or "").strip()
+    if is_sapo_cdn_url(main_img) or main_img.startswith("data:image/svg+xml"):
+        main_img = ""
+    if not main_img and clean_imgs:
+        main_img = clean_imgs[0]
+    if main_img and main_img not in clean_imgs:
+        clean_imgs.insert(0, main_img)
+
+    vid = str(prod.get("video") or "").strip()
+    if is_sapo_cdn_url(vid):
+        vid = ""
+    sz_chart = str(prod.get("sizeChart") or "").strip()
+    if is_sapo_cdn_url(sz_chart):
+        sz_chart = ""
+
+    prod["image"] = main_img
+    prod["images"] = clean_imgs
+    prod["video"] = vid
+    prod["sizeChart"] = sz_chart
+    return prod
 
 
 def parse_money(val) -> int:
@@ -82,7 +121,7 @@ def build_headers() -> dict:
     cookie = os.environ.get("SAPO_COOKIE", "").strip() or DEFAULT_COOKIE
     if token:
         headers["X-Sapo-Access-Token"] = token
-    else:
+    elif cookie:
         headers["cookie"] = cookie
         headers["referer"] = f"https://{DOMAIN}/admin/products"
         headers["x-sapo-client"] = "sapo-frontend-v3"
@@ -182,34 +221,31 @@ def load_black_friday_rules() -> dict:
 
 
 def unpack_media_dropzone():
-    """Giong het file si Havana: neu user keo tha file .zip hoac thu muc ma (VD: media/CV593/ hoac media/CV593.zip)
-    len GitHub, he thong tu giai nen va phan loai vao images/, videos/, sizes/!"""
+    """Tu dong giai nen file .zip hoac thu muc ma trong media/ sang images/, videos/, sizes/ va don sach media/."""
     os.makedirs("images", exist_ok=True)
     os.makedirs("videos", exist_ok=True)
     os.makedirs("sizes", exist_ok=True)
     if not os.path.isdir("media"):
         return
 
-    import shutil
-    import zipfile as zf_mod
-
-    # 1. Giai nen cac file .zip trong media/
-    for zpath in glob.glob("media/*.zip"):
+    # 1. Giai nen moi file .zip trong media/
+    for zpath in sorted(glob.glob("media/*.zip")):
         base_zip_sku = os.path.splitext(os.path.basename(zpath))[0].upper()
         extract_dir = os.path.join("media", "_unzipped_" + base_zip_sku)
         try:
             with zf_mod.ZipFile(zpath, "r") as zf:
                 zf.extractall(extract_dir)
             os.remove(zpath)
+            print(f"[+] Da giai nen {zpath}")
         except Exception as e:
             print(f"[!] Loi giai nen {zpath}: {e}")
 
-    # 2. Quet toan bo file trong media/ (ke ca thu muc con VD: media/CV593/1.jpg)
+    # 2. Di chuyen anh/video/size tu media/ vao dung thu muc images/, videos/, sizes/
     for root, _, files in os.walk("media"):
         folder_hint = os.path.basename(root).replace("_unzipped_", "").upper()
-        sku_prefix = clean_base_code(folder_hint)
+        sku_prefix = clean_base_code(folder_hint) if folder_hint != "MEDIA" else ""
         for fname in sorted(files):
-            if fname.startswith("."):
+            if fname.startswith(".") or fname.lower() == "keep.txt":
                 continue
             src_path = os.path.join(root, fname)
             low = fname.lower()
@@ -219,17 +255,29 @@ def unpack_media_dropzone():
 
             if low.endswith((".mp4", ".mov", ".webm")):
                 shutil.copy2(src_path, os.path.join("videos", target_name))
+                os.remove(src_path)
             elif low.endswith((".jpg", ".jpeg", ".png", ".webp")):
                 if "size" in low or "bang_size" in low or "bangsize" in low:
                     shutil.copy2(src_path, os.path.join("sizes", target_name))
                 else:
                     shutil.copy2(src_path, os.path.join("images", target_name))
+                os.remove(src_path)
+
+    # Xoa cac thu muc tam trong media/ sau khi da phan loai xong, giu lai media/keep.txt
+    for entry in os.listdir("media"):
+        full_e = os.path.join("media", entry)
+        if os.path.isdir(full_e):
+            shutil.rmtree(full_e, ignore_errors=True)
+    keep_file = os.path.join("media", "keep.txt")
+    if not os.path.exists(keep_file):
+        with open(keep_file, "w", encoding="utf-8") as f:
+            f.write("Drop SKU folders, images, videos, or .zip files here.\n")
 
 
 def scan_repo_media_folders(codes: list) -> dict:
-    """Quet thu muc images/, videos/, sizes/ voi Regex bien gioi nghiem ngat (sap xep ma dai truoc)!"""
+    """Quet thu muc images/, videos/, sizes/ voi Regex bien gioi nghiem ngat (sap xep ma dai truoc)."""
     unpack_media_dropzone()
-    sorted_codes = sorted(set(codes), key=len, reverse=True)
+    sorted_codes = sorted(set(c.upper() for c in codes if c), key=len, reverse=True)
     compiled = [(c, re.compile(rf"(^|[^A-Z0-9]){re.escape(c)}([^A-Z0-9]|$)")) for c in sorted_codes]
     media_map = {}
 
@@ -303,7 +351,7 @@ def infer_category(code: str, pname: str, sub_type: str = "") -> str:
             return "PK_TUI_XACH"
         if re.search(r"(giày|dép|guốc|sandal|sục|boot|bốt|cao gót|búp bê|mary jane)", hint):
             return "PK_GIAY_DEP"
-        if re.search(r"(túi|ví|balo|ba lô|clutch|tote|đeo chéo|kẹp nách)", hint):
+        if re.search(r"(túi|\bví\b|balo|ba lô|clutch|tote|đeo chéo|kẹp nách)", hint):
             return "PK_TUI_XACH"
         return "PK_PHU_KIEN"
 
@@ -360,43 +408,119 @@ def extract_base_code_from_sapo_product(p: dict, sale_rules: dict) -> str:
     return candidates[0] if candidates else ""
 
 
+def write_outputs(warehouses_sorted: list, products_out: list, synced_at_str: str):
+    payload = {
+        "synced_at": synced_at_str,
+        "warehouses": warehouses_sorted,
+        "products": products_out,
+    }
+    with open("sapo_5_kho.json", "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+
+    if os.path.exists("index.html") and products_out:
+        with open("index.html", "r", encoding="utf-8") as f:
+            html_src = f.read()
+        s_i = html_src.find("/* [BLOCK:DATA_CONFIG_START] */")
+        e_i = html_src.find("/* [BLOCK:DATA_CONFIG_END] */")
+        if s_i != -1 and e_i > s_i:
+            e_i += len("/* [BLOCK:DATA_CONFIG_END] */")
+            wh_js = json.dumps(warehouses_sorted, ensure_ascii=False, indent=6)
+            pr_js = json.dumps(products_out, ensure_ascii=False, indent=6)
+            new_blk = f"/* [BLOCK:DATA_CONFIG_START] */\n    let WAREHOUSE_CONFIG = {wh_js};\n    let PRODUCTS = {pr_js};\n    /* [BLOCK:DATA_CONFIG_END] */"
+            with open("index.html", "w", encoding="utf-8") as f:
+                f.write(html_src[:s_i] + new_blk + html_src[e_i:])
+
+
+def apply_custom_media_to_list(products_list: list, preserved_by_sku: dict) -> list:
+    codes = [str(p.get("sku") or "").upper() for p in products_list]
+    repo_media = scan_repo_media_folders(codes)
+
+    for p in products_list:
+        sanitize_custom_media_item(p)
+        code = str(p.get("sku") or "").upper()
+        prev = preserved_by_sku.get(code, {})
+        repo_m = repo_media.get(code, {})
+
+        # Uu tien 1: File trong images/, videos/, sizes/ tren kho GitHub
+        # Uu tien 2: Media tu up da luu truoc do (khong phai link Sapo)
+        imgs = repo_m.get("images") or prev.get("images") or p.get("images") or []
+        vid = repo_m.get("video") or prev.get("video") or p.get("video") or ""
+        szc = repo_m.get("sizeChart") or prev.get("sizeChart") or p.get("sizeChart") or ""
+
+        p["images"] = imgs
+        p["image"] = imgs[0] if imgs else ""
+        p["video"] = vid
+        p["sizeChart"] = szc
+
+    return products_list
+
+
 def main():
     sale_rules = load_black_friday_rules()
     filter_only_bf = len(sale_rules) > 0
-    headers = build_headers()
 
+    # Doc du lieu cu (neu co) de bao toan media tu up & lam fallback khi Sapo tam ngat
+    existing_warehouses = []
+    existing_products = []
+    preserved_media_by_sku = {}
+    if os.path.exists("sapo_5_kho.json"):
+        try:
+            with open("sapo_5_kho.json", "r", encoding="utf-8") as f:
+                old_data = json.load(f)
+            existing_warehouses = old_data.get("warehouses") or []
+            existing_products = old_data.get("products") or []
+            for op in existing_products:
+                sanitize_custom_media_item(op)
+                c = str(op.get("sku") or "").upper()
+                if c:
+                    preserved_media_by_sku[c] = {
+                        "images": op.get("images") or [],
+                        "video": op.get("video") or "",
+                        "sizeChart": op.get("sizeChart") or "",
+                    }
+        except Exception:
+            pass
+
+    headers = build_headers()
     loc_meta = {}
     all_products = []
 
-    try:
-        print(f"[{vn_now_str()}] Dang dong bo tu dong 5 chi nhanh Sapo ({DOMAIN})...")
+    if "cookie" in headers or "X-Sapo-Access-Token" in headers:
         try:
-            ldata = fetch_json("/admin/locations.json", headers)
-            for idx, loc in enumerate(ldata.get("locations", [])):
-                raw_id = str(loc["id"])
-                # Sapo Go tra ten chi nhanh trong truong 'label' hoac 'name'
-                raw_loc_name = loc.get("label") or loc.get("name") or loc.get("location_name") or loc.get("address1") or loc.get("code") or ""
-                wid, label, order = map_exact_havana_branch(raw_loc_name, raw_id, 10 + idx)
-                loc_meta[raw_id] = {"id": wid, "sapo_name": raw_loc_name, "name": label, "order": order}
-        except Exception as e:
-            print("[*] Loi nhe khi doc locations.json:", e)
+            print(f"[{vn_now_str()}] Dang dong bo ton kho 5 chi nhanh Sapo (KHONG lay anh Sapo)...")
+            try:
+                ldata = fetch_json("/admin/locations.json", headers)
+                for idx, loc in enumerate(ldata.get("locations", [])):
+                    raw_id = str(loc["id"])
+                    raw_loc_name = loc.get("label") or loc.get("name") or loc.get("location_name") or loc.get("address1") or loc.get("code") or ""
+                    wid, label, order = map_exact_havana_branch(raw_loc_name, raw_id, 10 + idx)
+                    loc_meta[raw_id] = {"id": wid, "sapo_name": raw_loc_name, "name": label, "order": order}
+            except Exception as e:
+                print("[*] Loi nhe khi doc locations.json:", e)
 
-        page = 1
-        while page <= 60:
-            pdata = fetch_json(f"/admin/products.json?page={page}&limit=250", headers)
-            batch = pdata.get("products", [])
-            if not batch:
-                break
-            all_products.extend(batch)
-            if len(batch) < 250:
-                break
-            page += 1
-        print(f"[*] Da quet tong cong {len(all_products)} san pham tren Sapo.")
-    except Exception as err:
-        print(f"[!] Khong ket noi duoc Sapo API ({err}). Giu nguyen du lieu cu an toan!")
-        return
+            page = 1
+            while page <= 60:
+                pdata = fetch_json(f"/admin/products.json?page={page}&limit=250", headers)
+                batch = pdata.get("products", [])
+                if not batch:
+                    break
+                all_products.extend(batch)
+                if len(batch) < 250:
+                    break
+                page += 1
+            print(f"[*] Da quet {len(all_products)} san pham tren Sapo.")
+        except Exception as err:
+            print(f"[!] Sapo API tam ngat ({err}) -> Van tiep tuc go anh Sapo cu & cap nhat anh/video tu up!")
 
     if not all_products:
+        # Fallback: van giai nen media/*.zip, go sach anh Sapo cu va cap nhat anh tu up ngay lap tuc!
+        if existing_products:
+            cleaned = apply_custom_media_to_list(existing_products, preserved_media_by_sku)
+            write_outputs(existing_warehouses, cleaned, vn_now_str())
+            with_img = sum(1 for x in cleaned if x.get("image") or x.get("video"))
+            print(f"[+] Da go sach anh Sapo & cap nhat Media tu up cho {with_img}/{len(cleaned)} ma!")
+        else:
+            unpack_media_dropzone()
         return
 
     grouped_by_code = {}
@@ -419,13 +543,6 @@ def main():
             sale_price = int(round(orig_price * (100 - disc_pct) / 1000.0) * 1000)
         if orig_price > 0 and 0 < sale_price < orig_price:
             disc_pct = max(1, round((1.0 - sale_price / orig_price) * 100))
-
-        sapo_imgs = []
-        for im in (p.get("images") or []):
-            u = im.get("full_path") or im.get("path") or ""
-            if u and u not in sapo_imgs:
-                sapo_imgs.append(u)
-        img_url = sapo_imgs[0] if sapo_imgs else ""
 
         v_list = []
         for v in variants_raw:
@@ -453,9 +570,8 @@ def main():
 
         if key in grouped_by_code:
             grouped_by_code[key]["variants"].extend(v_list)
-            if not grouped_by_code[key]["image"] and img_url:
-                grouped_by_code[key]["image"] = img_url
         else:
+            # TUYET DOI KHONG lay p["images"] tu Sapo! De trong de gan anh tu up.
             grouped_by_code[key] = {
                 "sku": key,
                 "name": pname_nfc,
@@ -464,53 +580,23 @@ def main():
                 "origPrice": orig_price,
                 "salePrice": sale_price,
                 "discountPct": disc_pct,
-                "image": img_url,
-                "images": sapo_imgs,
+                "image": "",
+                "images": [],
                 "video": "",
                 "sizeChart": "",
                 "variants": v_list,
             }
 
-    custom_media = scan_repo_media_folders(list(grouped_by_code.keys()))
-    for code, mdata in custom_media.items():
-        if code in grouped_by_code:
-            if mdata["images"]:
-                grouped_by_code[code]["image"] = mdata["images"][0]
-                grouped_by_code[code]["images"] = mdata["images"]
-            if mdata["video"]:
-                grouped_by_code[code]["video"] = mdata["video"]
-            if mdata["sizeChart"]:
-                grouped_by_code[code]["sizeChart"] = mdata["sizeChart"]
-
-    products_out = list(grouped_by_code.values())
+    products_out = apply_custom_media_to_list(list(grouped_by_code.values()), preserved_media_by_sku)
     warehouses_sorted = [
         {k: v for k, v in item.items() if k != "order"}
         for item in sorted(loc_meta.values(), key=lambda x: x["order"])
     ]
 
-    payload = {
-        "synced_at": vn_now_str(),
-        "warehouses": warehouses_sorted,
-        "products": products_out,
-    }
-
-    with open("sapo_5_kho.json", "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
-
-    if os.path.exists("index.html") and products_out:
-        with open("index.html", "r", encoding="utf-8") as f:
-            html_src = f.read()
-        s_i = html_src.find("/* [BLOCK:DATA_CONFIG_START] */")
-        e_i = html_src.find("/* [BLOCK:DATA_CONFIG_END] */")
-        if s_i != -1 and e_i > s_i:
-            e_i += len("/* [BLOCK:DATA_CONFIG_END] */")
-            wh_js = json.dumps(warehouses_sorted, ensure_ascii=False, indent=6)
-            pr_js = json.dumps(products_out, ensure_ascii=False, indent=6)
-            new_blk = f"/* [BLOCK:DATA_CONFIG_START] */\n    let WAREHOUSE_CONFIG = {wh_js};\n    let PRODUCTS = {pr_js};\n    /* [BLOCK:DATA_CONFIG_END] */"
-            with open("index.html", "w", encoding="utf-8") as f:
-                f.write(html_src[:s_i] + new_blk + html_src[e_i:])
-
-    print(f"[+] Hoan tat Auto-Sync v10: {len(products_out)} mau Black Friday & 5 kho Sapo luc {payload['synced_at']}!")
+    now_stamp = vn_now_str()
+    write_outputs(warehouses_sorted, products_out, now_stamp)
+    with_media = sum(1 for x in products_out if x.get("image") or x.get("video"))
+    print(f"[+] Hoan tat Auto-Sync v12 (0% anh Sapo): {len(products_out)} ma ({with_media} ma da co anh/video tu up) luc {now_stamp}!")
 
 
 if __name__ == "__main__":

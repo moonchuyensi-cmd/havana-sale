@@ -1,1 +1,1 @@
-
+Drop SKU folders, images, videos, or .zip files here.

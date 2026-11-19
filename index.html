@@ -1399,6 +1399,63 @@
         padding-bottom: env(safe-area-inset-bottom, 12px);
       }
     }
+    
+    /* === v12: ADMIN MEDIA VAULT & CARD UPLOADER (HIDDEN FROM PUBLIC GUESTS) === */
+    .admin-vault-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 14px;
+      margin-top: 12px;
+    }
+    @media (max-width: 760px) {
+      .admin-vault-grid { grid-template-columns: 1fr; }
+    }
+    .vault-dropzone {
+      border: 2px dashed var(--havana-teal);
+      border-radius: 14px;
+      background: var(--havana-mint-pale);
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    .vault-dropzone:hover, .vault-dropzone.dragover {
+      background: #dff4f2;
+      border-color: var(--havana-teal-dark);
+    }
+    .card-admin-upload-btn {
+      display: none;
+      position: absolute;
+      top: 42px;
+      right: 10px;
+      z-index: 6;
+      border: 1px solid rgba(255,255,255,0.85);
+      background: rgba(17, 48, 46, 0.86);
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 9px;
+      border-radius: 9px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+    body.is-admin .card-admin-upload-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .admin-media-filter-bar {
+      display: none;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed rgba(36, 124, 118, 0.25);
+    }
+    body.is-admin .admin-media-filter-bar {
+      display: flex;
+    }
     /* [BLOCK:CSS_CORE_END] */
   </style>
 </head>
@@ -1455,20 +1512,63 @@
     <!-- [BLOCK:ADMIN_PANEL_START] -->
     <section class="admin-bar" id="adminPanel">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-        <strong>Bảng Quản Trị Black Friday (Chỉ lấy các mẫu trong danh sách Sale)</strong>
-        <button class="pill-btn" onclick="document.body.classList.remove('is-admin')">Ẩn bảng này</button>
+        <div>
+          <strong style="font-size:14.5px;color:var(--havana-teal-dark);">Bảng Quản Trị Ảnh &amp; Giá Black Friday (Chế độ Không Lấy Ảnh Sapo)</strong>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Chỉ hiển thị hình ảnh &amp; video do m tự tải lên — đã khóa hoàn toàn ảnh sàn kho Sapo.</div>
+        </div>
+        <button type="button" class="pill-btn" onclick="document.body.classList.remove('is-admin')">Đóng bảng Admin</button>
       </div>
-      <div style="margin-top:10px;">
-        <div style="font-size:12px;font-weight:600;margin-bottom:4px;">Dán nhanh từ Excel (Mỗi dòng: <code>MÃ GIÁ_SALE</code> ví dụ <code>AD251 159000</code> hoặc <code>MÃ %GIẢM</code> ví dụ <code>AO1016 35%</code>):</div>
-        <textarea class="admin-textarea" id="discountInput" placeholder="AD190 159000&#10;AD251 159000&#10;PK822 79000&#10;PK1032 159000"></textarea>
-        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="pill-btn active" onclick="applyBulkDiscounts()">Cập nhật Giá Giảm &amp; Lọc Mã</button>
-          <label class="pill-btn" style="cursor:pointer;">
-            Nạp file sapo_5_kho.json (Đã lọc từ Sapo + Excel)
-            <input type="file" accept=".json" style="display:none" onchange="loadSapoJsonFile(event)" />
-          </label>
+
+      <div class="admin-vault-grid">
+        <!-- Cột 1: Kho nạp Ảnh / Video / Bảng Size giống File Sỉ -->
+        <div class="vault-dropzone" id="vaultDropzone"
+             ondragover="event.preventDefault(); this.classList.add('dragover')"
+             ondragleave="this.classList.remove('dragover')"
+             ondrop="handleVaultDrop(event)">
+          <div style="font-size:13.5px;font-weight:800;color:var(--havana-teal-dark);margin-bottom:4px;">
+            📸 Kéo thả Ảnh / Video / Bảng Size vào đây (Hoặc bấm nút dưới)
+          </div>
+          <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:10px;line-height:1.4;">
+            Tự nhận diện Mã SKU trong tên file (VD: <code>CV593_1.jpg</code>, <code>CV593.mp4</code>, <code>CV593_size.jpg</code>) hoặc bấm nút <strong>📷 Up ảnh</strong> trên từng thẻ sản phẩm bên dưới!
+          </div>
+          <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+            <label class="pill-btn active" style="cursor:pointer;">
+              + Chọn Nhiều Ảnh / Video
+              <input type="file" multiple accept="image/*,video/mp4,video/quicktime,video/webm" style="display:none" onchange="handleVaultFiles(this.files)" />
+            </label>
+            <label class="pill-btn" style="cursor:pointer;">
+              📁 Chọn Cả Thư Mục
+              <input type="file" webkitdirectory directory multiple style="display:none" onchange="handleVaultFiles(this.files)" />
+            </label>
+            <button type="button" class="pill-btn" style="border-color:var(--havana-teal);color:var(--havana-teal-dark);" onclick="exportAdminMediaZip()" id="exportMediaZipBtn">
+              📦 Xuất media_havana.zip đẩy lên GitHub
+            </button>
+          </div>
+          <div style="font-size:11.5px;font-weight:700;color:var(--ok-green);margin-top:8px;" id="vaultStatusText"></div>
+        </div>
+
+        <!-- Cột 2: Nạp nhanh giá giảm / JSON -->
+        <div>
+          <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Dán nhanh Mã &amp; Giá Sale (VD: <code>AD251 159000</code>):</div>
+          <textarea class="admin-textarea" id="discountInput" style="min-height:74px;" placeholder="AD190 159000&#10;CV593 79000&#10;PK995 79000"></textarea>
+          <div style="margin-top:7px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="pill-btn active" onclick="applyBulkDiscounts()">Cập nhật Giá Sale</button>
+            <label class="pill-btn" style="cursor:pointer;">
+              Nạp sapo_5_kho.json
+              <input type="file" accept=".json" style="display:none" onchange="loadSapoJsonFile(event)" />
+            </label>
+          </div>
         </div>
       </div>
+
+      <!-- Bộ lọc kiểm tra tiến độ up ảnh dành riêng cho Admin -->
+      <div class="admin-media-filter-bar" id="adminMediaFilterBar">
+        <span style="font-size:12px;font-weight:800;color:var(--havana-teal-dark);">Lọc kiểm tra ảnh (Admin):</span>
+        <button type="button" class="pill-btn active" onclick="setAdminMediaFilter('ALL', this)" id="admFilterAll">Tất cả mẫu</button>
+        <button type="button" class="pill-btn" onclick="setAdminMediaFilter('MISSING', this)" id="admFilterMissing">Chưa có ảnh tự up</button>
+        <button type="button" class="pill-btn" onclick="setAdminMediaFilter('HAS_MEDIA', this)" id="admFilterHas">Đã có ảnh / video</button>
+      </div>
+      <input type="file" id="singleSkuFileInput" multiple accept="image/*,video/mp4,video/quicktime,video/webm" style="display:none" onchange="handleSingleSkuFiles(this.files)" />
     </section>
     <!-- [BLOCK:ADMIN_PANEL_END] -->
 
@@ -1658,15 +1758,17 @@
     ];
 
     function svgPlaceholder(code, title, bg1, bg2) {
-      const safeTitle = (title || code).slice(0, 32);
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="690" viewBox="0 0 600 690">
-        <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${bg1}"/><stop offset="100%" stop-color="${bg2}"/></linearGradient></defs>
-        <rect width="600" height="690" fill="url(#g)"/>
-        <circle cx="490" cy="120" r="140" fill="rgba(255,255,255,0.22)"/>
-        <rect x="44" y="470" width="512" height="168" rx="22" fill="rgba(255,255,255,0.88)"/>
-        <text x="72" y="522" font-family="sans-serif" font-size="23" font-weight="800" fill="#165954">${code}</text>
-        <text x="72" y="562" font-family="sans-serif" font-size="22" font-weight="700" fill="#111827">${safeTitle}</text>
-        <text x="72" y="602" font-family="sans-serif" font-size="16" fill="#52706e">Havana Black Friday • Sapo Live Stock</text>
+      const safeTitle = String(title || code).replace(/[<>&"]/g, "").slice(0, 30);
+      const safeCode = String(code || "").replace(/[<>&"]/g, "");
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="740" viewBox="0 0 600 740">
+        <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${bg1 || '#d7f0ed'}"/><stop offset="100%" stop-color="${bg2 || '#f2fbfa'}"/></linearGradient></defs>
+        <rect width="600" height="740" fill="url(#g)"/>
+        <circle cx="300" cy="265" r="88" fill="rgba(255,255,255,0.55)"/>
+        <text x="300" y="276" text-anchor="middle" font-family="sans-serif" font-size="28" font-weight="800" fill="#165954" letter-spacing="2">HAVANA</text>
+        <rect x="42" y="495" width="516" height="185" rx="24" fill="rgba(255,255,255,0.92)"/>
+        <text x="72" y="548" font-family="sans-serif" font-size="26" font-weight="800" fill="#165954">${safeCode}</text>
+        <text x="72" y="590" font-family="sans-serif" font-size="20" font-weight="700" fill="#11302e">${safeTitle}</text>
+        <text x="72" y="632" font-family="sans-serif" font-size="16" font-weight="600" fill="#52706e">Đang cập nhật ảnh chụp mẫu Havana</text>
       </svg>`;
       return "data:image/svg+xml;utf8," + encodeURIComponent(svg);
     }
@@ -1897,7 +1999,7 @@
       if (Array.isArray(savedCart)) cart = savedCart;
     } catch (_) {}
 
-    if (location.search.includes("admin=1")) {
+    if (location.protocol === "file:" || location.search.includes("admin=1")) {
       document.body.classList.add("is-admin");
     }
 
@@ -2125,19 +2227,336 @@
       return FALLBACK_BRANCH_NAMES[idx] || ("Chi nhánh " + (idx + 1));
     }
 
+    const SAPO_CDN_REGEX = /(dktcdn\.net|mysapogo\.com|sapo\.vn|sapogo\.com)/i;
+    let adminMediaFilter = "ALL";
+    let vaultBlobsMap = {}; // { "images/CV593_01.webp": Blob, "videos/CV593.mp4": Blob, "sizes/CV593_size.webp": Blob }
+    let vaultObjectUrlsBySku = {}; // { SKU: { images: [url...], video: url, sizeChart: url } }
+    let pendingUploadSku = "";
+
+    function isSapoImageUrl(url) {
+      const s = String(url || "").trim();
+      if (!s) return false;
+      return SAPO_CDN_REGEX.test(s);
+    }
+
+    function stripSapoImagesFromProducts(list) {
+      if (!Array.isArray(list)) return;
+      list.forEach((p) => {
+        if (isSapoImageUrl(p.image) || String(p.image || "").startsWith("data:image/svg+xml")) {
+          p.image = "";
+        }
+        if (Array.isArray(p.images)) {
+          p.images = p.images.filter((u) => u && !isSapoImageUrl(u) && !String(u).startsWith("data:image/svg+xml"));
+        } else {
+          p.images = [];
+        }
+        if (!p.image && p.images.length) {
+          p.image = p.images[0];
+        }
+        if (isSapoImageUrl(p.video)) p.video = "";
+        if (isSapoImageUrl(p.sizeChart)) p.sizeChart = "";
+      });
+    }
+
+    function hasCustomProductMedia(p) {
+      const vLocal = vaultObjectUrlsBySku[p.sku];
+      if (vLocal && ((vLocal.images && vLocal.images.length) || vLocal.video)) return true;
+      if (p.video && !isSapoImageUrl(p.video)) return true;
+      if (Array.isArray(p.images) && p.images.some((u) => u && !isSapoImageUrl(u) && !String(u).startsWith("data:image/svg+xml"))) return true;
+      if (p.image && !isSapoImageUrl(p.image) && !String(p.image).startsWith("data:image/svg+xml")) return true;
+      return false;
+    }
+
+    function getProductSizeChart(p) {
+      const vLocal = vaultObjectUrlsBySku[p.sku];
+      if (vLocal && vLocal.sizeChart) return vLocal.sizeChart;
+      return (p.sizeChart && !isSapoImageUrl(p.sizeChart)) ? p.sizeChart : "";
+    }
+
     function getProductSlides(p) {
       const slides = [];
-      if (p.video) {
-        slides.push({ type: "video", src: p.video, poster: p.image || (Array.isArray(p.images) && p.images[0]) || "" });
+      const vLocal = vaultObjectUrlsBySku[p.sku];
+      const videoSrc = (vLocal && vLocal.video) || (!isSapoImageUrl(p.video) ? p.video : "");
+      const localImgs = (vLocal && vLocal.images && vLocal.images.length) ? vLocal.images : null;
+      const repoImgs = Array.isArray(p.images) && p.images.length
+        ? p.images.filter((u) => u && !isSapoImageUrl(u) && !String(u).startsWith("data:image/svg+xml"))
+        : ((p.image && !isSapoImageUrl(p.image) && !String(p.image).startsWith("data:image/svg+xml")) ? [p.image] : []);
+      const finalImgs = localImgs || repoImgs;
+
+      if (videoSrc) {
+        slides.push({ type: "video", src: videoSrc, poster: finalImgs[0] || svgPlaceholder(p.sku, p.name, "#d8f1ef", "#eef9f8") });
       }
-      const imgs = Array.isArray(p.images) && p.images.length ? p.images : (p.image ? [p.image] : []);
-      imgs.forEach((src) => {
+      finalImgs.forEach((src) => {
         if (src) slides.push({ type: "image", src });
       });
       if (!slides.length) {
         slides.push({ type: "image", src: svgPlaceholder(p.sku, p.name, "#d8f1ef", "#eef9f8") });
       }
       return slides;
+    }
+
+    function updateAdminMediaStats() {
+      const totalPool = PRODUCTS.filter((p) => !onlyInStock || getProductTotal(p) > 0);
+      const hasCnt = totalPool.filter((p) => hasCustomProductMedia(p)).length;
+      const missCnt = totalPool.length - hasCnt;
+      const bAll = document.getElementById("admFilterAll");
+      const bMiss = document.getElementById("admFilterMissing");
+      const bHas = document.getElementById("admFilterHas");
+      if (bAll) bAll.textContent = `Tất cả (${totalPool.length})`;
+      if (bMiss) bMiss.textContent = `Chưa có ảnh (${missCnt})`;
+      if (bHas) bHas.textContent = `Đã có ảnh (${hasCnt})`;
+      const stEl = document.getElementById("vaultStatusText");
+      const blobCount = Object.keys(vaultBlobsMap).length;
+      if (stEl) {
+        stEl.textContent = blobCount > 0
+          ? `Đã nạp tạm ${blobCount} file vào trình duyệt — Bấm "📦 Xuất media_havana.zip" rồi kéo thả vào thư mục media/ trên GitHub để lưu vĩnh viễn!`
+          : "";
+      }
+    }
+
+    function setAdminMediaFilter(mode, btn) {
+      adminMediaFilter = mode;
+      document.querySelectorAll("#adminMediaFilterBar .pill-btn").forEach((b) => b.classList.remove("active"));
+      if (btn) btn.classList.add("active");
+      renderCatalog();
+    }
+
+    // === IndexedDB Persistence for Admin Preview Vault ===
+    function openVaultDB() {
+      return new Promise((resolve, reject) => {
+        if (!("indexedDB" in window)) return resolve(null);
+        const req = indexedDB.open("HavanaSaleMediaVault_v12", 1);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains("files")) {
+            db.createObjectStore("files", { keyPath: "path" });
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve(null);
+      });
+    }
+
+    async function saveBlobToVaultDB(path, sku, kind, blob) {
+      vaultBlobsMap[path] = blob;
+      if (!vaultObjectUrlsBySku[sku]) {
+        vaultObjectUrlsBySku[sku] = { images: [], video: "", sizeChart: "" };
+      }
+      const objUrl = URL.createObjectURL(blob);
+      if (kind === "video") vaultObjectUrlsBySku[sku].video = objUrl;
+      else if (kind === "size") vaultObjectUrlsBySku[sku].sizeChart = objUrl;
+      else vaultObjectUrlsBySku[sku].images.push(objUrl);
+
+      const db = await openVaultDB();
+      if (!db) return;
+      const tx = db.transaction("files", "readwrite");
+      tx.objectStore("files").put({ path, sku, kind, blob });
+    }
+
+    async function restoreVaultFromDB() {
+      const db = await openVaultDB();
+      if (!db) return;
+      const tx = db.transaction("files", "readonly");
+      const req = tx.objectStore("files").getAll();
+      req.onsuccess = () => {
+        const rows = req.result || [];
+        if (!rows.length) return;
+        rows.sort((a, b) => a.path.localeCompare(b.path));
+        rows.forEach((r) => {
+          vaultBlobsMap[r.path] = r.blob;
+          if (!vaultObjectUrlsBySku[r.sku]) {
+            vaultObjectUrlsBySku[r.sku] = { images: [], video: "", sizeChart: "" };
+          }
+          const u = URL.createObjectURL(r.blob);
+          if (r.kind === "video") vaultObjectUrlsBySku[r.sku].video = u;
+          else if (r.kind === "size") vaultObjectUrlsBySku[r.sku].sizeChart = u;
+          else vaultObjectUrlsBySku[r.sku].images.push(u);
+        });
+        updateAdminMediaStats();
+        renderCatalog();
+      };
+    }
+
+    function compressImageClientSide(file, maxDim = 1600) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        const tmpUrl = URL.createObjectURL(file);
+        img.onload = () => {
+          URL.revokeObjectURL(tmpUrl);
+          let w = img.naturalWidth || img.width;
+          let h = img.naturalHeight || img.height;
+          if (Math.max(w, h) > maxDim) {
+            const r = maxDim / Math.max(w, h);
+            w = Math.round(w * r);
+            h = Math.round(h * r);
+          }
+          const cv = document.createElement("canvas");
+          cv.width = w;
+          cv.height = h;
+          const ctx = cv.getContext("2d");
+          ctx.drawImage(img, 0, 0, w, h);
+          cv.toBlob((blob) => resolve(blob || file), "image/webp", 0.86);
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(tmpUrl);
+          resolve(file);
+        };
+        img.src = tmpUrl;
+      });
+    }
+
+    function matchSkuStrict(filenameUpper, sortedCodes) {
+      for (const code of sortedCodes) {
+        const escaped = code.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const rx = new RegExp(`(^|[^A-Z0-9])${escaped}([^A-Z0-9]|$)`);
+        if (rx.test(filenameUpper)) return code;
+      }
+      return "";
+    }
+
+    function triggerSingleSkuUpload(sku) {
+      pendingUploadSku = sku;
+      const inp = document.getElementById("singleSkuFileInput");
+      if (inp) {
+        inp.value = "";
+        inp.click();
+      }
+    }
+
+    async function handleSingleSkuFiles(fileList) {
+      if (!pendingUploadSku || !fileList || !fileList.length) return;
+      await ingestFilesIntoVault(fileList, pendingUploadSku);
+      updateSingleCardDOM(pendingUploadSku);
+      updateAdminMediaStats();
+    }
+
+    function handleVaultDrop(ev) {
+      ev.preventDefault();
+      document.getElementById("vaultDropzone")?.classList.remove("dragover");
+      if (ev.dataTransfer && ev.dataTransfer.files) {
+        handleVaultFiles(ev.dataTransfer.files);
+      }
+    }
+
+    async function handleVaultFiles(fileList) {
+      if (!fileList || !fileList.length) return;
+      await ingestFilesIntoVault(fileList, "");
+      updateAdminMediaStats();
+      renderCatalog();
+    }
+
+    async function ingestFilesIntoVault(fileList, forcedSku = "") {
+      const sortedCodes = PRODUCTS.map((p) => p.sku.toUpperCase()).sort((a, b) => b.length - a.length);
+      let matchedCount = 0;
+      const perSkuCounter = {};
+
+      if (forcedSku && vaultObjectUrlsBySku[forcedSku]) {
+        // Neu up lai anh cho 1 ma cu the -> lam moi danh sach anh cua ma do
+        vaultObjectUrlsBySku[forcedSku].images = [];
+      }
+
+      for (const file of Array.from(fileList)) {
+        const relName = (file.webkitRelativePath || file.name || "").toUpperCase();
+        const sku = forcedSku || matchSkuStrict(relName, sortedCodes);
+        if (!sku) continue;
+
+        const low = file.name.toLowerCase();
+        if (low.endsWith(".mp4") || low.endsWith(".mov") || low.endsWith(".webm")) {
+          const ext = low.slice(low.lastIndexOf("."));
+          await saveBlobToVaultDB(`videos/${sku}${ext}`, sku, "video", file);
+          matchedCount++;
+        } else if (low.endsWith(".jpg") || low.endsWith(".jpeg") || low.endsWith(".png") || low.endsWith(".webp")) {
+          const isSize = low.includes("size") || low.includes("bang_size") || low.includes("bangsize");
+          const webpBlob = await compressImageClientSide(file, isSize ? 1800 : 1550);
+          if (isSize) {
+            await saveBlobToVaultDB(`sizes/${sku}_size.webp`, sku, "size", webpBlob);
+          } else {
+            perSkuCounter[sku] = (perSkuCounter[sku] || 0) + 1;
+            const idxStr = String(perSkuCounter[sku]).padStart(2, "0");
+            await saveBlobToVaultDB(`images/${sku}_${idxStr}.webp`, sku, "image", webpBlob);
+          }
+          matchedCount++;
+        }
+      }
+
+      if (matchedCount > 0) {
+        showToast(`✅ Đã nạp & làm nét ${matchedCount} file ảnh/video! Bấm "📦 Xuất media_havana.zip" để đẩy lên GitHub.`);
+      } else {
+        showToast("⚠️ Không tìm thấy Mã SKU khớp tên file! Hãy đặt tên chứa Mã (VD: CV593_1.jpg) hoặc bấm 📷 Up ảnh ngay trên thẻ.");
+      }
+    }
+
+    // Pure-JS Uncompressed ZIP Builder (Zero external libraries, instant download!)
+    function crc32Bytes(u8) {
+      let c = -1;
+      for (let i = 0; i < u8.length; i++) {
+        c ^= u8[i];
+        for (let k = 0; k < 8; k++) c = (c >>> 1) ^ (0xedb88320 & -(c & 1));
+      }
+      return (c ^ -1) >>> 0;
+    }
+
+    async function exportAdminMediaZip() {
+      const paths = Object.keys(vaultBlobsMap);
+      if (!paths.length) {
+        showToast("Chưa có ảnh/video mới nào trong trình duyệt để xuất ZIP!");
+        return;
+      }
+      showToast("⏳ Đang đóng gói media_havana.zip...");
+      const enc = new TextEncoder();
+      const localParts = [];
+      const centralParts = [];
+      let offset = 0;
+
+      for (const path of paths) {
+        const blob = vaultBlobsMap[path];
+        const data = new Uint8Array(await blob.arrayBuffer());
+        const nameBytes = enc.encode(path);
+        const crc = crc32Bytes(data);
+
+        const lh = new Uint8Array(30 + nameBytes.length);
+        const lhv = new DataView(lh.buffer);
+        lhv.setUint32(0, 0x04034b50, true);
+        lhv.setUint16(4, 20, true);
+        lhv.setUint32(14, crc, true);
+        lhv.setUint32(18, data.length, true);
+        lhv.setUint32(22, data.length, true);
+        lhv.setUint16(26, nameBytes.length, true);
+        lh.set(nameBytes, 30);
+
+        localParts.push(lh, data);
+
+        const ch = new Uint8Array(46 + nameBytes.length);
+        const chv = new DataView(ch.buffer);
+        chv.setUint32(0, 0x02014b50, true);
+        chv.setUint16(4, 20, true);
+        chv.setUint16(6, 20, true);
+        chv.setUint32(16, crc, true);
+        chv.setUint32(20, data.length, true);
+        chv.setUint32(24, data.length, true);
+        chv.setUint16(28, nameBytes.length, true);
+        chv.setUint32(42, offset, true);
+        ch.set(nameBytes, 46);
+        centralParts.push(ch);
+
+        offset += lh.length + data.length;
+      }
+
+      const cdSize = centralParts.reduce((a, b) => a + b.length, 0);
+      const eocd = new Uint8Array(22);
+      const ev = new DataView(eocd.buffer);
+      ev.setUint32(0, 0x06054b50, true);
+      ev.setUint16(8, paths.length, true);
+      ev.setUint16(10, paths.length, true);
+      ev.setUint32(12, cdSize, true);
+      ev.setUint32(16, offset, true);
+
+      const zipBlob = new Blob([...localParts, ...centralParts, eocd], { type: "application/zip" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(zipBlob);
+      a.download = "media_havana.zip";
+      a.click();
+      showToast("📦 Đã tải media_havana.zip! Hãy kéo thả file này vào thư mục media/ trên GitHub.");
     }
 
     function buildCardInnerHtml(p, idxInList) {
@@ -2218,8 +2637,9 @@
       }
 
       const safeActiveSz = String(activeVar.size).replace(/'/g, "\\'");
-      const sizeChartBtnHtml = p.sizeChart
-        ? `<button type="button" class="size-chart-btn" onclick="openLightbox('${p.sizeChart}')">📏 Bảng size</button>`
+      const szChartUrl = getProductSizeChart(p);
+      const sizeChartBtnHtml = szChartUrl
+        ? `<button type="button" class="size-chart-btn" onclick="openLightbox('${szChartUrl}')">📏 Bảng size</button>`
         : "";
 
       return `
@@ -2228,6 +2648,7 @@
           ${navControlsHtml}
           <span class="discount-badge">-${dispPct}%</span>
           <span class="sku-badge">${p.sku}</span>
+          <button type="button" class="card-admin-upload-btn" onclick="event.stopPropagation(); triggerSingleSkuUpload('${p.sku}')">📷 Up ảnh</button>
           ${totalAllWarehouses > 0 && totalAllWarehouses <= 10 ? `<span class="low-stock-flag">Còn ${totalAllWarehouses} chiếc</span>` : ""}
         </div>
         <div class="card-body">
@@ -2323,7 +2744,13 @@
       const grid = document.getElementById("productGrid");
       const sentinel = document.getElementById("scrollSentinel");
 
+      stripSapoImagesFromProducts(PRODUCTS);
+      updateAdminMediaStats();
       filteredProductsCache = PRODUCTS.filter((p) => {
+        if (document.body.classList.contains("is-admin")) {
+          if (adminMediaFilter === "MISSING" && hasCustomProductMedia(p)) return false;
+          if (adminMediaFilter === "HAS_MEDIA" && !hasCustomProductMedia(p)) return false;
+        }
         const cat = classifyProduct(p);
         if (currentCategory !== "ALL" && cat !== currentCategory) return false;
         const sPrice = getProductSalePrice(p);
@@ -2546,6 +2973,7 @@
             WAREHOUSE_CONFIG = payload.warehouses;
           }
           if (Array.isArray(payload.products) && payload.products.length) {
+            stripSapoImagesFromProducts(payload.products);
             PRODUCTS = payload.products;
             selectedVariantBySku = {};
           }
@@ -3059,6 +3487,7 @@
           if (Array.isArray(data.warehouses) && data.warehouses.length) {
             WAREHOUSE_CONFIG = data.warehouses;
           }
+          stripSapoImagesFromProducts(data.products);
           PRODUCTS = data.products;
           const timeEl = document.getElementById("liveSyncTimeText");
           if (timeEl && data.synced_at) {
@@ -3099,8 +3528,10 @@
     }
 
     // Khởi chạy lần đầu + tự động kiểm tra tồn kho mới mỗi 5 phút & mỗi khi khách quay lại tab
+    stripSapoImagesFromProducts(PRODUCTS);
     renderCatalog();
     updateCartBar();
+    restoreVaultFromDB();
     refreshLiveSapoStock(true);
     setInterval(() => refreshLiveSapoStock(true), 5 * 60 * 1000);
     document.addEventListener("visibilitychange", () => {
