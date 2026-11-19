@@ -1,0 +1,53 @@
+name: Auto Sync Black Friday & Sapo 5 Kho
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '*.xlsx'
+      - '*.csv'
+      - 'auto_sync_sapo.py'
+      - 'images/**'
+      - '.github/workflows/auto_sync_sapo.yml'
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  auto-sync-sapo:
+    if: github.event_name != 'push' || (github.actor != 'github-actions[bot]' && github.actor != 'havana-auto-bot')
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Excel reader
+        run: pip install openpyxl -q
+
+      - name: Auto Read Excel + Pull Live 5-Warehouse Stock from Sapo
+        env:
+          SAPO_DOMAIN: havanago.mysapogo.com
+          SAPO_ACCESS_TOKEN: ${{ secrets.SAPO_ACCESS_TOKEN }}
+          SAPO_COOKIE: ${{ secrets.SAPO_COOKIE }}
+        run: python auto_sync_sapo.py
+
+      - name: Auto Commit & Trigger Cloudflare Pages Deploy
+        run: |
+          git config user.name "havana-auto-bot"
+          git config user.email "auto@havana-danang.local"
+          git add sapo_5_kho.json sale_rules.json index.html || true
+          if git diff --cached --quiet; then
+            echo "Du lieu ton kho khong thay doi."
+          else
+            git commit -m "chore(auto): cap nhat ma Black Friday & ton 5 kho Sapo"
+            git push
+          fi
