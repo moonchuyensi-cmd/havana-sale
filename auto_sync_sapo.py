@@ -181,21 +181,95 @@ def load_black_friday_rules() -> dict:
     return sale_rules
 
 
+def unpack_media_dropzone():
+    """Giong het file si Havana: neu user keo tha file .zip hoac thu muc ma (VD: media/CV593/ hoac media/CV593.zip)
+    len GitHub, he thong tu giai nen va phan loai vao images/, videos/, sizes/!"""
+    os.makedirs("images", exist_ok=True)
+    os.makedirs("videos", exist_ok=True)
+    os.makedirs("sizes", exist_ok=True)
+    if not os.path.isdir("media"):
+        return
+
+    import shutil
+    import zipfile as zf_mod
+
+    # 1. Giai nen cac file .zip trong media/
+    for zpath in glob.glob("media/*.zip"):
+        base_zip_sku = os.path.splitext(os.path.basename(zpath))[0].upper()
+        extract_dir = os.path.join("media", "_unzipped_" + base_zip_sku)
+        try:
+            with zf_mod.ZipFile(zpath, "r") as zf:
+                zf.extractall(extract_dir)
+            os.remove(zpath)
+        except Exception as e:
+            print(f"[!] Loi giai nen {zpath}: {e}")
+
+    # 2. Quet toan bo file trong media/ (ke ca thu muc con VD: media/CV593/1.jpg)
+    for root, _, files in os.walk("media"):
+        folder_hint = os.path.basename(root).replace("_unzipped_", "").upper()
+        sku_prefix = clean_base_code(folder_hint)
+        for fname in sorted(files):
+            if fname.startswith("."):
+                continue
+            src_path = os.path.join(root, fname)
+            low = fname.lower()
+            target_name = fname
+            if sku_prefix and sku_prefix not in fname.upper():
+                target_name = f"{sku_prefix}_{fname}"
+
+            if low.endswith((".mp4", ".mov", ".webm")):
+                shutil.copy2(src_path, os.path.join("videos", target_name))
+            elif low.endswith((".jpg", ".jpeg", ".png", ".webp")):
+                if "size" in low or "bang_size" in low or "bangsize" in low:
+                    shutil.copy2(src_path, os.path.join("sizes", target_name))
+                else:
+                    shutil.copy2(src_path, os.path.join("images", target_name))
+
+
 def scan_repo_media_folders(codes: list) -> dict:
+    """Quet thu muc images/, videos/, sizes/ voi Regex bien gioi nghiem ngat (sap xep ma dai truoc)!"""
+    unpack_media_dropzone()
     sorted_codes = sorted(set(codes), key=len, reverse=True)
+    compiled = [(c, re.compile(rf"(^|[^A-Z0-9]){re.escape(c)}([^A-Z0-9]|$)")) for c in sorted_codes]
     media_map = {}
-    if not os.path.isdir("images"):
-        return media_map
-    for fname in sorted(os.listdir("images")):
-        if fname.startswith(".") or not fname.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
-            continue
-        up_name = fname.upper()
-        for code in sorted_codes:
-            pattern = rf"(^|[^A-Z0-9]){re.escape(code)}([^A-Z0-9]|$)"
-            if re.search(pattern, up_name):
-                if code not in media_map:
-                    media_map[code] = f"./images/{fname}"
-                break
+
+    def ensure_entry(c):
+        if c not in media_map:
+            media_map[c] = {"images": [], "video": "", "sizeChart": ""}
+        return media_map[c]
+
+    if os.path.isdir("images"):
+        for fname in sorted(os.listdir("images")):
+            if fname.startswith(".") or not fname.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+                continue
+            up = fname.upper()
+            for code, rx in compiled:
+                if rx.search(up):
+                    ensure_entry(code)["images"].append(f"./images/{fname}")
+                    break
+
+    if os.path.isdir("videos"):
+        for fname in sorted(os.listdir("videos")):
+            if fname.startswith(".") or not fname.lower().endswith((".mp4", ".mov", ".webm")):
+                continue
+            up = fname.upper()
+            for code, rx in compiled:
+                if rx.search(up):
+                    if not ensure_entry(code)["video"]:
+                        ensure_entry(code)["video"] = f"./videos/{fname}"
+                    break
+
+    if os.path.isdir("sizes"):
+        for fname in sorted(os.listdir("sizes")):
+            if fname.startswith(".") or not fname.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+                continue
+            up = fname.upper()
+            for code, rx in compiled:
+                if rx.search(up):
+                    if not ensure_entry(code)["sizeChart"]:
+                        ensure_entry(code)["sizeChart"] = f"./sizes/{fname}"
+                    break
+
     return media_map
 
 
@@ -346,9 +420,12 @@ def main():
         if orig_price > 0 and 0 < sale_price < orig_price:
             disc_pct = max(1, round((1.0 - sale_price / orig_price) * 100))
 
-        img_url = ""
-        if p.get("images"):
-            img_url = p["images"][0].get("full_path") or p["images"][0].get("path") or ""
+        sapo_imgs = []
+        for im in (p.get("images") or []):
+            u = im.get("full_path") or im.get("path") or ""
+            if u and u not in sapo_imgs:
+                sapo_imgs.append(u)
+        img_url = sapo_imgs[0] if sapo_imgs else ""
 
         v_list = []
         for v in variants_raw:
@@ -388,13 +465,22 @@ def main():
                 "salePrice": sale_price,
                 "discountPct": disc_pct,
                 "image": img_url,
+                "images": sapo_imgs,
+                "video": "",
+                "sizeChart": "",
                 "variants": v_list,
             }
 
     custom_media = scan_repo_media_folders(list(grouped_by_code.keys()))
-    for code, custom_img in custom_media.items():
+    for code, mdata in custom_media.items():
         if code in grouped_by_code:
-            grouped_by_code[code]["image"] = custom_img
+            if mdata["images"]:
+                grouped_by_code[code]["image"] = mdata["images"][0]
+                grouped_by_code[code]["images"] = mdata["images"]
+            if mdata["video"]:
+                grouped_by_code[code]["video"] = mdata["video"]
+            if mdata["sizeChart"]:
+                grouped_by_code[code]["sizeChart"] = mdata["sizeChart"]
 
     products_out = list(grouped_by_code.values())
     warehouses_sorted = [
