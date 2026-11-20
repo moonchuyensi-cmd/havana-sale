@@ -1,5 +1,5 @@
 {
-  "synced_at": "15:35 20/11",
+  "synced_at": "15:38 20/11",
   "warehouses": [
     {
       "id": "wh_havana",
@@ -2255,7 +2255,7 @@
       "origPrice": 239000,
       "salePrice": 99000,
       "discountPct": 59,
-      "image": "",
+      "image": "./images/SAT533_3d42fd5214b942d79698505034f7d756~tplv-aphluv4xwc-origin-jpeg.jpeg",
       "variants": [
         {
           "size": "Nâu",
@@ -2280,7 +2280,12 @@
           }
         }
       ],
-      "images": [],
+      "images": [
+        "./images/SAT533_3d42fd5214b942d79698505034f7d756~tplv-aphluv4xwc-origin-jpeg.jpeg",
+        "./images/SAT533_6afc9121c7104e20968d2da50aceec24~tplv-aphluv4xwc-origin-jpeg.jpeg",
+        "./images/SAT533_7af71785f83b473db37b0a131874a9f2~tplv-aphluv4xwc-origin-jpeg.jpeg",
+        "./images/SAT533_bac4662b645f4e81a8a3f2940c96a6b1~tplv-aphluv4xwc-origin-jpeg.jpeg"
+      ],
       "video": "",
       "sizeChart": ""
     },
@@ -9650,7 +9655,7 @@
       "origPrice": 179000,
       "salePrice": 79000,
       "discountPct": 56,
-      "image": "",
+      "image": "./images/CV545_309460071cda426f9568773464b02a66~tplv-aphluv4xwc-origin-jpeg.jpeg",
       "variants": [
         {
           "size": "Nâu Caro - S",
@@ -9686,7 +9691,11 @@
           }
         }
       ],
-      "images": [],
+      "images": [
+        "./images/CV545_309460071cda426f9568773464b02a66~tplv-aphluv4xwc-origin-jpeg.jpeg",
+        "./images/CV545_a140e307ea6440a18b06307359c802a2~tplv-aphluv4xwc-origin-jpeg.jpeg",
+        "./images/CV545_abcb0178a94b4cbf9a40525de05d04c8~tplv-aphluv4xwc-origin-jpeg.jpeg"
+      ],
       "video": "",
       "sizeChart": ""
     },
@@ -12155,7 +12164,7 @@
       "origPrice": 149000,
       "salePrice": 79000,
       "discountPct": 47,
-      "image": "",
+      "image": "./images/CV539_45b51d33c6ba482a9ac59a7d4442af71~tplv-aphluv4xwc-origin-jpeg.jpeg",
       "variants": [
         {
           "size": "Be - S",
@@ -12202,7 +12211,11 @@
           }
         }
       ],
-      "images": [],
+      "images": [
+        "./images/CV539_45b51d33c6ba482a9ac59a7d4442af71~tplv-aphluv4xwc-origin-jpeg.jpeg",
+        "./images/CV539_a06351db2a9d42ae845efcda36db660e~tplv-aphluv4xwc-origin-jpeg.jpeg",
+        "./images/CV539_d9b4565c3d414115ae078f37641711cf~tplv-aphluv4xwc-origin-jpeg.jpeg"
+      ],
       "video": "",
       "sizeChart": ""
     },
@@ -16352,7 +16365,7 @@
       "origPrice": 199000,
       "salePrice": 79000,
       "discountPct": 60,
-      "image": "",
+      "image": "./images/AO799_05507430eb3e43ed8a64a3906c20b363~tplv-aphluv4xwc-origin-jpeg.jpeg",
       "variants": [
         {
           "size": "Be",
@@ -16377,7 +16390,11 @@
           }
         }
       ],
-      "images": [],
+      "images": [
+        "./images/AO799_05507430eb3e43ed8a64a3906c20b363~tplv-aphluv4xwc-origin-jpeg.jpeg",
+        "./images/AO799_1f1da3ed7c4440e28eaff808f4487ab7~tplv-aphluv4xwc-origin-jpeg.jpeg",
+        "./images/AO799_b7aa99108135409b9f289f5a6f39146c~tplv-aphluv4xwc-origin-jpeg.jpeg"
+      ],
       "video": "",
       "sizeChart": ""
     },
@@ -21173,7 +21190,7 @@
       "origPrice": 359000,
       "salePrice": 159000,
       "discountPct": 56,
-      "image": "",
+      "image": "./images/AD190_c24a92047a5a46d2a0a47bb952047883~tplv-aphluv4xwc-origin-jpeg.jpeg",
       "variants": [
         {
           "size": "Kem Quần Hồng - F",
@@ -21220,7 +21237,9 @@
           }
         }
       ],
-      "images": [],
+      "images": [
+        "./images/AD190_c24a92047a5a46d2a0a47bb952047883~tplv-aphluv4xwc-origin-jpeg.jpeg"
+      ],
       "video": "",
       "sizeChart": ""
     },
@@ -25004,7 +25023,7 @@
       "origPrice": 169000,
       "salePrice": 99000,
       "discountPct": 41,
-      "image": "",
+      "image": "./images/AD40_3cd7409d99ce4a1198bae81ee23357a5~tplv-o3syd03w52-origin-jpeg.jpeg",
       "variants": [
         {
           "size": "Kem - S",
@@ -25073,7 +25092,12 @@
           }
         }
       ],
-      "images": [],
+      "images": [
+        "./images/AD40_3cd7409d99ce4a1198bae81ee23357a5~tplv-o3syd03w52-origin-jpeg.jpeg",
+        "./images/AD40_5db6e39db15f44d292fe4b55a50c800a~tplv-o3syd03w52-origin-jpeg.jpeg",
+        "./images/AD40_aba77fcf598c4268a6d50f11ee3d5347~tplv-o3syd03w52-origin-jpeg.jpeg",
+        "./images/AD40_e1c4d379730e4b0184403b2883a9f5b9~tplv-o3syd03w52-origin-jpeg.jpeg"
+      ],
       "video": "",
       "sizeChart": ""
     },
@@ -25144,7 +25168,7 @@
       "origPrice": 239000,
       "salePrice": 99000,
       "discountPct": 59,
-      "image": "",
+      "image": "./images/AE366_29d4d5cd7a094be8a7816ca65e69aa40~tplv-o3syd03w52-origin-jpeg.jpeg",
       "variants": [
         {
           "size": "Đỏ - M",
@@ -25224,7 +25248,12 @@
           }
         }
       ],
-      "images": [],
+      "images": [
+        "./images/AE366_29d4d5cd7a094be8a7816ca65e69aa40~tplv-o3syd03w52-origin-jpeg.jpeg",
+        "./images/AE366_4ac0bbc319dc434aa7918ece8e808c08~tplv-o3syd03w52-origin-jpeg.jpeg",
+        "./images/AE366_81127eb890534fb0aab8bede9fede30d~tplv-o3syd03w52-origin-jpeg.jpeg",
+        "./images/AE366_c9aba42750034fd98602ef422e50d014~tplv-o3syd03w52-origin-jpeg.jpeg"
+      ],
       "video": "",
       "sizeChart": ""
     },
@@ -25236,7 +25265,7 @@
       "origPrice": 234000,
       "salePrice": 159000,
       "discountPct": 32,
-      "image": "",
+      "image": "./images/AD26_0e9b1f4aa416402da3109a7139daf45e~tplv-o3syd03w52-origin-jpeg.jpeg",
       "variants": [
         {
           "size": "Đỏ - S",
@@ -25305,7 +25334,11 @@
           }
         }
       ],
-      "images": [],
+      "images": [
+        "./images/AD26_0e9b1f4aa416402da3109a7139daf45e~tplv-o3syd03w52-origin-jpeg.jpeg",
+        "./images/AD26_1061cea75cf24548bfaa06f93efe253f~tplv-o3syd03w52-origin-jpeg.jpeg",
+        "./images/AD26_6e3bb7a2dcc84f86a912d606807f14d9~tplv-o3syd03w52-origin-jpeg.jpeg"
+      ],
       "video": "",
       "sizeChart": ""
     },
