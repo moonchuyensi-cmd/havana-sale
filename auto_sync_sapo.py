@@ -23,6 +23,11 @@ SAPO_IMG_RX = re.compile(r"(dktcdn\.net|mysapogo\.com|sapo\.vn|sapogo\.com)", re
 IMG_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".jfif", ".avif", ".gif", ".bmp")
 VID_EXTS = (".mp4", ".mov", ".webm", ".m4v")
 SKIP_DIRS = {".git", ".github", "functions", "__pycache__", "node_modules"}
+PK_KNOWN_SUBTYPES = {
+    "PK822": "Mũ", "PK887": "Túi xách", "PK893": "Mũ", "PK894": "Mũ",
+    "PK897": "Phụ kiện", "PK898": "Túi xách", "PK976": "Túi xách", "PK995": "Túi xách",
+    "PK997": "Túi xách", "PK999": "Túi xách", "PK1006": "Giày", "PK1027": "Túi xách", "PK1032": "Giày",
+}
 
 
 def vn_now_str() -> str:
@@ -195,7 +200,7 @@ def load_black_friday_rules() -> dict:
 
                 sub_type = norm_nfc(r[col_type]) if (col_type is not None and col_type < len(r) and r[col_type]) else ""
                 if sale_p > 0 or pct_v > 0:
-                    prev_sub = sale_rules.get(code, {}).get("subType", "")
+                    prev_sub = sale_rules.get(code, {}).get("subType", "") or PK_KNOWN_SUBTYPES.get(code, "")
                     sale_rules[code] = {
                         "origPrice": orig_p,
                         "salePrice": sale_p,
@@ -404,7 +409,7 @@ def infer_category(code: str, pname: str, sub_type: str = "") -> str:
         return "AO_LEN"
     if up.startswith("CV"):
         return "CHAN_VAY"
-    if up.startswith("DA"):
+    if up.startswith(("DA", "BE")):
         return "DAM"
     if up.startswith("SAT"):
         return "SET_BO"
@@ -443,7 +448,7 @@ def extract_base_code_from_sapo_product(p: dict, sale_rules: dict) -> str:
     return candidates[0] if candidates else ""
 
 
-def write_outputs(warehouses_sorted: list, products_out: list, synced_at_str: str):
+def write_outputs(warehouses_sorted: list, products_out: list, synced_at_str: str, sale_rules: dict = None):
     payload = {
         "synced_at": synced_at_str,
         "warehouses": warehouses_sorted,
@@ -455,13 +460,21 @@ def write_outputs(warehouses_sorted: list, products_out: list, synced_at_str: st
     if os.path.exists("index.html") and products_out:
         with open("index.html", "r", encoding="utf-8") as f:
             html_src = f.read()
-        s_i = html_src.find("/* [BLOCK:DATA_CONFIG_START] */")
-        e_i = html_src.find("/* [BLOCK:DATA_CONFIG_END] */")
+        s_i = html_src.find("/* [BLOCK:DATA_PAYLOAD_START] */")
+        e_i = html_src.find("/* [BLOCK:DATA_PAYLOAD_END] */")
         if s_i != -1 and e_i > s_i:
-            e_i += len("/* [BLOCK:DATA_CONFIG_END] */")
-            wh_js = json.dumps(warehouses_sorted, ensure_ascii=False, indent=6)
-            pr_js = json.dumps(products_out, ensure_ascii=False, indent=6)
-            new_blk = f"/* [BLOCK:DATA_CONFIG_START] */\n    let WAREHOUSE_CONFIG = {wh_js};\n    let PRODUCTS = {pr_js};\n    /* [BLOCK:DATA_CONFIG_END] */"
+            e_i += len("/* [BLOCK:DATA_PAYLOAD_END] */")
+            wh_js = json.dumps(warehouses_sorted, ensure_ascii=False)
+            pr_js = json.dumps(products_out, ensure_ascii=False)
+            sr_js = json.dumps(sale_rules or {}, ensure_ascii=False)
+            new_blk = (
+                "/* [BLOCK:DATA_PAYLOAD_START] */\n"
+                f"    let WAREHOUSE_CONFIG = {wh_js};\n"
+                f"    let SALE_RULES_MASTER = {sr_js};\n"
+                f"    let BASELINE_PRODUCTS = {pr_js};\n"
+                f"    let PRODUCTS = BASELINE_PRODUCTS.map((p) => Object.assign({{}}, p));\n"
+                "    /* [BLOCK:DATA_PAYLOAD_END] */"
+            )
             with open("index.html", "w", encoding="utf-8") as f:
                 f.write(html_src[:s_i] + new_blk + html_src[e_i:])
 
@@ -545,11 +558,60 @@ def main():
             print(f"[!] Sapo API tam ngat ({err}) -> Van quet toan bo repo & cap nhat anh/video tu up!")
 
     if not all_products:
-        if existing_products:
-            cleaned = apply_custom_media_to_list(existing_products, preserved_media_by_sku)
-            write_outputs(existing_warehouses, cleaned, vn_now_str())
+        if existing_products or sale_rules:
+            updated_existing = []
+            seen_skus = set()
+            for ep in existing_products:
+                c = clean_base_code(str(ep.get("sku") or "").split("-")[0])
+                if filter_only_bf and c not in sale_rules:
+                    continue
+                if c in sale_rules:
+                    r_info = sale_rules[c]
+                    orig_p = r_info.get("origPrice") or int(ep.get("origPrice") or 299000)
+                    sale_p = r_info.get("salePrice") or int(ep.get("salePrice") or 159000)
+                    if orig_p < sale_p:
+                        orig_p = max(orig_p, int(ep.get("origPrice") or sale_p))
+                    disc_p = max(1, round((1.0 - sale_p / orig_p) * 100)) if orig_p > sale_p > 0 else r_info.get("discountPct", 30)
+                    sub_t = r_info.get("subType") or ep.get("subType") or PK_KNOWN_SUBTYPES.get(c, "")
+                    ep["sku"] = c
+                    ep["origPrice"] = orig_p
+                    ep["salePrice"] = sale_p
+                    ep["discountPct"] = disc_p
+                    ep["subType"] = sub_t
+                    ep["category"] = infer_category(c, ep.get("name") or c, sub_t)
+                seen_skus.add(c)
+                updated_existing.append(ep)
+
+            for c, r_info in sale_rules.items():
+                if c not in seen_skus:
+                    sub_t = r_info.get("subType") or PK_KNOWN_SUBTYPES.get(c, "")
+                    pname_fb = f"{sub_t} Havana {c}".strip() if sub_t else f"Sản phẩm Havana {c}"
+                    updated_existing.append({
+                        "sku": c,
+                        "name": pname_fb,
+                        "subType": sub_t,
+                        "category": infer_category(c, pname_fb, sub_t),
+                        "origPrice": r_info.get("origPrice") or 299000,
+                        "salePrice": r_info.get("salePrice") or 159000,
+                        "discountPct": r_info.get("discountPct") or 30,
+                        "image": "",
+                        "images": [],
+                        "video": "",
+                        "sizeChart": "",
+                        "variants": [{"size": "Freesize", "stocks": {"wh_pct": 1}}],
+                    })
+
+            cleaned = apply_custom_media_to_list(updated_existing, preserved_media_by_sku)
+            wh_out = existing_warehouses or [
+                {"id": "wh_havana", "sapo_name": "HAVANA", "name": "HAVANA (93-95 Hồ Phi Tích)"},
+                {"id": "wh_online", "sapo_name": "HAVANA ONLINE", "name": "HAVANA ONLINE"},
+                {"id": "wh_pct", "sapo_name": "261 - 263 phan chu trinh", "name": "261 - 263 Phan Châu Trinh"},
+                {"id": "wh_auco", "sapo_name": "101 Âu Cơ", "name": "101 Âu Cơ"},
+                {"id": "wh_leduan", "sapo_name": "240 Lê Duẩn", "name": "240 Lê Duẩn"},
+            ]
+            write_outputs(wh_out, cleaned, vn_now_str(), sale_rules)
             with_img = sum(1 for x in cleaned if x.get("image") or x.get("video"))
-            print(f"[+] Da gan Media tu up cho {with_img}/{len(cleaned)} ma!")
+            print(f"[+] Da cap nhat GIA MOI & Media tu up cho {len(cleaned)} ma ({with_img} ma co hinh)!")
         else:
             unpack_any_zip_archives()
         return
@@ -566,7 +628,8 @@ def main():
         rule = sale_rules.get(base_code, {})
         first_v = variants_raw[0]
         sapo_price = parse_money(first_v.get("variant_retail_price") or first_v.get("price") or 0)
-        orig_price = sapo_price if sapo_price > 0 else (rule.get("origPrice") or 299000)
+        excel_orig = rule.get("origPrice") or 0
+        orig_price = excel_orig if excel_orig > 0 else (sapo_price if sapo_price > 0 else 299000)
 
         sale_price = rule.get("salePrice", 0)
         disc_pct = rule.get("discountPct", 30)
@@ -624,7 +687,7 @@ def main():
     ]
 
     now_stamp = vn_now_str()
-    write_outputs(warehouses_sorted, products_out, now_stamp)
+    write_outputs(warehouses_sorted, products_out, now_stamp, sale_rules)
     with_media = sum(1 for x in products_out if x.get("image") or x.get("video"))
     print(f"[+] Hoan tat Auto-Sync v13: {len(products_out)} ma ({with_media} ma da co anh/video tu up) luc {now_stamp}!")
 
