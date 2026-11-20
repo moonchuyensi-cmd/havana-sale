@@ -1701,6 +1701,204 @@
       border-radius: 7px;
       cursor: pointer;
     }
+    
+    /* === v17: ULTRA-COMPACT MOBILE HEADER & SINGLE-ROW SEARCH/STOCK STICKY TOOLBAR === */
+    @media (max-width: 768px) {
+      /* 1. Compact Native Storefront Header Card (Zero Clipping, Zero Overflow, Scrolls Away Smoothly) */
+      .topbar {
+        position: static !important;
+        margin: 8px 10px 0 !important;
+        padding: 9px 11px !important;
+        border-radius: 16px !important;
+        background: #ffffff !important;
+        border: 1px solid rgba(145, 210, 206, 0.68) !important;
+        box-shadow: 0 4px 16px rgba(22, 89, 84, 0.06) !important;
+      }
+      .topbar .container {
+        padding: 0 !important;
+      }
+      .topbar-inner {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 7px !important;
+      }
+      /* Row 1: Logo (38px) + Title/SyncTime (flex) + SALE OFF badge (right) */
+      .brand {
+        display: grid !important;
+        grid-template-columns: 38px minmax(0, 1fr) auto !important;
+        align-items: center !important;
+        gap: 8px !important;
+        width: 100% !important;
+      }
+      .brand-logo {
+        width: 38px !important;
+        height: 38px !important;
+        border-radius: 10px !important;
+        grid-column: 1 / 2;
+        grid-row: 1 / 2;
+      }
+      .brand > div {
+        grid-column: 2 / 3;
+        grid-row: 1 / 2;
+        min-width: 0 !important;
+      }
+      .brand > div > div:last-child {
+        flex-wrap: nowrap !important;
+        gap: 5px !important;
+        margin-top: 1px !important;
+        min-width: 0 !important;
+      }
+      .brand-badge {
+        grid-column: 3 / 4;
+        grid-row: 1 / 2;
+        font-size: 9.5px !important;
+        padding: 3px 7px !important;
+        letter-spacing: 0.04em !important;
+        align-self: flex-start !important;
+        margin-top: 1px !important;
+      }
+      .brand-title {
+        font-size: 15px !important;
+        line-height: 1.15 !important;
+      }
+      #subBrandText {
+        font-size: 11px !important;
+        white-space: nowrap !important;
+      }
+      .live-sync-tag {
+        font-size: 10.5px !important;
+        padding: 1px 6px !important;
+        margin-left: 0 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        max-width: 100% !important;
+      }
+
+      /* Row 2: Primary Zalo CTA first + 4 Circular Social Icons + Compact VI/EN Switcher (100% fits 1 screen width) */
+      .header-si-nav {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        padding-top: 6px !important;
+        padding-bottom: 0 !important;
+        border-top: 1px dashed rgba(36, 124, 118, 0.14) !important;
+        scrollbar-width: none;
+      }
+      .header-si-nav::-webkit-scrollbar { display: none; }
+      .zalo-si-cta {
+        order: -2 !important;
+        height: 29px !important;
+        padding: 0 11px !important;
+        font-size: 11.5px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+      .header-si-nav .social-pill {
+        order: -1 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 29px !important;
+        height: 29px !important;
+        padding: 0 !important;
+        border-radius: 50% !important;
+      }
+      .header-si-nav .social-pill .social-text {
+        display: none !important;
+      }
+      .lang-switch-pill {
+        margin-left: auto !important;
+        padding: 2px !important;
+      }
+      .lang-opt {
+        padding: 3px 7px !important;
+        font-size: 11px !important;
+      }
+      .lang-opt .flag-code {
+        display: none !important;
+      }
+
+      /* 2. Ultra-Clean Sticky Toolbar: [Search + 1cột + Còn tồn] on Row 1 -> [Price Pills] on Row 2 -> [Category Tabs] on Row 3 */
+      .toolbar {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 45 !important;
+        margin: 6px -10px 10px !important;
+        padding: 7px 10px 0 !important;
+        gap: 6px !important;
+        border-radius: 0 0 15px 15px !important;
+        background: rgba(255, 255, 255, 0.96) !important;
+        box-shadow: 0 6px 18px rgba(22, 89, 84, 0.08) !important;
+      }
+      .toolbar-top-row {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        gap: 6px !important;
+      }
+      .search-box-wrap {
+        order: 1 !important;
+        flex: 1 1 0% !important;
+        min-width: 0 !important;
+      }
+      .search-box-wrap .search-input {
+        height: 35px !important;
+        padding: 5px 30px 5px 10px !important;
+        font-size: 16px !important;
+        border-radius: 10px !important;
+      }
+      .search-clear-btn {
+        right: 6px !important;
+        width: 20px !important;
+        height: 20px !important;
+      }
+      .toolbar-top-row > .filter-group:last-child {
+        order: 2 !important;
+        flex: 0 0 auto !important;
+        margin-left: 0 !important;
+        gap: 5px !important;
+      }
+      #countResultBadge {
+        display: none !important;
+      }
+      .mobile-view-toggle,
+      .in-stock-toggle {
+        height: 35px !important;
+        padding: 0 9px !important;
+        font-size: 11.5px !important;
+        border-radius: 10px !important;
+        gap: 5px !important;
+      }
+      #tierFilters {
+        order: 3 !important;
+        flex: 1 1 100% !important;
+        width: 100% !important;
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        justify-content: flex-start !important;
+        overflow-x: auto !important;
+        gap: 5px !important;
+        padding-bottom: 1px !important;
+        scrollbar-width: none;
+      }
+      #tierFilters::-webkit-scrollbar { display: none; }
+      #tierFilters .pill-btn {
+        padding: 4px 9px !important;
+        font-size: 11.5px !important;
+      }
+      .toolbar-cat-row {
+        gap: 1px !important;
+        padding-top: 3px !important;
+      }
+      .toolbar-cat-row .pill-btn {
+        padding: 6px 9px !important;
+        font-size: 12px !important;
+      }
+    }
     /* [BLOCK:CSS_CORE_END] */
   </style>
 </head>
@@ -3967,7 +4165,7 @@
     });
     
     /* === v16: PURE APP CONFIGURATION UPGRADE (ZERO CROSS-BRAND DATA) === */
-    let MEDIA_CACHE_VERSION = Number(localStorage.getItem("havana_media_ver") || 16);
+    let MEDIA_CACHE_VERSION = Number(localStorage.getItem("havana_media_ver") || 17);
     let BANK_CONFIG = {
       bankId: "",
       bankName: "",
@@ -4386,6 +4584,25 @@
       a.click();
       showToast(`🧼 Đã xuất index.html sạch (v=${MEDIA_CACHE_VERSION}, đã gỡ Admin & đóng hết modal)!`);
     }
+    
+    /* === v17: MOBILE PLACEHOLDER FIT & LIVE STOCK TAP FEEDBACK === */
+    function syncResponsiveSearchPlaceholder() {
+      const searchEl = document.getElementById("searchInput");
+      if (!searchEl) return;
+      const isCompact = window.innerWidth <= 768;
+      if (currentLang === "EN") {
+        searchEl.placeholder = isCompact ? "Search SKU or name..." : "Search by SKU (e.g. CV593, QTA40, PK...) or product name...";
+      } else {
+        searchEl.placeholder = isCompact ? "Tìm mã (CV593, QTA40...) / tên..." : "Tìm theo mã (VD: CV593, QTA40, AO1016, PK...) hoặc tên sản phẩm...";
+      }
+    }
+    const _v16SetLang = setLang;
+    setLang = function(lang) {
+      _v16SetLang(lang);
+      syncResponsiveSearchPlaceholder();
+    };
+    window.addEventListener("resize", syncResponsiveSearchPlaceholder, { passive: true });
+    syncResponsiveSearchPlaceholder();
     /* [BLOCK:APP_LOGIC_END] */
   </script>
 </body>

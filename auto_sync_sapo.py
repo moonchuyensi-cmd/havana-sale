@@ -680,6 +680,28 @@ def main():
                 "variants": v_list,
             }
 
+    if filter_only_bf and sale_rules:
+        existing_by_code = {clean_base_code(str(ep.get("sku") or "").split("-")[0]): ep for ep in existing_products}
+        for c, r_info in sale_rules.items():
+            if c not in grouped_by_code:
+                ep_prev = existing_by_code.get(c)
+                sub_t = r_info.get("subType") or (ep_prev.get("subType") if ep_prev else "") or PK_KNOWN_SUBTYPES.get(c, "")
+                pname_fb = (ep_prev.get("name") if ep_prev else "") or (f"{sub_t} Havana {c}".strip() if sub_t else f"Sản phẩm Havana {c}")
+                grouped_by_code[c] = {
+                    "sku": c,
+                    "name": pname_fb,
+                    "subType": sub_t,
+                    "category": infer_category(c, pname_fb, sub_t),
+                    "origPrice": r_info.get("origPrice") or (ep_prev.get("origPrice") if ep_prev else 299000),
+                    "salePrice": r_info.get("salePrice") or (ep_prev.get("salePrice") if ep_prev else 159000),
+                    "discountPct": r_info.get("discountPct") or (ep_prev.get("discountPct") if ep_prev else 30),
+                    "image": "",
+                    "images": [],
+                    "video": "",
+                    "sizeChart": "",
+                    "variants": (ep_prev.get("variants") if (ep_prev and ep_prev.get("variants")) else [{"size": "Freesize", "stocks": {"wh_pct": 1}}]),
+                }
+
     products_out = apply_custom_media_to_list(list(grouped_by_code.values()), preserved_media_by_sku)
     warehouses_sorted = [
         {k: v for k, v in item.items() if k != "order"}
@@ -689,7 +711,7 @@ def main():
     now_stamp = vn_now_str()
     write_outputs(warehouses_sorted, products_out, now_stamp, sale_rules)
     with_media = sum(1 for x in products_out if x.get("image") or x.get("video"))
-    print(f"[+] Hoan tat Auto-Sync v13: {len(products_out)} ma ({with_media} ma da co anh/video tu up) luc {now_stamp}!")
+    print(f"[+] Hoan tat Auto-Sync v17: {len(products_out)} ma ({with_media} ma da co anh/video tu up) luc {now_stamp}!")
 
 
 if __name__ == "__main__":
