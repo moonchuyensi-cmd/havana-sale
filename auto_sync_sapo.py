@@ -18,6 +18,7 @@ import zipfile as zf_mod
 DEFAULT_COOKIE = ""
 DOMAIN = os.environ.get("SAPO_DOMAIN", "havanago.mysapogo.com").strip()
 SKU_REGEX = re.compile(r"^([A-Z]{1,5}\d{1,5})", re.I)
+EXCLUDED_SKUS = {"LEN374", "QJ358"}
 SAPO_IMG_RX = re.compile(r"(dktcdn\.net|mysapogo\.com|sapo\.vn|sapogo\.com)", re.I)
 
 IMG_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".jfif", ".avif", ".gif", ".bmp")
@@ -222,6 +223,8 @@ def load_black_friday_rules() -> dict:
                     sale_p = parse_money(r[1])
                     if code and sale_p >= 1000:
                         sale_rules[code] = {"origPrice": 0, "salePrice": sale_p, "discountPct": 0, "subType": ""}
+    for ex_code in EXCLUDED_SKUS:
+        sale_rules.pop(ex_code, None)
     return sale_rules
 
 
@@ -563,7 +566,7 @@ def main():
             seen_skus = set()
             for ep in existing_products:
                 c = clean_base_code(str(ep.get("sku") or "").split("-")[0])
-                if filter_only_bf and c not in sale_rules:
+                if c in EXCLUDED_SKUS or (filter_only_bf and c not in sale_rules):
                     continue
                 if c in sale_rules:
                     r_info = sale_rules[c]
@@ -622,7 +625,7 @@ def main():
         if not variants_raw:
             continue
         base_code = extract_base_code_from_sapo_product(p, sale_rules)
-        if filter_only_bf and base_code not in sale_rules:
+        if base_code in EXCLUDED_SKUS or (filter_only_bf and base_code not in sale_rules):
             continue
 
         rule = sale_rules.get(base_code, {})
@@ -711,7 +714,7 @@ def main():
     now_stamp = vn_now_str()
     write_outputs(warehouses_sorted, products_out, now_stamp, sale_rules)
     with_media = sum(1 for x in products_out if x.get("image") or x.get("video"))
-    print(f"[+] Hoan tat Auto-Sync v17: {len(products_out)} ma ({with_media} ma da co anh/video tu up) luc {now_stamp}!")
+    print(f"[+] Hoan tat Auto-Sync v18: {len(products_out)} ma ({with_media} ma da co anh/video tu up) luc {now_stamp}!")
 
 
 if __name__ == "__main__":

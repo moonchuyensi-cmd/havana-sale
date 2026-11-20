@@ -1,4 +1,5 @@
-// Cloudflare Pages Function: /api/stock (v17 Live 5-Warehouse Sapo Sync + 60s Edge Cache)
+// Cloudflare Pages Function: /api/stock (v18 Live 5-Warehouse Sapo Sync + Hard Excluded SKUs)
+const EXCLUDED_SKUS = new Set(["LEN374", "QJ358"]);
 function stripAccents(str) {
   return String(str || "")
     .replace(/đ/g, "d")
@@ -44,7 +45,7 @@ export async function onRequestGet(context) {
   let saleRules = null;
   try {
     const rulesAsset = await env.ASSETS.fetch(new URL("/sale_rules.json", request.url));
-    if (rulesAsset.ok) saleRules = await rulesAsset.json();
+    if (rulesAsset.ok) { saleRules = await rulesAsset.json(); for (const ex of EXCLUDED_SKUS) { if (saleRules) delete saleRules[ex]; } }
   } catch (_) {}
 
   let syncedLive = false;
@@ -93,7 +94,7 @@ export async function onRequestGet(context) {
               if (!m[1].startsWith("PVN") && !baseCode) baseCode = m[1];
             }
           }
-          if (!baseCode) continue;
+          if (!baseCode || EXCLUDED_SKUS.has(baseCode)) continue;
           if (!nameByBase[baseCode] && prod.name) nameByBase[baseCode] = String(prod.name).trim();
           liveByBase[baseCode] = liveByBase[baseCode] || [];
 
@@ -155,6 +156,7 @@ export async function onRequestGet(context) {
     if (saleRules && Object.keys(saleRules).length > 0) {
       payload.products = payload.products.filter((p) => {
         const baseSku = String(p.sku || "").trim().toUpperCase().split("-")[0];
+        if (EXCLUDED_SKUS.has(baseSku)) return false;
         const rule = saleRules[baseSku];
         if (!rule) return false;
         if (rule.origPrice > 0) p.origPrice = rule.origPrice;
