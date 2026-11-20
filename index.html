@@ -6,10 +6,9 @@
   <meta name="theme-color" content="#eef8f7" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="format-detection" content="telephone=no" />
-  <link rel="preconnect" href="https://bizweb.dktcdn.net" crossorigin />
-  <link rel="dns-prefetch" href="https://bizweb.dktcdn.net" />
-  <link rel="preconnect" href="https://sapo.dktcdn.net" crossorigin />
-  <link rel="dns-prefetch" href="https://sapo.dktcdn.net" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <title>HAVANA BLACK FRIDAY — Săn Sale &amp; Tồn Kho Thực Tế 5 Kho</title>
   <style>
         /* [BLOCK:CSS_CORE_START] */
@@ -1460,6 +1459,248 @@
     body.is-admin .admin-media-filter-bar {
       display: flex;
     }
+    
+    /* === v16: PURE APP CONFIGURATION UPGRADE (ZERO BRAND DATA ALTERATION) === */
+    body, button, input, select, textarea {
+      font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    body {
+      overflow-x: clip !important;
+    }
+    body.modal-open {
+      overflow: hidden !important;
+      touch-action: none;
+    }
+    .price-final, .price-orig, .save-tag, .discount-badge, .wh-qty-pill,
+    .cat-count-chip, .qty-val, .bill-line-total, .final-num, #countResultBadge {
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+    .pill-btn, .size-pill, .in-stock-toggle, .zalo-si-cta, .zalo-btn,
+    .add-cart-btn, .bill-tool-btn, .zalo-mini-btn, .mobile-view-toggle, .copy-mini-chip {
+      white-space: nowrap;
+    }
+
+    /* Search Input Wrapper with Clear (✕) Button */
+    .search-box-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 220px;
+      display: flex;
+      align-items: center;
+    }
+    .search-box-wrap .search-input {
+      width: 100%;
+      padding-right: 36px;
+    }
+    .search-clear-btn {
+      position: absolute;
+      right: 9px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(36, 124, 118, 0.14);
+      color: var(--havana-teal-dark);
+      font-size: 12px;
+      font-weight: 800;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .search-clear-btn.show {
+      display: inline-flex;
+    }
+
+    /* Mobile Native Storefront Layout using Havana's exact existing .topbar + Sticky Search & Category Tabs */
+    @media (max-width: 768px) {
+      .topbar {
+        position: static;
+        margin: 10px 10px 0;
+        padding: 12px 0;
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid rgba(145, 210, 206, 0.7);
+        box-shadow: 0 8px 22px rgba(22, 89, 84, 0.07);
+      }
+      .topbar-inner {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 9px;
+      }
+      .header-si-nav {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+        padding-bottom: 2px;
+        -webkit-overflow-scrolling: touch;
+      }
+      .header-si-nav::-webkit-scrollbar { display: none; }
+      .header-si-nav > * { flex-shrink: 0; }
+      .header-si-nav .social-pill {
+        display: inline-flex !important;
+        padding: 6px 10px;
+        font-size: 11.5px;
+      }
+      .header-si-nav .social-pill .social-text {
+        display: inline !important;
+      }
+
+      .toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 45;
+        margin: 8px -10px 12px;
+        padding: 9px 10px 0;
+        border-radius: 0 0 16px 16px;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-top: none;
+        box-shadow: 0 8px 20px rgba(22, 89, 84, 0.08);
+      }
+      .toolbar-cat-row {
+        gap: 2px;
+        padding-top: 4px;
+        padding-bottom: 0;
+        border-top: 1px solid rgba(36, 124, 118, 0.1);
+      }
+      .toolbar-cat-row .pill-btn {
+        border: none;
+        border-bottom: 2.5px solid transparent;
+        border-radius: 0;
+        background: transparent !important;
+        color: var(--text-muted);
+        padding: 8px 11px;
+        font-size: 12.5px;
+        font-weight: 700;
+        box-shadow: none !important;
+      }
+      .toolbar-cat-row .pill-btn.active {
+        color: var(--havana-teal-dark);
+        border-bottom-color: var(--havana-teal);
+        font-weight: 800;
+      }
+      .toolbar-cat-row .pill-btn.active .cat-count-chip {
+        background: var(--havana-teal);
+        color: #ffffff;
+      }
+    }
+
+    /* Bottom Sheet Drag Handle & Safe Area */
+    .sheet-drag-handle {
+      width: 42px;
+      height: 4.5px;
+      border-radius: 999px;
+      background: rgba(36, 124, 118, 0.24);
+      margin: 8px auto 2px;
+      display: none;
+      flex-shrink: 0;
+    }
+    @media (max-width: 680px) {
+      .sheet-drag-handle { display: block; }
+      .bill-modal-card, .zalo-modal-card {
+        max-height: 88dvh !important;
+        overscroll-behavior: contain;
+      }
+      input, select, textarea {
+        font-size: 16px !important;
+      }
+    }
+
+    /* Optional Payment Method Switcher & Dynamic VietQR Box (Hidden until this app's own bank account is configured) */
+    .vietqr-payment-wrap {
+      display: none;
+      flex-direction: column;
+      gap: 9px;
+    }
+    .vietqr-payment-wrap.configured {
+      display: flex;
+    }
+    .pay-method-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .pay-tab-btn {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1.5px solid rgba(36, 124, 118, 0.22);
+      background: #ffffff;
+      color: var(--text-main);
+      font-size: 12.5px;
+      font-weight: 800;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.16s ease;
+    }
+    .pay-tab-btn.active {
+      background: var(--havana-mint-soft);
+      border-color: var(--havana-teal);
+      color: var(--havana-teal-dark);
+      box-shadow: 0 3px 10px rgba(36, 124, 118, 0.14);
+    }
+    .vietqr-box {
+      display: none;
+      border: 1.5px solid var(--havana-mint);
+      border-radius: 16px;
+      background: linear-gradient(145deg, #f6fcfb, #eaf7f5);
+      padding: 14px;
+      gap: 14px;
+      align-items: center;
+    }
+    .vietqr-box.show {
+      display: grid;
+      grid-template-columns: 154px 1fr;
+    }
+    @media (max-width: 560px) {
+      .vietqr-box.show {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
+      }
+    }
+    .vietqr-img {
+      width: 154px;
+      height: 154px;
+      border-radius: 12px;
+      background: #ffffff;
+      padding: 6px;
+      border: 1px solid rgba(36, 124, 118, 0.18);
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+    .vietqr-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      width: 100%;
+      font-size: 12.5px;
+    }
+    .vietqr-copy-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: #ffffff;
+      border: 1px solid rgba(36, 124, 118, 0.16);
+      padding: 6px 10px;
+      border-radius: 10px;
+    }
+    .copy-mini-chip {
+      border: none;
+      background: var(--havana-teal);
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 9px;
+      border-radius: 7px;
+      cursor: pointer;
+    }
     /* [BLOCK:CSS_CORE_END] */
   </style>
 </head>
@@ -1547,6 +1788,9 @@
             <button type="button" class="pill-btn" style="border-color:var(--havana-teal);color:var(--havana-teal-dark);" onclick="exportAdminMediaZip()" id="exportMediaZipBtn">
               📦 Xuất media_havana.zip đẩy lên GitHub
             </button>
+            <button type="button" class="pill-btn" style="background:var(--havana-teal-dark);color:#fff;border-color:var(--havana-teal-dark);" onclick="exportCleanIndexHtml()">
+              🧼 Xuất index.html sạch (Public)
+            </button>
           </div>
           <div style="font-size:11.5px;font-weight:700;color:var(--ok-green);margin-top:8px;" id="vaultStatusText"></div>
         </div>
@@ -1561,6 +1805,14 @@
               Nạp sapo_5_kho.json
               <input type="file" accept=".json" style="display:none" onchange="loadSapoJsonFile(event)" />
             </label>
+          </div>
+          <div style="margin-top:10px;padding-top:9px;border-top:1px dashed rgba(36,124,118,0.25);">
+            <div style="font-size:11.5px;font-weight:800;color:var(--havana-teal-dark);margin-bottom:5px;">🏦 Cấu hình VietQR riêng (để trống nếu chưa bật chuyển khoản QR trên Bill):</div>
+            <div style="display:grid;grid-template-columns:95px 1fr 1fr;gap:6px;">
+              <input type="text" class="bill-input" id="admBankBin" placeholder="Mã NH (VD: VCB)" style="padding:6px 8px;font-size:12px;" onchange="saveBankConfigFromAdmin()" />
+              <input type="text" class="bill-input" id="admBankAcc" placeholder="Số tài khoản..." style="padding:6px 8px;font-size:12px;" onchange="saveBankConfigFromAdmin()" />
+              <input type="text" class="bill-input" id="admBankOwner" placeholder="Chủ tài khoản..." style="padding:6px 8px;font-size:12px;" onchange="saveBankConfigFromAdmin()" />
+            </div>
           </div>
         </div>
       </div>
@@ -1580,7 +1832,10 @@
     <!-- [BLOCK:CONTROLS_START] -->
     <section class="toolbar">
       <div class="toolbar-top-row">
-        <input type="text" class="search-input" id="searchInput" placeholder="Tìm theo mã (VD: CV593, QTA40, AO1016, PK...) hoặc tên sản phẩm..." oninput="onSearchInput()" />
+        <div class="search-box-wrap">
+          <input type="text" class="search-input" id="searchInput" placeholder="Tìm theo mã (VD: CV593, QTA40, AO1016, PK...) hoặc tên sản phẩm..." oninput="onSearchInput()" />
+          <button type="button" class="search-clear-btn" id="searchClearBtn" onclick="clearSearchInput()" aria-label="Xóa tìm kiếm">&times;</button>
+        </div>
         <div class="filter-group" id="tierFilters">
           <button class="pill-btn active" onclick="setPriceTier('ALL', this)">Mọi mức giá</button>
           <button class="pill-btn" onclick="setPriceTier('UNDER_99', this)">&le; 99K</button>
@@ -1622,6 +1877,7 @@
   <!-- Popup Xuất Bill Trực Quan (Giống Link Sỉ Havana) -->
   <div class="bill-modal-backdrop" id="billModal" onclick="if(event.target===this) closeBillModal()">
     <div class="bill-modal-card" role="dialog" aria-modal="true" aria-labelledby="billModalTitle">
+      <div class="sheet-drag-handle"></div>
       <div class="bill-head">
         <div>
           <span class="bill-head-badge">HAVANA BLACK FRIDAY • PHIẾU TẠM TÍNH</span>
@@ -1649,6 +1905,32 @@
 
         <!-- Bảng tổng kết hóa đơn -->
         <div class="bill-summary-box" id="billSummaryBox"></div>
+
+        <!-- Module VietQR động (Chỉ hiển thị khi chủ shop đã cấu hình STK riêng của thương hiệu này) -->
+        <div class="vietqr-payment-wrap" id="vietqrPaymentWrap">
+          <div class="pay-method-tabs">
+            <button type="button" class="pay-tab-btn active" id="payTabVietQR" onclick="setPaymentMethod('VIETQR')">💳 Chuyển khoản VietQR</button>
+            <button type="button" class="pay-tab-btn" id="payTabCOD" onclick="setPaymentMethod('COD')">🚚 Ship COD / Ghé Tiệm</button>
+          </div>
+          <div class="vietqr-box" id="vietqrBox">
+            <img src="" alt="Mã thanh toán VietQR" class="vietqr-img" id="vietqrImg" onclick="openLightbox(this.src)" />
+            <div class="vietqr-meta">
+              <div style="font-weight:800;color:var(--havana-teal-dark);" id="vietqrBankTitle"></div>
+              <div class="vietqr-copy-row">
+                <span>STK: <strong id="vietqrAccText"></strong></span>
+                <button type="button" class="copy-mini-chip" onclick="copyFastField('ACC')">Copy STK</button>
+              </div>
+              <div class="vietqr-copy-row">
+                <span>Số tiền: <strong style="color:var(--sale-red);" id="vietqrAmountText">0đ</strong></span>
+                <button type="button" class="copy-mini-chip" onclick="copyFastField('AMT')">Copy Số tiền</button>
+              </div>
+              <div class="vietqr-copy-row">
+                <span>Nội dung: <strong style="color:var(--havana-teal-dark);" id="vietqrMemoText"></strong></span>
+                <button type="button" class="copy-mini-chip" onclick="copyFastField('MEMO')">Copy Nội dung</button>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- Nút tiện ích: Sao chép văn bản Bill & Xuất Ảnh Bill PNG -->
         <div class="bill-tools-row">
@@ -1698,6 +1980,7 @@
   
   <div class="zalo-modal-backdrop" id="zaloModal" onclick="if(event.target===this) closeZaloModal()">
     <div class="zalo-modal-card" role="dialog" aria-modal="true" aria-labelledby="zaloModalTitle">
+      <div class="sheet-drag-handle"></div>
       <div class="zalo-modal-head">
         <div>
           <div style="display:inline-block;background:#e2f5f3;color:#165954;font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;margin-bottom:4px;">KẾT NỐI ZALO &amp; NHÓM CẬP NHẬT MẪU</div>
@@ -3682,6 +3965,427 @@
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") refreshLiveSapoStock(true);
     });
+    
+    /* === v16: PURE APP CONFIGURATION UPGRADE (ZERO CROSS-BRAND DATA) === */
+    let MEDIA_CACHE_VERSION = Number(localStorage.getItem("havana_media_ver") || 16);
+    let BANK_CONFIG = {
+      bankId: "",
+      bankName: "",
+      accountNo: "",
+      accountName: ""
+    };
+    try {
+      localStorage.removeItem("havana_bank_cfg_v15"); // Dọn sạch cache cấu hình nhầm (nếu từng mở bản cũ)
+      const savedBank = JSON.parse(localStorage.getItem("havana_own_bank_cfg") || "null");
+      if (savedBank && typeof savedBank === "object") {
+        BANK_CONFIG = {
+          bankId: String(savedBank.bankId || "").trim().toUpperCase(),
+          bankName: String(savedBank.bankName || savedBank.bankId || "").trim().toUpperCase(),
+          accountNo: String(savedBank.accountNo || "").replace(/\s+/g, ""),
+          accountName: String(savedBank.accountName || "").trim().toUpperCase()
+        };
+      }
+    } catch (_) {}
+
+    function hasConfiguredBank() {
+      return Boolean(BANK_CONFIG && BANK_CONFIG.bankId && BANK_CONFIG.accountNo);
+    }
+
+    let currentPaymentMethod = localStorage.getItem("havana_pay_method") || "VIETQR";
+    let currentOrderCode = sessionStorage.getItem("havana_order_code") || ("HVN" + String(Math.floor(1000 + Math.random() * 9000)));
+    sessionStorage.setItem("havana_order_code", currentOrderCode);
+
+    (function initV16BankAdminInputs() {
+      const bBin = document.getElementById("admBankBin");
+      const bAcc = document.getElementById("admBankAcc");
+      const bOwn = document.getElementById("admBankOwner");
+      if (bBin) bBin.value = BANK_CONFIG.bankId || "";
+      if (bAcc) bAcc.value = BANK_CONFIG.accountNo || "";
+      if (bOwn) bOwn.value = BANK_CONFIG.accountName || "";
+    })();
+
+    function saveBankConfigFromAdmin() {
+      const bankId = (document.getElementById("admBankBin")?.value || "").trim().toUpperCase();
+      const accountNo = (document.getElementById("admBankAcc")?.value || "").replace(/\s+/g, "");
+      const accountName = (document.getElementById("admBankOwner")?.value || "").trim().toUpperCase();
+      BANK_CONFIG = { bankId, bankName: bankId, accountNo, accountName };
+      try {
+        if (bankId && accountNo) {
+          localStorage.setItem("havana_own_bank_cfg", JSON.stringify(BANK_CONFIG));
+          showToast("🏦 Đã bật VietQR cho tài khoản " + bankId + " - " + accountNo);
+        } else {
+          localStorage.removeItem("havana_own_bank_cfg");
+          showToast("🏦 Đã tắt hiển thị VietQR trên Phiếu Bill (đang để trống STK)");
+        }
+      } catch (_) {}
+      updateVietQRDisplay();
+    }
+
+    // Copy đồng bộ tương thích 100% trình duyệt trong Zalo, Messenger, Instagram, TikTok
+    function copyTextSync(text) {
+      let ok = false;
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.top = "-9999px";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        ta.setSelectionRange(0, text.length);
+        ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+      } catch (_) {}
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).catch(() => {});
+          ok = true;
+        }
+      } catch (_) {}
+      return ok;
+    }
+
+    // Khóa cuộn nền iOS khi mở bất kỳ hộp thoại / giỏ hàng / zoom ảnh nào
+    function syncModalBodyLock() {
+      const anyOpen = ["billModal", "zaloModal", "lightbox"].some((id) => {
+        const el = document.getElementById(id);
+        return el && el.classList.contains("open");
+      });
+      document.body.classList.toggle("modal-open", anyOpen);
+    }
+
+    // Lưu nháp tức thì trước mọi lần vẽ lại giỏ hàng / đổi phương thức thanh toán
+    function snapshotCustomerDraft() {
+      saveCustomerDraft();
+    }
+
+    function clearSearchInput() {
+      const inp = document.getElementById("searchInput");
+      if (inp) {
+        inp.value = "";
+        onSearchInput();
+        inp.focus();
+      }
+    }
+
+    // Gắn đuôi ?v=X chống lưu ảnh cũ trên CDN (bỏ qua blob:, data:, và bóc sạch khi tra cứu kho cục bộ)
+    function stripQueryVersion(pathStr) {
+      return String(pathStr || "").split("?")[0];
+    }
+
+    function withCacheBustUrl(url) {
+      const s = String(url || "").trim();
+      if (!s || s.startsWith("data:") || s.startsWith("blob:")) return s;
+      const base = stripQueryVersion(s);
+      return `${base}?v=${MEDIA_CACHE_VERSION}`;
+    }
+
+    const _origGetProductSlides = getProductSlides;
+    getProductSlides = function(p) {
+      const rawSlides = _origGetProductSlides(p);
+      return rawSlides.map((sl) => ({
+        type: sl.type,
+        src: withCacheBustUrl(sl.src),
+        poster: sl.poster ? withCacheBustUrl(sl.poster) : ""
+      }));
+    };
+
+    const _origGetProductSizeChart = getProductSizeChart;
+    getProductSizeChart = function(p) {
+      const u = _origGetProductSizeChart(p);
+      return u ? withCacheBustUrl(u) : "";
+    };
+
+    onSearchInput = function() {
+      const val = (document.getElementById("searchInput")?.value || "").trim();
+      const clr = document.getElementById("searchClearBtn");
+      if (clr) clr.classList.toggle("show", val.length > 0);
+      if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => renderCatalog(), 100);
+    };
+
+    function centerActiveCategoryPill() {
+      requestAnimationFrame(() => {
+        const activeBtn = document.querySelector("#catFilters .pill-btn.active");
+        if (activeBtn && activeBtn.scrollIntoView) {
+          activeBtn.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+        }
+      });
+    }
+
+    const _origSetCategory = setCategory;
+    setCategory = function(cat) {
+      _origSetCategory(cat);
+      centerActiveCategoryPill();
+    };
+
+    const _origOpenBillModal = openBillModal;
+    openBillModal = function() {
+      _origOpenBillModal();
+      updateVietQRDisplay();
+      syncModalBodyLock();
+    };
+
+    const _origCloseBillModal = closeBillModal;
+    closeBillModal = function() {
+      snapshotCustomerDraft();
+      _origCloseBillModal();
+      syncModalBodyLock();
+    };
+
+    const _origOpenZaloModal = openZaloModal;
+    openZaloModal = function() {
+      _origOpenZaloModal();
+      syncModalBodyLock();
+    };
+
+    const _origCloseZaloModal = closeZaloModal;
+    closeZaloModal = function() {
+      _origCloseZaloModal();
+      syncModalBodyLock();
+    };
+
+    const _origOpenLightbox = openLightbox;
+    openLightbox = function(src) {
+      _origOpenLightbox(src);
+      syncModalBodyLock();
+    };
+
+    const _origOpenProductZoom = openProductZoom;
+    openProductZoom = function(sku, startSlideIdx = 0) {
+      _origOpenProductZoom(sku, startSlideIdx);
+      syncModalBodyLock();
+    };
+
+    const _origCloseLightbox = closeLightbox;
+    closeLightbox = function() {
+      _origCloseLightbox();
+      syncModalBodyLock();
+    };
+
+    const _origRenderBillModal = renderBillModal;
+    renderBillModal = function() {
+      snapshotCustomerDraft();
+      _origRenderBillModal();
+      loadCustomerDraft();
+      updateVietQRDisplay();
+    };
+
+    function getTransferMemoString() {
+      const phone = (document.getElementById("custPhoneInput")?.value || "").replace(/\D+/g, "").slice(-6);
+      return phone ? `${currentOrderCode} ${phone}` : currentOrderCode;
+    }
+
+    function setPaymentMethod(method) {
+      snapshotCustomerDraft();
+      currentPaymentMethod = method === "COD" ? "COD" : "VIETQR";
+      localStorage.setItem("havana_pay_method", currentPaymentMethod);
+      updateVietQRDisplay();
+    }
+
+    function updateVietQRDisplay() {
+      const wrap = document.getElementById("vietqrPaymentWrap");
+      const box = document.getElementById("vietqrBox");
+      if (!wrap || !box) return;
+
+      if (!hasConfiguredBank()) {
+        wrap.classList.remove("configured");
+        box.classList.remove("show");
+        return;
+      }
+
+      wrap.classList.add("configured");
+      const tabQr = document.getElementById("payTabVietQR");
+      const tabCod = document.getElementById("payTabCOD");
+      if (tabQr) tabQr.classList.toggle("active", currentPaymentMethod === "VIETQR");
+      if (tabCod) tabCod.classList.toggle("active", currentPaymentMethod === "COD");
+
+      if (currentPaymentMethod !== "VIETQR") {
+        box.classList.remove("show");
+        return;
+      }
+      box.classList.add("show");
+
+      const { totalSale } = getCartTotals();
+      const memo = getTransferMemoString();
+      const qrUrl = `https://img.vietqr.io/image/${encodeURIComponent(BANK_CONFIG.bankId)}-${encodeURIComponent(BANK_CONFIG.accountNo)}-compact2.png?amount=${Math.round(totalSale)}&addInfo=${encodeURIComponent(memo)}&accountName=${encodeURIComponent(BANK_CONFIG.accountName || "")}`;
+
+      const imgEl = document.getElementById("vietqrImg");
+      if (imgEl && imgEl.dataset.lastQr !== qrUrl) {
+        imgEl.src = qrUrl;
+        imgEl.dataset.lastQr = qrUrl;
+      }
+      const titleEl = document.getElementById("vietqrBankTitle");
+      if (titleEl) {
+        titleEl.textContent = BANK_CONFIG.accountName
+          ? `Ngân hàng ${BANK_CONFIG.bankId} • ${BANK_CONFIG.accountName}`
+          : `Ngân hàng ${BANK_CONFIG.bankId}`;
+      }
+      const accEl = document.getElementById("vietqrAccText");
+      if (accEl) accEl.textContent = BANK_CONFIG.accountNo;
+      const amtEl = document.getElementById("vietqrAmountText");
+      if (amtEl) amtEl.textContent = formatVND(totalSale);
+      const memoEl = document.getElementById("vietqrMemoText");
+      if (memoEl) memoEl.textContent = memo;
+    }
+
+    document.getElementById("custPhoneInput")?.addEventListener("input", () => {
+      if (hasConfiguredBank() && currentPaymentMethod === "VIETQR") updateVietQRDisplay();
+    });
+
+    function copyFastField(kind) {
+      if (!hasConfiguredBank()) return;
+      const { totalSale } = getCartTotals();
+      if (kind === "ACC") {
+        copyTextSync(BANK_CONFIG.accountNo);
+        showToast("📋 Đã sao chép Số tài khoản: " + BANK_CONFIG.accountNo);
+      } else if (kind === "AMT") {
+        copyTextSync(String(Math.round(totalSale)));
+        showToast("📋 Đã sao chép Số tiền: " + formatVND(totalSale));
+      } else if (kind === "MEMO") {
+        const m = getTransferMemoString();
+        copyTextSync(m);
+        showToast("📋 Đã sao chép Nội dung CK: " + m);
+      }
+    }
+
+    const _origBuildFormattedBillText = buildFormattedBillText;
+    buildFormattedBillText = function() {
+      const baseTxt = _origBuildFormattedBillText();
+      if (!hasConfiguredBank()) return baseTxt;
+      const payLine = currentPaymentMethod === "VIETQR"
+        ? `💳 Thanh toán: Chuyển khoản VietQR (Mã đơn: ${getTransferMemoString()})`
+        : `🚚 Thanh toán: Ship COD / Nhận tại cửa hàng (${currentOrderCode})`;
+      return baseTxt + "\n" + payLine;
+    };
+
+    copyBillTextOnly = function() {
+      if (!cart.length) return;
+      snapshotCustomerDraft();
+      const txt = buildFormattedBillText();
+      copyTextSync(txt);
+      showToast("✅ Đã sao chép nội dung Phiếu Bill vào bộ nhớ tạm!");
+    };
+
+    sendBillToSale = function(saleName, phone) {
+      if (!cart.length) return;
+      snapshotCustomerDraft();
+      const txt = buildFormattedBillText();
+      copyTextSync(txt);
+      showToast(`Đã sao chép Bill! Đang mở Zalo ${saleName} — bấm Dán để gửi đơn`);
+      setTimeout(() => {
+        window.open(`https://zalo.me/${phone}`, "_blank", "noopener");
+      }, 320);
+    };
+
+    copyGroupLink = function(url, staffName) {
+      copyTextSync(url);
+      showToast("Đã sao chép link nhóm Zalo của " + staffName + "!");
+    };
+
+    // Scroll-Spy mượt bằng requestAnimationFrame
+    let _spyTicking = false;
+    window.addEventListener("scroll", () => {
+      if (_spyTicking || currentCategory !== "ALL") return;
+      _spyTicking = true;
+      requestAnimationFrame(() => {
+        _spyTicking = false;
+        const cards = document.querySelectorAll("#productGrid .card");
+        if (!cards.length) return;
+        let topVisibleSku = "";
+        for (const c of cards) {
+          const rect = c.getBoundingClientRect();
+          if (rect.bottom > 150) {
+            topVisibleSku = c.id.replace(/^card-/, "");
+            break;
+          }
+        }
+        if (topVisibleSku) {
+          const prod = PRODUCTS.find((x) => x.sku === topVisibleSku);
+          if (prod) {
+            const catId = classifyProduct(prod);
+            const catBtns = document.querySelectorAll("#catFilters .pill-btn");
+            catBtns.forEach((btn) => {
+              const oc = btn.getAttribute("onclick") || "";
+              const isMatch = oc.includes(`'${catId}'`);
+              btn.style.borderColor = isMatch ? "var(--havana-teal)" : "";
+            });
+          }
+        }
+      });
+    }, { passive: true });
+
+    // 🧼 Xuất file index.html sạch chuẩn Production (gỡ chế độ Admin, đóng hết modal, nâng mã version dữ liệu)
+    function exportCleanIndexHtml() {
+      MEDIA_CACHE_VERSION += 1;
+      try { localStorage.setItem("havana_media_ver", String(MEDIA_CACHE_VERSION)); } catch (_) {}
+
+      const cloneDoc = document.documentElement.cloneNode(true);
+      const cloneBody = cloneDoc.querySelector("body");
+      if (cloneBody) {
+        cloneBody.classList.remove("is-admin", "modal-open");
+      }
+      cloneDoc.querySelectorAll(".open, .show, .dragover").forEach((el) => {
+        if (el.id !== "onlyInStockBtn") {
+          el.classList.remove("open", "show", "dragover");
+        }
+      });
+
+      const g = cloneDoc.querySelector("#productGrid");
+      if (g) g.innerHTML = "";
+      const s = cloneDoc.querySelector("#scrollSentinel");
+      if (s) s.textContent = "";
+      const vSt = cloneDoc.querySelector("#vaultStatusText");
+      if (vSt) vSt.textContent = "";
+      cloneDoc.querySelectorAll("#custNameInput, #custPhoneInput, #custNoteInput, #searchInput, #discountInput, #admBankBin, #admBankAcc, #admBankOwner").forEach((inp) => {
+        inp.value = "";
+        inp.removeAttribute("value");
+      });
+
+      let serialized = "<!DOCTYPE html>\n" + cloneDoc.outerHTML;
+
+      const cleanProducts = PRODUCTS.map((p) => {
+        const cp = JSON.parse(JSON.stringify(p));
+        if (String(cp.image || "").startsWith("blob:")) cp.image = "";
+        if (Array.isArray(cp.images)) cp.images = cp.images.filter((u) => !String(u).startsWith("blob:")).map(stripQueryVersion);
+        cp.image = stripQueryVersion(cp.image);
+        cp.video = stripQueryVersion(cp.video);
+        cp.sizeChart = stripQueryVersion(cp.sizeChart);
+        return cp;
+      });
+
+      const pStart = serialized.indexOf("/* [BLOCK:DATA_PAYLOAD_START] */");
+      const pEnd = serialized.indexOf("/* [BLOCK:DATA_PAYLOAD_END] */");
+      if (pStart !== -1 && pEnd > pStart) {
+        const endIdx = pEnd + "/* [BLOCK:DATA_PAYLOAD_END] */".length;
+        const freshPayload =
+          "/* [BLOCK:DATA_PAYLOAD_START] */\n" +
+          "    let WAREHOUSE_CONFIG = " + JSON.stringify(WAREHOUSE_CONFIG) + ";\n" +
+          "    let SALE_RULES_MASTER = " + JSON.stringify(SALE_RULES_MASTER) + ";\n" +
+          "    let BASELINE_PRODUCTS = " + JSON.stringify(cleanProducts) + ";\n" +
+          "    let PRODUCTS = BASELINE_PRODUCTS.map((p) => Object.assign({}, p));\n" +
+          "    /* [BLOCK:DATA_PAYLOAD_END] */";
+        serialized = serialized.slice(0, pStart) + freshPayload + serialized.slice(endIdx);
+      }
+
+      serialized = serialized.replace(
+        /let MEDIA_CACHE_VERSION = Number\(localStorage\.getItem\("havana_media_ver"\) \|\| \d+\);/,
+        `let MEDIA_CACHE_VERSION = Number(localStorage.getItem("havana_media_ver") || ${MEDIA_CACHE_VERSION});`
+      );
+      serialized = serialized.replace(
+        /let BANK_CONFIG = \{[\s\S]*?\};/,
+        "let BANK_CONFIG = " + JSON.stringify(BANK_CONFIG, null, 2) + ";"
+      );
+
+      const blob = new Blob([serialized], { type: "text/html;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "index.html";
+      a.click();
+      showToast(`🧼 Đã xuất index.html sạch (v=${MEDIA_CACHE_VERSION}, đã gỡ Admin & đóng hết modal)!`);
+    }
     /* [BLOCK:APP_LOGIC_END] */
   </script>
 </body>
