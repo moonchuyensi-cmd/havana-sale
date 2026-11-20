@@ -1,5 +1,5 @@
 {
-  "synced_at": "14:12 20/11",
+  "synced_at": "14:55 20/11",
   "warehouses": [
     {
       "id": "wh_havana",
@@ -1189,71 +1189,6 @@
       "images": [
         "./images/SAT542_1eb4da334705431abe26c05fffedf621~tplv-aphluv4xwc-origin-jpeg.jpeg",
         "./images/SAT542_5c80be0770294fc88314cdcb45156548~tplv-aphluv4xwc-origin-jpeg.jpeg"
-      ],
-      "video": "",
-      "sizeChart": ""
-    },
-    {
-      "sku": "LEN374",
-      "name": "Áo len cổ tròn tay dài #7058 (22) LEN374",
-      "subType": "",
-      "category": "AO_LEN",
-      "origPrice": 215000,
-      "salePrice": 159000,
-      "discountPct": 26,
-      "image": "./images/LEN374_632268ac28914d15b748900ed783a7a1~tplv-aphluv4xwc-origin-jpeg.jpeg",
-      "variants": [
-        {
-          "size": "Xanh Dương",
-          "stocks": {
-            "wh_havana": 2,
-            "wh_pct": 6,
-            "wh_auco": 3,
-            "wh_leduan": 9,
-            "wh_online": 0,
-            "wh_790054": 0
-          }
-        },
-        {
-          "size": "Kem",
-          "stocks": {
-            "wh_havana": 0,
-            "wh_pct": 0,
-            "wh_auco": 0,
-            "wh_leduan": 0,
-            "wh_online": 0,
-            "wh_790054": 0
-          }
-        },
-        {
-          "size": "Nâu",
-          "stocks": {
-            "wh_havana": 1,
-            "wh_pct": 7,
-            "wh_auco": 6,
-            "wh_leduan": 6,
-            "wh_online": 0,
-            "wh_790054": 0
-          }
-        },
-        {
-          "size": "Tím",
-          "stocks": {
-            "wh_havana": 14,
-            "wh_pct": 7,
-            "wh_auco": 7,
-            "wh_leduan": 7,
-            "wh_online": 0,
-            "wh_790054": 0
-          }
-        }
-      ],
-      "images": [
-        "./images/LEN374_632268ac28914d15b748900ed783a7a1~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./images/LEN374_b8c6781a0cc044c0a69c9a2ad2c47969~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./images/LEN374_bcdbf2065dae463f811d572e557dbb80~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./images/LEN374_de4dd922685046009389b7ead6c48f1a~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./images/LEN374_e0ebe8e658734969956484f46bad459d~tplv-aphluv4xwc-origin-jpeg.jpeg"
       ],
       "video": "",
       "sizeChart": ""
@@ -19566,58 +19501,6 @@
       "sizeChart": ""
     },
     {
-      "sku": "QJ358",
-      "name": "Quần Jeans ống rộng #8364 (3) QJ358",
-      "subType": "",
-      "category": "QUAN",
-      "origPrice": 249000,
-      "salePrice": 199000,
-      "discountPct": 20,
-      "image": "./images/QJ358_2245146a1ccc413faac8147e4f6758d5~tplv-aphluv4xwc-origin-jpeg.jpeg",
-      "variants": [
-        {
-          "size": "Be - S",
-          "stocks": {
-            "wh_havana": 83,
-            "wh_pct": 8,
-            "wh_auco": 5,
-            "wh_leduan": 5,
-            "wh_online": 0,
-            "wh_790054": 0
-          }
-        },
-        {
-          "size": "Be - M",
-          "stocks": {
-            "wh_havana": 0,
-            "wh_pct": 12,
-            "wh_auco": 2,
-            "wh_leduan": 8,
-            "wh_online": 0,
-            "wh_790054": 0
-          }
-        },
-        {
-          "size": "Be - L",
-          "stocks": {
-            "wh_havana": 0,
-            "wh_pct": 4,
-            "wh_auco": 0,
-            "wh_leduan": 6,
-            "wh_online": 0,
-            "wh_790054": 0
-          }
-        }
-      ],
-      "images": [
-        "./images/QJ358_2245146a1ccc413faac8147e4f6758d5~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./images/QJ358_3bbba0c1675744b79f8133173b35d287~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./images/QJ358_fedf379ccd004fc18e218cc2cfa81131~tplv-aphluv4xwc-origin-jpeg.jpeg"
-      ],
-      "video": "",
-      "sizeChart": ""
-    },
-    {
       "sku": "AO684",
       "name": "Áo sơmi tay dài (30) AO684",
       "subType": "",
@@ -25470,7 +25353,7 @@
       "category": "AO_KIEU",
       "origPrice": 249000,
       "salePrice": 99000,
-      "discountPct": 60.2,
+      "discountPct": 60,
       "image": "",
       "images": [],
       "video": "",
@@ -25491,7 +25374,7 @@
       "category": "AO_KIEU",
       "origPrice": 259000,
       "salePrice": 99000,
-      "discountPct": 61.8,
+      "discountPct": 62,
       "image": "",
       "images": [],
       "video": "",
@@ -25512,7 +25395,7 @@
       "category": "AO_KIEU",
       "origPrice": 269000,
       "salePrice": 99000,
-      "discountPct": 63.2,
+      "discountPct": 63,
       "image": "",
       "images": [],
       "video": "",
@@ -25533,7 +25416,7 @@
       "category": "PK_GIAY_DEP",
       "origPrice": 215000,
       "salePrice": 99000,
-      "discountPct": 53.9,
+      "discountPct": 54,
       "image": "",
       "images": [],
       "video": "",
@@ -25554,7 +25437,7 @@
       "category": "PK_TUI_XACH",
       "origPrice": 379000,
       "salePrice": 159000,
-      "discountPct": 58.1,
+      "discountPct": 58,
       "image": "",
       "images": [],
       "video": "",
@@ -25575,7 +25458,7 @@
       "category": "PK_PHU_KIEN",
       "origPrice": 349000,
       "salePrice": 159000,
-      "discountPct": 54.4,
+      "discountPct": 54,
       "image": "",
       "images": [],
       "video": "",
@@ -25596,7 +25479,7 @@
       "category": "PK_GIAY_DEP",
       "origPrice": 385000,
       "salePrice": 159000,
-      "discountPct": 58.7,
+      "discountPct": 59,
       "image": "",
       "images": [],
       "video": "",
@@ -25617,7 +25500,7 @@
       "category": "PK_PHU_KIEN",
       "origPrice": 149000,
       "salePrice": 99000,
-      "discountPct": 33.6,
+      "discountPct": 34,
       "image": "",
       "images": [],
       "video": "",
@@ -25638,7 +25521,7 @@
       "category": "PK_PHU_KIEN",
       "origPrice": 335000,
       "salePrice": 99000,
-      "discountPct": 70.5,
+      "discountPct": 70,
       "image": "",
       "images": [],
       "video": "",
@@ -25659,7 +25542,7 @@
       "category": "PK_PHU_KIEN",
       "origPrice": 185000,
       "salePrice": 39000,
-      "discountPct": 78.9,
+      "discountPct": 79,
       "image": "",
       "images": [],
       "video": "",
@@ -25680,7 +25563,7 @@
       "category": "PK_PHU_KIEN",
       "origPrice": 345000,
       "salePrice": 159000,
-      "discountPct": 53.9,
+      "discountPct": 54,
       "image": "",
       "images": [],
       "video": "",
@@ -25701,7 +25584,7 @@
       "category": "PK_PHU_KIEN",
       "origPrice": 345000,
       "salePrice": 159000,
-      "discountPct": 53.9,
+      "discountPct": 54,
       "image": "",
       "images": [],
       "video": "",
@@ -25722,7 +25605,7 @@
       "category": "PK_PHU_KIEN",
       "origPrice": 339000,
       "salePrice": 99000,
-      "discountPct": 70.8,
+      "discountPct": 71,
       "image": "",
       "images": [],
       "video": "",
@@ -25743,7 +25626,7 @@
       "category": "PK_PHU_KIEN",
       "origPrice": 289000,
       "salePrice": 99000,
-      "discountPct": 65.7,
+      "discountPct": 66,
       "image": "",
       "images": [],
       "video": "",
@@ -25764,7 +25647,7 @@
       "category": "PK_PHU_KIEN",
       "origPrice": 385000,
       "salePrice": 159000,
-      "discountPct": 58.7,
+      "discountPct": 59,
       "image": "",
       "images": [],
       "video": "",
@@ -25785,7 +25668,7 @@
       "category": "PK_PHU_KIEN",
       "origPrice": 209000,
       "salePrice": 99000,
-      "discountPct": 52.6,
+      "discountPct": 53,
       "image": "",
       "images": [],
       "video": "",
@@ -25806,7 +25689,7 @@
       "category": "PK_PHU_KIEN",
       "origPrice": 289000,
       "salePrice": 159000,
-      "discountPct": 45.0,
+      "discountPct": 45,
       "image": "",
       "images": [],
       "video": "",
@@ -25827,7 +25710,7 @@
       "category": "PK_PHU_KIEN",
       "origPrice": 359000,
       "salePrice": 159000,
-      "discountPct": 55.7,
+      "discountPct": 56,
       "image": "",
       "images": [],
       "video": "",
@@ -25848,7 +25731,7 @@
       "category": "PK_PHU_KIEN",
       "origPrice": 119000,
       "salePrice": 39000,
-      "discountPct": 67.2,
+      "discountPct": 67,
       "image": "",
       "images": [],
       "video": "",
@@ -25869,7 +25752,7 @@
       "category": "PK_PHU_KIEN",
       "origPrice": 119000,
       "salePrice": 79000,
-      "discountPct": 33.6,
+      "discountPct": 34,
       "image": "",
       "images": [],
       "video": "",
@@ -25890,7 +25773,7 @@
       "category": "PK_TUI_XACH",
       "origPrice": 175000,
       "salePrice": 99000,
-      "discountPct": 43.4,
+      "discountPct": 43,
       "image": "",
       "images": [],
       "video": "",
@@ -25911,7 +25794,7 @@
       "category": "PK_PHU_KIEN",
       "origPrice": 189000,
       "salePrice": 79000,
-      "discountPct": 58.2,
+      "discountPct": 58,
       "image": "",
       "images": [],
       "video": "",
@@ -25932,7 +25815,7 @@
       "category": "PK_PHU_KIEN",
       "origPrice": 150000,
       "salePrice": 79000,
-      "discountPct": 47.3,
+      "discountPct": 47,
       "image": "",
       "images": [],
       "video": "",
@@ -25953,7 +25836,7 @@
       "category": "PK_TUI_XACH",
       "origPrice": 125000,
       "salePrice": 79000,
-      "discountPct": 36.8,
+      "discountPct": 37,
       "image": "",
       "images": [],
       "video": "",
@@ -25974,7 +25857,7 @@
       "category": "PK_TUI_XACH",
       "origPrice": 289000,
       "salePrice": 79000,
-      "discountPct": 72.7,
+      "discountPct": 73,
       "image": "",
       "images": [],
       "video": "",
@@ -25995,7 +25878,7 @@
       "category": "PK_TUI_XACH",
       "origPrice": 289000,
       "salePrice": 79000,
-      "discountPct": 72.7,
+      "discountPct": 73,
       "image": "",
       "images": [],
       "video": "",
@@ -26016,7 +25899,7 @@
       "category": "PK_TUI_XACH",
       "origPrice": 309000,
       "salePrice": 99000,
-      "discountPct": 68.0,
+      "discountPct": 68,
       "image": "",
       "images": [],
       "video": "",
@@ -26037,7 +25920,7 @@
       "category": "PK_TUI_XACH",
       "origPrice": 289000,
       "salePrice": 99000,
-      "discountPct": 65.7,
+      "discountPct": 66,
       "image": "",
       "images": [],
       "video": "",
