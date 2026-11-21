@@ -1,5 +1,5 @@
 {
-  "synced_at": "09:41 21/11",
+  "synced_at": "09:57 21/11",
   "warehouses": [
     {
       "id": "wh_havana",
@@ -685,7 +685,7 @@
           "stocks": {
             "wh_havana": 0,
             "wh_pct": 2,
-            "wh_auco": 1,
+            "wh_auco": 0,
             "wh_leduan": 3,
             "wh_online": 3,
             "wh_790054": 0
@@ -4293,7 +4293,7 @@
           "stocks": {
             "wh_havana": 0,
             "wh_pct": 0,
-            "wh_auco": 1,
+            "wh_auco": 0,
             "wh_leduan": 1,
             "wh_online": 0,
             "wh_790054": 0
@@ -4977,7 +4977,7 @@
           "stocks": {
             "wh_havana": 0,
             "wh_pct": 4,
-            "wh_auco": 3,
+            "wh_auco": 2,
             "wh_leduan": 0,
             "wh_online": 0,
             "wh_790054": 0
@@ -10148,7 +10148,7 @@
           "size": "Be",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 3,
+            "wh_pct": 2,
             "wh_auco": 0,
             "wh_leduan": 0,
             "wh_online": 0,
@@ -25017,7 +25017,7 @@
         {
           "size": "Áo Trắng - F",
           "stocks": {
-            "wh_havana": 17,
+            "wh_havana": 16,
             "wh_pct": 0,
             "wh_auco": 0,
             "wh_leduan": 0,
