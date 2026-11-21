@@ -5,6 +5,8 @@ import glob
 import json
 import shutil
 import datetime
+import hashlib
+import concurrent.futures
 import subprocess
 import unicodedata
 import urllib.parse
@@ -12,7 +14,7 @@ import urllib.request
 import zipfile as zf_mod
 
 # ==============================================================================
-# AUTO_SYNC_SAPO.PY (v21 - XOA ANH CU SAT532 BI NHAM SAT533 & BO SUNG ANH SAPO CHUAN)
+# AUTO_SYNC_SAPO.PY (v22 - AUTO CAP NHAT TON KHO LIEN TUC 5 PHUT + PARALLEL SAPO + LIVE RELEASE FEED)
 # ==============================================================================
 
 DEFAULT_COOKIE = ""
@@ -318,6 +320,31 @@ def load_black_friday_rules() -> dict:
     if excel_files:
         excel_files.sort(key=lambda x: (0 if "black" in x.lower() else 1, x))
         target_xlsx = excel_files[0]
+        xlsx_sha = ""
+        try:
+            with open(target_xlsx, "rb") as xf:
+                xlsx_sha = hashlib.sha256(xf.read()).hexdigest()[:16]
+        except Exception:
+            pass
+        sha_marker = ".bf_xlsx_hash.txt"
+        prev_sha = ""
+        if os.path.exists(sha_marker):
+            try:
+                with open(sha_marker, "r", encoding="utf-8") as mf:
+                    prev_sha = mf.read().strip()
+            except Exception:
+                pass
+        if xlsx_sha and xlsx_sha == prev_sha and os.path.exists("sale_rules.json"):
+            try:
+                with open("sale_rules.json", "r", encoding="utf-8") as rf:
+                    cached_rules = json.load(rf)
+                if len(cached_rules) >= 50:
+                    for ex_code in EXCLUDED_SKUS:
+                        cached_rules.pop(ex_code, None)
+                    return cached_rules
+            except Exception:
+                pass
+
         print(f"[*] Tu dong doc bang Excel tren repo: {target_xlsx}")
         try:
             import openpyxl
@@ -387,6 +414,12 @@ def load_black_friday_rules() -> dict:
             sale_rules.pop(ex_code, None)
         with open("sale_rules.json", "w", encoding="utf-8") as f:
             json.dump(sale_rules, f, ensure_ascii=False, indent=2)
+        if xlsx_sha:
+            try:
+                with open(".bf_xlsx_hash.txt", "w", encoding="utf-8") as mf:
+                    mf.write(xlsx_sha)
+            except Exception:
+                pass
         print(f"[+] Da trich xuat {len(sale_rules)} ma Sale tu {target_xlsx}")
     elif os.path.exists("sale_rules.json"):
         with open("sale_rules.json", "r", encoding="utf-8") as f:
@@ -739,6 +772,134 @@ def apply_priority_media_to_list(products_list: list, preserved_by_sku: dict, pu
     return products_list
 
 
+def build_compact_stock_feed(warehouses_sorted: list, products_out: list, synced_at_str: str) -> str:
+    """Dong goi bang ton kho 5 chi nhanh sieu gon (~20KB) de phat truc tiep qua GitHub Release API moi 5 phut
+    ma KHONG ton bat ky luot build nao cua Cloudflare Pages."""
+    wh_ids = [w.get("id") for w in warehouses_sorted]
+    items_compact = {}
+    for p in products_out:
+        code = str(p.get("sku") or "").upper()
+        if not code:
+            continue
+        v_rows = []
+        for v in (p.get("variants") or []):
+            st = v.get("stocks") or {}
+            qty_arr = [int(st.get(wid) or 0) for wid in wh_ids]
+            v_rows.append([v.get("size") or "Freesize", qty_arr])
+        entry = {"v": v_rows}
+        if p.get("name") and not str(p.get("name")).startswith(("Sản phẩm Havana ", "Áo kiểu thiết kế Havana ")):
+            entry["n"] = p["name"]
+        items_compact[code] = entry
+
+    feed_obj = {
+        "v": 22,
+        "synced_at": synced_at_str,
+        "synced_epoch": int(datetime.datetime.now(datetime.timezone.utc).timestamp()),
+        "warehouses": warehouses_sorted,
+        "items": items_compact,
+    }
+    return json.dumps(feed_obj, ensure_ascii=False, separators=(",", ":"))
+
+
+def publish_live_release_feed(warehouses_sorted: list, products_out: list, synced_at_str: str) -> bool:
+    """Cap nhat truc tiep Release tag `live-stock` tren GitHub bang GITHUB_TOKEN co san."""
+    gh_token = os.environ.get("GITHUB_TOKEN", "").strip()
+    repo_slug = os.environ.get("GITHUB_REPOSITORY", "moonchuyensi-cmd/havana-sale").strip()
+    if not gh_token or not repo_slug:
+        return False
+
+    compact_body = build_compact_stock_feed(warehouses_sorted, products_out, synced_at_str)
+    if len(compact_body) > 120000:
+        # Neu vuot 120KB thi bo truong ten 'n' cho sieu nhe (~18KB)
+        data_tmp = json.loads(compact_body)
+        for k in data_tmp.get("items", {}).values():
+            k.pop("n", None)
+        compact_body = json.dumps(data_tmp, ensure_ascii=False, separators=(",", ":"))
+
+    api_headers = {
+        "Authorization": f"Bearer {gh_token}",
+        "Accept": "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "havana-sale-auto-sync-v22",
+    }
+
+    tag_url = f"https://api.github.com/repos/{repo_slug}/releases/tags/live-stock"
+    rel_id = None
+    try:
+        req = urllib.request.Request(tag_url, headers=api_headers)
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            rel_data = json.loads(resp.read().decode("utf-8"))
+            rel_id = rel_data.get("id")
+    except urllib.error.HTTPError as he:
+        if he.code != 404:
+            print(f"[!] Loi kiem tra release live-stock ({he.code}): {he}")
+    except Exception as e:
+        print(f"[!] Loi mang khi kiem tra release live-stock: {e}")
+
+    payload_bytes = json.dumps({
+        "tag_name": "live-stock",
+        "name": f"Live Sapo Stock ({synced_at_str})",
+        "body": compact_body,
+        "draft": False,
+        "prerelease": True,
+    }, ensure_ascii=False).encode("utf-8")
+
+    try:
+        if rel_id:
+            patch_url = f"https://api.github.com/repos/{repo_slug}/releases/{rel_id}"
+            req = urllib.request.Request(patch_url, data=payload_bytes, headers=api_headers, method="PATCH")
+        else:
+            create_url = f"https://api.github.com/repos/{repo_slug}/releases"
+            req = urllib.request.Request(create_url, data=payload_bytes, headers=api_headers, method="POST")
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            _ = resp.read()
+        print(f"[+] Da phat Live Stock Feed ({len(compact_body)} bytes) len Release [live-stock] luc {synced_at_str}!")
+        return True
+    except Exception as e:
+        print(f"[!] Khong cap nhat duoc Release live-stock: {e}")
+        return False
+
+
+def compute_products_fingerprint(products_list: list) -> str:
+    norm_items = []
+    for p in sorted(products_list, key=lambda x: str(x.get("sku") or "")):
+        norm_items.append({
+            "s": p.get("sku"),
+            "op": p.get("origPrice"),
+            "sp": p.get("salePrice"),
+            "im": p.get("images") or [],
+            "vd": p.get("video") or "",
+            "sz": p.get("sizeChart") or "",
+            "vr": p.get("variants") or [],
+        })
+    raw = json.dumps(norm_items, ensure_ascii=False, sort_keys=True)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def compute_media_rules_fingerprint(products_list: list) -> str:
+    norm_items = []
+    for p in sorted(products_list, key=lambda x: str(x.get("sku") or "")):
+        norm_items.append({
+            "s": p.get("sku"),
+            "op": p.get("origPrice"),
+            "sp": p.get("salePrice"),
+            "im": p.get("images") or [],
+            "vd": p.get("video") or "",
+            "sz": p.get("sizeChart") or "",
+        })
+    raw = json.dumps(norm_items, ensure_ascii=False, sort_keys=True)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def last_git_commit_age_seconds() -> int:
+    try:
+        out = subprocess.check_output(["git", "log", "-1", "--format=%ct"], text=True, timeout=5).strip()
+        return max(0, int(datetime.datetime.now(datetime.timezone.utc).timestamp()) - int(out))
+    except Exception:
+        return 999999
+
+
 def main():
     purged_now = purge_wrong_custom_media_once()
     sale_rules = load_black_friday_rules()
@@ -794,16 +955,30 @@ def main():
                 except Exception as e:
                     print("[*] Loi nhe khi doc locations.json:", e)
 
-                page = 2
-                while len(first_batch) == 250 and page <= 60:
-                    pdata = fetch_json(f"/admin/products.json?page={page}&limit=250", hdrs)
-                    batch = pdata.get("products", [])
-                    if not batch:
-                        break
-                    all_products.extend(batch)
-                    if len(batch) < 250:
-                        break
-                    page += 1
+                if len(first_batch) == 250:
+                    meta_total = int((first_page.get("metadata") or {}).get("total") or 0)
+                    if meta_total > 250:
+                        max_page = min(60, (meta_total + 249) // 250)
+                        pages_to_fetch = list(range(2, max_page + 1))
+                        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+                            futs = {pool.submit(fetch_json, f"/admin/products.json?page={pg}&limit=250", hdrs): pg for pg in pages_to_fetch}
+                            for pg in pages_to_fetch:
+                                for fut, f_pg in futs.items():
+                                    if f_pg == pg:
+                                        pdata = fut.result()
+                                        all_products.extend(pdata.get("products") or [])
+                                        break
+                    else:
+                        page = 2
+                        while page <= 60:
+                            pdata = fetch_json(f"/admin/products.json?page={page}&limit=250", hdrs)
+                            batch = pdata.get("products", [])
+                            if not batch:
+                                break
+                            all_products.extend(batch)
+                            if len(batch) < 250:
+                                break
+                            page += 1
                 print(f"[+] Ket noi thanh cong bang [{auth_label}]! Da quet {len(all_products)} san pham tren Sapo.")
                 break
             except Exception as err:
@@ -974,14 +1149,44 @@ def main():
     ]
 
     now_stamp = vn_now_str()
-    write_outputs(warehouses_sorted, products_out, now_stamp, sale_rules)
+    old_full_fp = compute_products_fingerprint(existing_products) if existing_products else ""
+    old_media_fp = compute_media_rules_fingerprint(existing_products) if existing_products else ""
+    new_full_fp = compute_products_fingerprint(products_out)
+    new_media_fp = compute_media_rules_fingerprint(products_out)
+
+    # 1. LUON LUON phat Live Stock Feed tuc thi moi 5 phut (0 ton build Cloudflare!)
+    live_feed_ok = publish_live_release_feed(warehouses_sorted, products_out, now_stamp)
+
+    # 2. Quyet dinh co can commit len nhanh main hay khong (bao ve han muc 500 builds/thang cua Cloudflare Pages)
+    event_name = os.environ.get("GITHUB_EVENT_NAME", "").strip()
+    commit_age = last_git_commit_age_seconds()
+    media_or_price_changed = (old_media_fp != new_media_fp)
+    stock_changed = (old_full_fp != new_full_fp)
+
+    should_commit_main = True
+    if event_name == "schedule" and live_feed_ok and not purged_now and not media_or_price_changed:
+        if not stock_changed:
+            should_commit_main = False
+        elif commit_age < 1800:
+            # Ton kho da len Live Feed ngay lap tuc; gom commit tren main moi 30 phut de tiet kiem quota Cloudflare
+            should_commit_main = False
+
+    if should_commit_main:
+        if os.path.exists(".skip_git_commit"):
+            os.remove(".skip_git_commit")
+        write_outputs(warehouses_sorted, products_out, now_stamp, sale_rules)
+    else:
+        with open(".skip_git_commit", "w", encoding="utf-8") as sf:
+            sf.write(now_stamp)
+
     with_custom = sum(1 for x in products_out if x.get("hasCustomMedia"))
     with_sapo_fb = sum(1 for x in products_out if (not x.get("hasCustomMedia")) and x.get("image"))
-    print(f"[+] Hoan tat Auto-Sync v21: {len(products_out)} ma ({with_custom} ma dung anh tu up, {with_sapo_fb} ma dung tam anh Sapo) luc {now_stamp}!")
+    mode_note = "Đã đẩy Live Feed tức thì + Commit lên nhánh chính" if should_commit_main else "Đã đẩy Live Feed tức thì (tiết kiệm lượt build Cloudflare)"
+    print(f"[+] Hoan tat Auto-Sync v22: {len(products_out)} ma ({with_custom} anh tu up, {with_sapo_fb} anh Sapo) luc {now_stamp}! [{mode_note}]")
     sat532_item = next((x for x in products_out if x.get("sku") == "SAT532"), None)
     sat532_imgs = (sat532_item.get("images") if sat532_item else []) or []
     sat532_status = f"Đã cập nhật `{len(sat532_imgs)}` ảnh từ Sapo (`{sat532_imgs[0]}`)" if sat532_imgs else "Trên Sapo mã SAT532 hiện chưa có ảnh đính kèm"
-    write_github_summary(f"### ✅ Đồng bộ Sapo & Cập nhật ảnh SAT532 thành công ({now_stamp})\n- **Tổng sản phẩm quét trên Sapo:** `{len(all_products)}`\n- **Tổng mã Sale trên web:** `{len(products_out)}`\n- **Mã dùng ảnh tự up:** `{with_custom}`\n- **Mã dùng tạm ảnh Sapo:** `{with_sapo_fb}`\n- **Trạng thái mã `SAT532`:** {sat532_status}")
+    write_github_summary(f"### ✅ Tự động đồng bộ Tồn Kho Liên Tục v22 ({now_stamp})\n- **Chế độ cập nhật:** `{mode_note}`\n- **Tổng sản phẩm quét trên Sapo:** `{len(all_products)}`\n- **Tổng mã Sale trên web:** `{len(products_out)}` (`{with_custom}` ảnh tự up • `{with_sapo_fb}` ảnh Sapo)\n- **Trạng thái mã `SAT532`:** {sat532_status}")
 
 
 if __name__ == "__main__":
