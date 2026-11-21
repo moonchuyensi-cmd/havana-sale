@@ -1,5 +1,5 @@
 {
-  "synced_at": "18:38 21/11",
+  "synced_at": "19:25 21/11",
   "warehouses": [
     {
       "id": "wh_havana",
@@ -805,7 +805,7 @@
         {
           "size": "Be Hoa - S",
           "stocks": {
-            "wh_havana": 11,
+            "wh_havana": 10,
             "wh_pct": 16,
             "wh_auco": 5,
             "wh_leduan": 5,
@@ -3766,7 +3766,7 @@
             "wh_havana": 0,
             "wh_pct": 0,
             "wh_auco": 2,
-            "wh_leduan": 2,
+            "wh_leduan": 1,
             "wh_online": 0,
             "wh_790054": 0
           }
@@ -4711,7 +4711,7 @@
           "size": "Xanh Dương",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 10,
+            "wh_pct": 9,
             "wh_auco": 10,
             "wh_leduan": 6,
             "wh_online": 1,
@@ -5443,7 +5443,7 @@
             "wh_havana": 0,
             "wh_pct": 10,
             "wh_auco": 10,
-            "wh_leduan": 7,
+            "wh_leduan": 6,
             "wh_online": 0,
             "wh_790054": 0
           }
@@ -7791,7 +7791,7 @@
           "stocks": {
             "wh_havana": 0,
             "wh_pct": 0,
-            "wh_auco": 2,
+            "wh_auco": 1,
             "wh_leduan": 0,
             "wh_online": 0,
             "wh_790054": 0
@@ -22903,7 +22903,7 @@
           "size": "Đen - L",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 2,
+            "wh_pct": 1,
             "wh_auco": 1,
             "wh_leduan": 0,
             "wh_online": 0,
