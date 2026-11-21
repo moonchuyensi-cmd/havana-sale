@@ -14,7 +14,7 @@ import urllib.request
 import zipfile as zf_mod
 
 # ==============================================================================
-# AUTO_SYNC_SAPO.PY (v22 - AUTO CAP NHAT TON KHO LIEN TUC 5 PHUT + PARALLEL SAPO + LIVE RELEASE FEED)
+# AUTO_SYNC_SAPO.PY (v23 - CAP NHAT GIA AO1010=79K & AO726=39K + REALTIME SYNC 5 PHUT)
 # ==============================================================================
 
 DEFAULT_COOKIE = ""
@@ -326,6 +326,28 @@ def load_black_friday_rules() -> dict:
                 xlsx_sha = hashlib.sha256(xf.read()).hexdigest()[:16]
         except Exception:
             pass
+        # Neu tren repo van la file Black Friday.xlsx ban v22 cu (chua kip keo de file v23) -> tu dong cap nhat dung 2 ma AO1010=79K, AO726=39K
+        if xlsx_sha == "8470550bc1000ee7":
+            try:
+                import openpyxl as _ox
+            except ImportError:
+                subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl", "-q"])
+                import openpyxl as _ox
+            _wb = _ox.load_workbook(target_xlsx)
+            if "Tổng CH" in _wb.sheetnames:
+                _ws = _wb["Tổng CH"]
+                for _r in range(2, _ws.max_row + 1):
+                    _c = str(_ws.cell(_r, 1).value or "").strip().upper()
+                    if _c == "AO1010":
+                        _ws.cell(_r, 3).value = 79000
+                        _ws.cell(_r, 4).value = 0.5928
+                    elif _c == "AO726":
+                        _ws.cell(_r, 3).value = 39000
+                        _ws.cell(_r, 4).value = 0.8267
+                _wb.save(target_xlsx)
+                with open(target_xlsx, "rb") as xf:
+                    xlsx_sha = hashlib.sha256(xf.read()).hexdigest()[:16]
+                print("[+] Da tu dong cap nhat AO1010 -> 79K & AO726 -> 39K trong Black Friday.xlsx!")
         sha_marker = ".bf_xlsx_hash.txt"
         prev_sha = ""
         if os.path.exists(sha_marker):
