@@ -5,7 +5,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '0 1-15 * * *'
   workflow_dispatch:
 
 permissions:
@@ -45,7 +45,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "Khong co thay doi moi."
           else
-            git commit -m "chore(auto): cap nhat ton 5 kho Sapo & media [skip ci]"
+            git commit -m "chore(auto): cap nhat ton 5 kho Sapo & media"
             git pull --rebase origin main || true
             git push origin HEAD:main
           fi
