@@ -12,7 +12,7 @@ import urllib.request
 import zipfile as zf_mod
 
 # ==============================================================================
-# AUTO_SYNC_SAPO.PY (v13 - QUET TOAN BO REPO + TU BUNG ZIP + 0% ANH SAPO)
+# AUTO_SYNC_SAPO.PY (v19 - UU TIEN ANH TU UP -> CHUA CO ANH THI DUNG TAM ANH SAPO)
 # ==============================================================================
 
 DEFAULT_COOKIE = ""
@@ -56,22 +56,76 @@ def is_sapo_cdn_url(url: str) -> bool:
     return bool(u and SAPO_IMG_RX.search(u))
 
 
+def normalize_sapo_img_url(raw_url) -> str:
+    u = str(raw_url or "").strip()
+    if not u or u.startswith("data:"):
+        return ""
+    if u.startswith("//"):
+        u = "https:" + u
+    elif u.startswith("/"):
+        u = f"https://{DOMAIN}{u}"
+    return u if u.startswith(("http://", "https://")) else ""
+
+
+def extract_sapo_product_images(sapo_prod: dict) -> list:
+    urls = []
+
+    def add_u(val):
+        nu = normalize_sapo_img_url(val)
+        if nu and nu not in urls:
+            urls.append(nu)
+
+    img_main = sapo_prod.get("image")
+    if isinstance(img_main, dict):
+        add_u(img_main.get("full_path") or img_main.get("src") or img_main.get("path"))
+    elif isinstance(img_main, str):
+        add_u(img_main)
+
+    for im in (sapo_prod.get("images") or []):
+        if isinstance(im, dict):
+            add_u(im.get("full_path") or im.get("src") or im.get("path"))
+        elif isinstance(im, str):
+            add_u(im)
+
+    for v in (sapo_prod.get("variants") or []):
+        for vim in (v.get("images") or []):
+            if isinstance(vim, dict):
+                add_u(vim.get("full_path") or vim.get("src") or vim.get("path"))
+            elif isinstance(vim, str):
+                add_u(vim)
+        v_single = v.get("image")
+        if isinstance(v_single, dict):
+            add_u(v_single.get("full_path") or v_single.get("src") or v_single.get("path"))
+        elif isinstance(v_single, str):
+            add_u(v_single)
+
+    return urls
+
+
 def encode_rel_url(rel_path: str) -> str:
     clean = rel_path.replace("\\", "/").lstrip("./")
     parts = [urllib.parse.quote(p) for p in clean.split("/")]
     return "./" + "/".join(parts)
 
 
-def sanitize_custom_media_item(prod: dict) -> dict:
+def split_custom_and_sapo_media(prod: dict) -> tuple:
     raw_imgs = prod.get("images") if isinstance(prod.get("images"), list) else []
-    clean_imgs = [u for u in raw_imgs if u and not is_sapo_cdn_url(u) and not str(u).startswith("data:image/svg+xml")]
     main_img = str(prod.get("image") or "").strip()
-    if is_sapo_cdn_url(main_img) or main_img.startswith("data:image/svg+xml"):
-        main_img = ""
-    if not main_img and clean_imgs:
-        main_img = clean_imgs[0]
-    if main_img and main_img not in clean_imgs:
-        clean_imgs.insert(0, main_img)
+    raw_sapo = prod.get("sapoImages") if isinstance(prod.get("sapoImages"), list) else []
+
+    custom_imgs = []
+    sapo_imgs = []
+
+    for u in ([main_img] + list(raw_imgs) + list(raw_sapo)):
+        s = str(u or "").strip()
+        if not s or s.startswith("data:image/svg+xml"):
+            continue
+        if is_sapo_cdn_url(s):
+            if s not in sapo_imgs:
+                sapo_imgs.append(s)
+        else:
+            if s not in custom_imgs:
+                custom_imgs.append(s)
 
     vid = str(prod.get("video") or "").strip()
     if is_sapo_cdn_url(vid):
@@ -80,11 +134,7 @@ def sanitize_custom_media_item(prod: dict) -> dict:
     if is_sapo_cdn_url(sz_chart):
         sz_chart = ""
 
-    prod["image"] = main_img
-    prod["images"] = clean_imgs
-    prod["video"] = vid
-    prod["sizeChart"] = sz_chart
-    return prod
+    return custom_imgs, sapo_imgs, vid, sz_chart
 
 
 def parse_money(val) -> int:
@@ -100,7 +150,11 @@ def parse_money(val) -> int:
     if not s_digits:
         return 0
     num = int(s_digits)
-    return num * 1000 if 0 < num < 1000 else num
+    return num * 1000 if 0 < v_safe(num) < 1000 else num
+
+
+def v_safe(n: int) -> int:
+    return n
 
 
 def parse_pct(val) -> float:
@@ -121,7 +175,7 @@ def build_headers() -> dict:
     headers = {
         "accept": "application/json, text/plain, */*",
         "accept-language": "vi",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
     }
     token = os.environ.get("SAPO_ACCESS_TOKEN", "").strip()
     cookie = os.environ.get("SAPO_COOKIE", "").strip() or DEFAULT_COOKIE
@@ -185,7 +239,7 @@ def load_black_friday_rules() -> dict:
                 if not r or col_sku >= len(r):
                     continue
                 code = clean_base_code(r[col_sku])
-                if not code:
+                if not code or code in EXCLUDED_SKUS:
                     continue
                 orig_p = parse_money(r[col_orig]) if (col_orig is not None and col_orig < len(r)) else 0
                 sale_p = parse_money(r[col_sale]) if (col_sale is not None and col_sale < len(r)) else 0
@@ -208,6 +262,8 @@ def load_black_friday_rules() -> dict:
                         "discountPct": round(pct_v, 1) if pct_v > 0 else (round((1 - sale_p / orig_p) * 100) if orig_p > sale_p > 0 else 30),
                         "subType": sub_type or prev_sub,
                     }
+        for ex_code in EXCLUDED_SKUS:
+            sale_rules.pop(ex_code, None)
         with open("sale_rules.json", "w", encoding="utf-8") as f:
             json.dump(sale_rules, f, ensure_ascii=False, indent=2)
         print(f"[+] Da trich xuat {len(sale_rules)} ma Sale tu {target_xlsx}")
@@ -229,7 +285,6 @@ def load_black_friday_rules() -> dict:
 
 
 def build_sku_matcher(codes: list):
-    """Tao bo nhan dien SKU chinh xac cao (ho tro ca CV593, CV-593, CV_593, CV 593), sap xep ma dai truoc."""
     sorted_codes = sorted(set(c.upper() for c in codes if c), key=len, reverse=True)
     compiled = []
     for c in sorted_codes:
@@ -244,7 +299,6 @@ def build_sku_matcher(codes: list):
 
 
 def unpack_any_zip_archives():
-    """Tu dong bung nen file .zip o thu muc goc, media/, hoac images/."""
     os.makedirs("images", exist_ok=True)
     os.makedirs("videos", exist_ok=True)
     os.makedirs("sizes", exist_ok=True)
@@ -302,8 +356,6 @@ def unpack_any_zip_archives():
 
 
 def scan_repo_media_folders(codes: list) -> dict:
-    """Quet TOAN BO thu muc trong repo (images/, videos/, sizes/, thu muc goc hoac bat ky thu muc con nao user tao)
-    de du user keo tha anh vao dau cung tu dong nhan dien 100%!"""
     unpack_any_zip_archives()
     compiled = build_sku_matcher(codes)
     media_map = {}
@@ -324,7 +376,6 @@ def scan_repo_media_folders(codes: list) -> dict:
                 rel = rel[2:]
             all_repo_files.append(rel)
 
-    # Uu tien thu muc chuan images/, videos/, sizes/ truoc, sau do den moi thu muc khac trong repo
     all_repo_files.sort(key=lambda p: (0 if p.startswith(("images/", "videos/", "sizes/")) else 1, p.lower()))
 
     for rel_path in all_repo_files:
@@ -334,7 +385,6 @@ def scan_repo_media_folders(codes: list) -> dict:
         if not (is_img or is_vid):
             continue
 
-        # Kiem tra ten file truoc, neu ten file la "1.jpg" thi kiem tra ten thu muc cha (VD: "CV593/1.jpg")
         fname_only = os.path.basename(rel_path)
         parent_dirs = os.path.dirname(rel_path)
         matched_code = ""
@@ -482,22 +532,30 @@ def write_outputs(warehouses_sorted: list, products_out: list, synced_at_str: st
                 f.write(html_src[:s_i] + new_blk + html_src[e_i:])
 
 
-def apply_custom_media_to_list(products_list: list, preserved_by_sku: dict) -> list:
+def apply_priority_media_to_list(products_list: list, preserved_by_sku: dict) -> list:
+    """Uu tien so 1: Anh/video tu up tren repo (images/, videos/, sizes/).
+    Uu tien so 2 (khi ma chua co anh tu up): Dung tam anh tu Sapo (sapoImages).
+    Ngay khi user up anh moi cho ma do -> tu dong chuyen sang anh tu up!"""
     codes = [str(p.get("sku") or "").upper() for p in products_list]
     repo_media = scan_repo_media_folders(codes)
 
     for p in products_list:
-        sanitize_custom_media_item(p)
+        cur_custom, cur_sapo, cur_vid, cur_sz = split_custom_and_sapo_media(p)
         code = str(p.get("sku") or "").upper()
         prev = preserved_by_sku.get(code, {})
         repo_m = repo_media.get(code, {})
 
-        imgs = repo_m.get("images") or prev.get("images") or p.get("images") or []
-        vid = repo_m.get("video") or prev.get("video") or p.get("video") or ""
-        szc = repo_m.get("sizeChart") or prev.get("sizeChart") or p.get("sizeChart") or ""
+        custom_imgs = repo_m.get("images") or prev.get("customImages") or cur_custom or []
+        sapo_imgs = cur_sapo or prev.get("sapoImages") or []
+        vid = repo_m.get("video") or prev.get("video") or cur_vid or ""
+        szc = repo_m.get("sizeChart") or prev.get("sizeChart") or cur_sz or ""
 
-        p["images"] = imgs
-        p["image"] = imgs[0] if imgs else ""
+        # Neu da co anh tu up (hoac video tu up kem anh) -> CHỈ dung anh tu up; chua co anh tu up -> dung tam anh Sapo!
+        final_imgs = custom_imgs if len(custom_imgs) > 0 else sapo_imgs
+        p["sapoImages"] = sapo_imgs
+        p["hasCustomMedia"] = bool(len(custom_imgs) > 0 or vid)
+        p["images"] = final_imgs
+        p["image"] = final_imgs[0] if final_imgs else ""
         p["video"] = vid
         p["sizeChart"] = szc
 
@@ -518,13 +576,14 @@ def main():
             existing_warehouses = old_data.get("warehouses") or []
             existing_products = old_data.get("products") or []
             for op in existing_products:
-                sanitize_custom_media_item(op)
-                c = str(op.get("sku") or "").upper()
+                c_imgs, s_imgs, vid, szc = split_custom_and_sapo_media(op)
+                c = clean_base_code(str(op.get("sku") or "").split("-")[0])
                 if c:
                     preserved_media_by_sku[c] = {
-                        "images": op.get("images") or [],
-                        "video": op.get("video") or "",
-                        "sizeChart": op.get("sizeChart") or "",
+                        "customImages": c_imgs,
+                        "sapoImages": s_imgs,
+                        "video": vid,
+                        "sizeChart": szc,
                     }
         except Exception:
             pass
@@ -535,7 +594,7 @@ def main():
 
     if "cookie" in headers or "X-Sapo-Access-Token" in headers:
         try:
-            print(f"[{vn_now_str()}] Dang dong bo ton kho 5 chi nhanh Sapo (0% anh Sapo)...")
+            print(f"[{vn_now_str()}] Dang dong bo ton kho 5 chi nhanh & anh du phong Sapo...")
             try:
                 ldata = fetch_json("/admin/locations.json", headers)
                 for idx, loc in enumerate(ldata.get("locations", [])):
@@ -558,7 +617,7 @@ def main():
                 page += 1
             print(f"[*] Da quet {len(all_products)} san pham tren Sapo.")
         except Exception as err:
-            print(f"[!] Sapo API tam ngat ({err}) -> Van quet toan bo repo & cap nhat anh/video tu up!")
+            print(f"[!] Sapo API tam ngat ({err}) -> Van quet toan bo repo & cap nhat anh/video!")
 
     if not all_products:
         if existing_products or sale_rules:
@@ -586,7 +645,7 @@ def main():
                 updated_existing.append(ep)
 
             for c, r_info in sale_rules.items():
-                if c not in seen_skus:
+                if c not in seen_skus and c not in EXCLUDED_SKUS:
                     sub_t = r_info.get("subType") or PK_KNOWN_SUBTYPES.get(c, "")
                     pname_fb = f"{sub_t} Havana {c}".strip() if sub_t else f"Sản phẩm Havana {c}"
                     updated_existing.append({
@@ -599,12 +658,13 @@ def main():
                         "discountPct": r_info.get("discountPct") or 30,
                         "image": "",
                         "images": [],
+                        "sapoImages": [],
                         "video": "",
                         "sizeChart": "",
                         "variants": [{"size": "Freesize", "stocks": {"wh_pct": 1}}],
                     })
 
-            cleaned = apply_custom_media_to_list(updated_existing, preserved_media_by_sku)
+            cleaned = apply_priority_media_to_list(updated_existing, preserved_media_by_sku)
             wh_out = existing_warehouses or [
                 {"id": "wh_havana", "sapo_name": "HAVANA", "name": "HAVANA (93-95 Hồ Phi Tích)"},
                 {"id": "wh_online", "sapo_name": "HAVANA ONLINE", "name": "HAVANA ONLINE"},
@@ -613,8 +673,9 @@ def main():
                 {"id": "wh_leduan", "sapo_name": "240 Lê Duẩn", "name": "240 Lê Duẩn"},
             ]
             write_outputs(wh_out, cleaned, vn_now_str(), sale_rules)
-            with_img = sum(1 for x in cleaned if x.get("image") or x.get("video"))
-            print(f"[+] Da cap nhat GIA MOI & Media tu up cho {len(cleaned)} ma ({with_img} ma co hinh)!")
+            with_custom = sum(1 for x in cleaned if x.get("hasCustomMedia"))
+            with_any = sum(1 for x in cleaned if x.get("image") or x.get("video"))
+            print(f"[+] Da cap nhat {len(cleaned)} ma ({with_custom} ma anh tu up, {with_any - with_custom} ma dung tam anh Sapo)!")
         else:
             unpack_any_zip_archives()
         return
@@ -640,6 +701,8 @@ def main():
             sale_price = int(round(orig_price * (100 - disc_pct) / 1000.0) * 1000)
         if orig_price > 0 and 0 < sale_price < orig_price:
             disc_pct = max(1, round((1.0 - sale_price / orig_price) * 100))
+
+        sapo_imgs_found = extract_sapo_product_images(p)
 
         v_list = []
         for v in variants_raw:
@@ -667,6 +730,9 @@ def main():
 
         if key in grouped_by_code:
             grouped_by_code[key]["variants"].extend(v_list)
+            for u in sapo_imgs_found:
+                if u not in grouped_by_code[key]["sapoImages"]:
+                    grouped_by_code[key]["sapoImages"].append(u)
         else:
             grouped_by_code[key] = {
                 "sku": key,
@@ -678,6 +744,7 @@ def main():
                 "discountPct": disc_pct,
                 "image": "",
                 "images": [],
+                "sapoImages": sapo_imgs_found,
                 "video": "",
                 "sizeChart": "",
                 "variants": v_list,
@@ -686,7 +753,7 @@ def main():
     if filter_only_bf and sale_rules:
         existing_by_code = {clean_base_code(str(ep.get("sku") or "").split("-")[0]): ep for ep in existing_products}
         for c, r_info in sale_rules.items():
-            if c not in grouped_by_code:
+            if c not in grouped_by_code and c not in EXCLUDED_SKUS:
                 ep_prev = existing_by_code.get(c)
                 sub_t = r_info.get("subType") or (ep_prev.get("subType") if ep_prev else "") or PK_KNOWN_SUBTYPES.get(c, "")
                 pname_fb = (ep_prev.get("name") if ep_prev else "") or (f"{sub_t} Havana {c}".strip() if sub_t else f"Sản phẩm Havana {c}")
@@ -700,12 +767,13 @@ def main():
                     "discountPct": r_info.get("discountPct") or (ep_prev.get("discountPct") if ep_prev else 30),
                     "image": "",
                     "images": [],
+                    "sapoImages": (ep_prev.get("sapoImages") if ep_prev and isinstance(ep_prev.get("sapoImages"), list) else []),
                     "video": "",
                     "sizeChart": "",
                     "variants": (ep_prev.get("variants") if (ep_prev and ep_prev.get("variants")) else [{"size": "Freesize", "stocks": {"wh_pct": 1}}]),
                 }
 
-    products_out = apply_custom_media_to_list(list(grouped_by_code.values()), preserved_media_by_sku)
+    products_out = apply_priority_media_to_list(list(grouped_by_code.values()), preserved_media_by_sku)
     warehouses_sorted = [
         {k: v for k, v in item.items() if k != "order"}
         for item in sorted(loc_meta.values(), key=lambda x: x["order"])
@@ -713,8 +781,9 @@ def main():
 
     now_stamp = vn_now_str()
     write_outputs(warehouses_sorted, products_out, now_stamp, sale_rules)
-    with_media = sum(1 for x in products_out if x.get("image") or x.get("video"))
-    print(f"[+] Hoan tat Auto-Sync v18: {len(products_out)} ma ({with_media} ma da co anh/video tu up) luc {now_stamp}!")
+    with_custom = sum(1 for x in products_out if x.get("hasCustomMedia"))
+    with_sapo_fb = sum(1 for x in products_out if (not x.get("hasCustomMedia")) and x.get("image"))
+    print(f"[+] Hoan tat Auto-Sync v19: {len(products_out)} ma ({with_custom} ma dung anh tu up, {with_sapo_fb} ma dung tam anh Sapo) luc {now_stamp}!")
 
 
 if __name__ == "__main__":

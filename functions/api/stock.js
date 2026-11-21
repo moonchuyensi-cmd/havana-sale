@@ -1,5 +1,7 @@
-// Cloudflare Pages Function: /api/stock (v18 Live 5-Warehouse Sapo Sync + Hard Excluded SKUs)
+// Cloudflare Pages Function: /api/stock (v19 Priority Custom Media -> Sapo Image Fallback + 60s Edge Cache)
 const EXCLUDED_SKUS = new Set(["LEN374", "QJ358"]);
+const SAPO_CDN_RX = /(dktcdn\.net|mysapogo\.com|sapo\.vn|sapogo\.com)/i;
+
 function stripAccents(str) {
   return String(str || "")
     .replace(/đ/g, "d")
@@ -20,6 +22,37 @@ function mapWarehouseId(rawName, locId) {
   return "wh_" + locId;
 }
 
+function normalizeSapoImg(rawUrl, domain) {
+  let u = String(rawUrl || "").trim();
+  if (!u || u.startsWith("data:")) return "";
+  if (u.startsWith("//")) u = "https:" + u;
+  else if (u.startsWith("/")) u = `https://${domain}${u}`;
+  return /^https?:\/\//i.test(u) ? u : "";
+}
+
+function extractSapoImagesFromProd(prod, domain) {
+  const urls = [];
+  const addU = (val) => {
+    const nu = normalizeSapoImg(val, domain);
+    if (nu && !urls.includes(nu)) urls.push(nu);
+  };
+  if (prod.image) {
+    addU(typeof prod.image === "object" ? (prod.image.full_path || prod.image.src || prod.image.path) : prod.image);
+  }
+  for (const im of (prod.images || [])) {
+    addU(typeof im === "object" ? (im.full_path || im.src || im.path) : im);
+  }
+  for (const v of (prod.variants || [])) {
+    for (const vim of (v.images || [])) {
+      addU(typeof vim === "object" ? (vim.full_path || vim.src || vim.path) : vim);
+    }
+    if (v.image) {
+      addU(typeof v.image === "object" ? (v.image.full_path || v.image.src || v.image.path) : v.image);
+    }
+  }
+  return urls;
+}
+
 export async function onRequestGet(context) {
   const { request, env } = context;
   const domain = (env.SAPO_DOMAIN || "havanago.mysapogo.com").trim();
@@ -27,7 +60,7 @@ export async function onRequestGet(context) {
   const cookie = (env.SAPO_COOKIE || "").trim();
 
   const cache = caches.default;
-  const cacheKey = new Request(new URL("/api/stock-edge-v17", request.url).toString());
+  const cacheKey = new Request(new URL("/api/stock-edge-v19", request.url).toString());
   if (token || cookie) {
     const cached = await cache.match(cacheKey);
     if (cached) return cached;
@@ -45,10 +78,17 @@ export async function onRequestGet(context) {
   let saleRules = null;
   try {
     const rulesAsset = await env.ASSETS.fetch(new URL("/sale_rules.json", request.url));
-    if (rulesAsset.ok) { saleRules = await rulesAsset.json(); for (const ex of EXCLUDED_SKUS) { if (saleRules) delete saleRules[ex]; } }
+    if (rulesAsset.ok) {
+      saleRules = await rulesAsset.json();
+      for (const ex of EXCLUDED_SKUS) {
+        if (saleRules) delete saleRules[ex];
+      }
+    }
   } catch (_) {}
 
   let syncedLive = false;
+  const sapoImgsByBase = {};
+
   if (token || cookie) {
     const headers = {
       "accept": "application/json",
@@ -98,6 +138,14 @@ export async function onRequestGet(context) {
           if (!nameByBase[baseCode] && prod.name) nameByBase[baseCode] = String(prod.name).trim();
           liveByBase[baseCode] = liveByBase[baseCode] || [];
 
+          const pImgs = extractSapoImagesFromProd(prod, domain);
+          if (pImgs.length) {
+            sapoImgsByBase[baseCode] = sapoImgsByBase[baseCode] || [];
+            for (const u of pImgs) {
+              if (!sapoImgsByBase[baseCode].includes(u)) sapoImgsByBase[baseCode].push(u);
+            }
+          }
+
           for (const v of variants) {
             const opts = [v.opt1, v.opt2, v.opt3].filter(Boolean).map((s) => String(s).trim());
             let sz = opts.length ? opts.join(" - ") : String(v.title || "Freesize").trim();
@@ -126,7 +174,7 @@ export async function onRequestGet(context) {
         }
         if (saleRules) {
           for (const [code, rule] of Object.entries(saleRules)) {
-            if (!seen.has(code) && liveByBase[code]) {
+            if (!seen.has(code) && !EXCLUDED_SKUS.has(code) && liveByBase[code]) {
               payload.products.push({
                 sku: code,
                 name: nameByBase[code] || ("Sản phẩm Havana " + code),
@@ -136,6 +184,7 @@ export async function onRequestGet(context) {
                 discountPct: rule.discountPct || 30,
                 image: "",
                 images: [],
+                sapoImages: sapoImgsByBase[code] || [],
                 video: "",
                 sizeChart: "",
                 variants: liveByBase[code]
@@ -151,7 +200,6 @@ export async function onRequestGet(context) {
     } catch (_) {}
   }
 
-  const sapoRx = /(dktcdn\.net|mysapogo\.com|sapo\.vn|sapogo\.com)/i;
   if (Array.isArray(payload.products)) {
     if (saleRules && Object.keys(saleRules).length > 0) {
       payload.products = payload.products.filter((p) => {
@@ -168,9 +216,29 @@ export async function onRequestGet(context) {
         return true;
       });
     }
+
+    // Uu tien 1: Anh tu up (khong phai dktcdn/sapo). Uu tien 2: Dung tam anh Sapo neu chua co anh tu up!
     for (const p of payload.products) {
-      if (sapoRx.test(String(p.image || ""))) p.image = "";
-      if (Array.isArray(p.images)) p.images = p.images.filter((u) => u && !sapoRx.test(String(u)));
+      const code = String(p.sku || "").trim().toUpperCase().split("-")[0];
+      const rawImgs = Array.isArray(p.images) ? p.images : [];
+      const customImgs = [];
+      const sapoImgs = Array.isArray(p.sapoImages) ? [...p.sapoImages] : [];
+
+      for (const u of [p.image, ...rawImgs, ...(sapoImgsByBase[code] || [])]) {
+        const s = String(u || "").trim();
+        if (!s || s.startsWith("data:image/svg+xml")) continue;
+        if (SAPO_CDN_RX.test(s)) {
+          if (!sapoImgs.includes(s)) sapoImgs.push(s);
+        } else {
+          if (!customImgs.includes(s)) customImgs.push(s);
+        }
+      }
+
+      const finalImgs = customImgs.length > 0 ? customImgs : sapoImgs;
+      p.sapoImages = sapoImgs;
+      p.hasCustomMedia = customImgs.length > 0 || Boolean(p.video && !SAPO_CDN_RX.test(String(p.video)));
+      p.images = finalImgs;
+      p.image = finalImgs[0] || "";
     }
   }
 
