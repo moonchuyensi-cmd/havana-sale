@@ -1,5 +1,5 @@
 {
-  "synced_at": "15:37 21/11",
+  "synced_at": "15:56 21/11",
   "warehouses": [
     {
       "id": "wh_havana",
@@ -247,7 +247,7 @@
           "size": "Xanh dương",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 5,
+            "wh_pct": 4,
             "wh_auco": 5,
             "wh_leduan": 7,
             "wh_online": 0,
@@ -3452,7 +3452,7 @@
             "wh_pct": 0,
             "wh_auco": 0,
             "wh_leduan": 1,
-            "wh_online": 0,
+            "wh_online": 1,
             "wh_790054": 0
           }
         },
@@ -11066,8 +11066,8 @@
       "subType": "",
       "category": "AO_KIEU",
       "origPrice": 194000,
-      "salePrice": 99000,
-      "discountPct": 49,
+      "salePrice": 79000,
+      "discountPct": 59,
       "image": "./images/AO1010_6a9679b8f07443e4840fe7c04129a8ee~tplv-aphluv4xwc-origin-jpeg.jpeg",
       "images": [
         "./images/AO1010_6a9679b8f07443e4840fe7c04129a8ee~tplv-aphluv4xwc-origin-jpeg.jpeg",
@@ -19823,7 +19823,7 @@
             "wh_pct": 0,
             "wh_auco": 0,
             "wh_leduan": 1,
-            "wh_online": 0,
+            "wh_online": 1,
             "wh_790054": 0
           }
         }
@@ -22110,8 +22110,8 @@
       "subType": "",
       "category": "AO_KIEU",
       "origPrice": 225000,
-      "salePrice": 99000,
-      "discountPct": 56,
+      "salePrice": 39000,
+      "discountPct": 83,
       "image": "https://sapo.dktcdn.net/100/618/480/variants/9403f521-8036-4840-bea6-0657204bea91.jpg",
       "images": [
         "https://sapo.dktcdn.net/100/618/480/variants/9403f521-8036-4840-bea6-0657204bea91.jpg"
