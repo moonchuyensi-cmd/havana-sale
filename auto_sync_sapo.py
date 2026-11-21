@@ -12,14 +12,14 @@ import urllib.request
 import zipfile as zf_mod
 
 # ==============================================================================
-# AUTO_SYNC_SAPO.PY (v19 - UU TIEN ANH TU UP -> CHUA CO ANH THI DUNG TAM ANH SAPO)
+# AUTO_SYNC_SAPO.PY (v20 - FIX SAPO POS CDN + COOKIE SANITIZE + ACTIONS SUMMARY)
 # ==============================================================================
 
 DEFAULT_COOKIE = ""
 DOMAIN = os.environ.get("SAPO_DOMAIN", "havanago.mysapogo.com").strip()
 SKU_REGEX = re.compile(r"^([A-Z]{1,5}\d{1,5})", re.I)
 EXCLUDED_SKUS = {"LEN374", "QJ358"}
-SAPO_IMG_RX = re.compile(r"(dktcdn\.net|mysapogo\.com|sapo\.vn|sapogo\.com)", re.I)
+SAPO_IMG_RX = re.compile(r"(dktcdn\.net|mysapogo\.com|sapo\.vn|sapogo\.com|sapocdn\.net|amazonaws\.com|cloudfront\.net)", re.I)
 
 IMG_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".jfif", ".avif", ".gif", ".bmp")
 VID_EXTS = (".mp4", ".mov", ".webm", ".m4v")
@@ -53,7 +53,11 @@ def clean_base_code(val) -> str:
 
 def is_sapo_cdn_url(url: str) -> bool:
     u = str(url or "").strip()
-    return bool(u and SAPO_IMG_RX.search(u))
+    if not u or u.startswith(("./", "images/", "videos/", "sizes/", "data:", "blob:")):
+        return False
+    if "raw.githubusercontent.com/moonchuyensi-cmd/havana-sale" in u:
+        return False
+    return bool(SAPO_IMG_RX.search(u) or u.startswith(("http://", "https://")))
 
 
 def normalize_sapo_img_url(raw_url) -> str:
@@ -171,22 +175,53 @@ def parse_pct(val) -> float:
         return 0.0
 
 
+def sanitize_secret_header(raw_val: str, prefix_to_strip: str = "") -> str:
+    s = str(raw_val or "").strip().strip('"').strip("'")
+    s = re.sub(r"[\r\n]+", " ", s).strip()
+    if prefix_to_strip and s.lower().startswith(prefix_to_strip.lower()):
+        s = s[len(prefix_to_strip):].strip()
+    # Keep only valid HTTP header latin-1 printable bytes
+    return "".join(ch for ch in s if 32 <= ord(ch) <= 126)
+
+
 def build_headers() -> dict:
     headers = {
         "accept": "application/json, text/plain, */*",
         "accept-language": "vi",
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
     }
-    token = os.environ.get("SAPO_ACCESS_TOKEN", "").strip()
-    cookie = os.environ.get("SAPO_COOKIE", "").strip() or DEFAULT_COOKIE
-    if token:
-        headers["X-Sapo-Access-Token"] = token
+    token = sanitize_secret_header(os.environ.get("SAPO_ACCESS_TOKEN", ""), "x-sapo-access-token:")
+    cookie = sanitize_secret_header(os.environ.get("SAPO_COOKIE", "") or DEFAULT_COOKIE, "cookie:")
+    if cookie and ("sapo-admin=" in cookie or ".AspNetCore" in cookie or len(cookie) > 80) and not token:
+        headers["cookie"] = cookie
+        headers["referer"] = f"https://{DOMAIN}/admin/products"
+        headers["x-sapo-client"] = "sapo-frontend-v3"
+        headers["x-sapo-serviceid"] = "sapo-frontend-v3"
+    elif token:
+        # Neu user dan nham Cookie vao o SAPO_ACCESS_TOKEN -> tu dong nhan dien la Cookie luon!
+        if "sapo-admin=" in token or ".AspNetCore" in token or ";" in token:
+            headers["cookie"] = sanitize_secret_header(token, "cookie:")
+            headers["referer"] = f"https://{DOMAIN}/admin/products"
+            headers["x-sapo-client"] = "sapo-frontend-v3"
+            headers["x-sapo-serviceid"] = "sapo-frontend-v3"
+        else:
+            headers["X-Sapo-Access-Token"] = token
     elif cookie:
         headers["cookie"] = cookie
         headers["referer"] = f"https://{DOMAIN}/admin/products"
         headers["x-sapo-client"] = "sapo-frontend-v3"
         headers["x-sapo-serviceid"] = "sapo-frontend-v3"
     return headers
+
+
+def write_github_summary(md_text: str):
+    summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "").strip()
+    if summary_path:
+        try:
+            with open(summary_path, "a", encoding="utf-8") as sf:
+                sf.write(md_text + "\n")
+        except Exception:
+            pass
 
 
 def load_black_friday_rules() -> dict:
@@ -592,7 +627,11 @@ def main():
     loc_meta = {}
     all_products = []
 
-    if "cookie" in headers or "X-Sapo-Access-Token" in headers:
+    sapo_err_reason = ""
+    if "cookie" not in headers and "X-Sapo-Access-Token" not in headers:
+        sapo_err_reason = "CHƯA CÓ SAPO_COOKIE HOẶC SAPO_ACCESS_TOKEN TRONG GITHUB SECRETS!"
+        print(f"[CẢNH BÁO] {sapo_err_reason}")
+    else:
         try:
             print(f"[{vn_now_str()}] Dang dong bo ton kho 5 chi nhanh & anh du phong Sapo...")
             try:
@@ -617,7 +656,8 @@ def main():
                 page += 1
             print(f"[*] Da quet {len(all_products)} san pham tren Sapo.")
         except Exception as err:
-            print(f"[!] Sapo API tam ngat ({err}) -> Van quet toan bo repo & cap nhat anh/video!")
+            sapo_err_reason = f"Không đọc được Sapo API ({err}) — Kiểm tra lại SAPO_COOKIE / SAPO_ACCESS_TOKEN hết hạn hoặc sai định dạng!"
+            print(f"[!] {sapo_err_reason}")
 
     if not all_products:
         if existing_products or sale_rules:
@@ -676,6 +716,7 @@ def main():
             with_custom = sum(1 for x in cleaned if x.get("hasCustomMedia"))
             with_any = sum(1 for x in cleaned if x.get("image") or x.get("video"))
             print(f"[+] Da cap nhat {len(cleaned)} ma ({with_custom} ma anh tu up, {with_any - with_custom} ma dung tam anh Sapo)!")
+            write_github_summary(f"### ⚠️ Chưa kéo được ảnh mới từ Sapo\n- **Nguyên nhân:** `{sapo_err_reason or 'Sapo trả về 0 sản phẩm'}`\n- ** Trạng thái hiện tại:** `{len(cleaned)}` mã Sale (`{with_custom}` mã đã có ảnh tự up, `{with_any - with_custom}` mã có ảnh tạm Sapo).\n- **Cách khắc phục:** Vào `Settings -> Secrets and variables -> Actions` cập nhật biến `SAPO_COOKIE` (hoặc `SAPO_ACCESS_TOKEN`) rồi bấm `Run workflow` lại.")
         else:
             unpack_any_zip_archives()
         return
@@ -783,7 +824,8 @@ def main():
     write_outputs(warehouses_sorted, products_out, now_stamp, sale_rules)
     with_custom = sum(1 for x in products_out if x.get("hasCustomMedia"))
     with_sapo_fb = sum(1 for x in products_out if (not x.get("hasCustomMedia")) and x.get("image"))
-    print(f"[+] Hoan tat Auto-Sync v19: {len(products_out)} ma ({with_custom} ma dung anh tu up, {with_sapo_fb} ma dung tam anh Sapo) luc {now_stamp}!")
+    print(f"[+] Hoan tat Auto-Sync v20: {len(products_out)} ma ({with_custom} ma dung anh tu up, {with_sapo_fb} ma dung tam anh Sapo) luc {now_stamp}!")
+    write_github_summary(f"### ✅ Đồng bộ Sapo & Ảnh dự phòng thành công ({now_stamp})\n- **Tổng sản phẩm quét trên Sapo:** `{len(all_products)}`\n- **Tổng mã Sale trên web:** `{len(products_out)}`\n- **Mã dùng ảnh tự up:** `{with_custom}`\n- **Mã dùng tạm ảnh Sapo:** `{with_sapo_fb}`")
 
 
 if __name__ == "__main__":

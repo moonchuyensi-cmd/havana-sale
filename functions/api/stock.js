@@ -1,6 +1,12 @@
 // Cloudflare Pages Function: /api/stock (v19 Priority Custom Media -> Sapo Image Fallback + 60s Edge Cache)
 const EXCLUDED_SKUS = new Set(["LEN374", "QJ358"]);
-const SAPO_CDN_RX = /(dktcdn\.net|mysapogo\.com|sapo\.vn|sapogo\.com)/i;
+const SAPO_CDN_RX = /(dktcdn\.net|mysapogo\.com|sapo\.vn|sapogo\.com|sapocdn\.net|amazonaws\.com|cloudfront\.net)/i;
+function isExternalSapoUrl(u) {
+  const s = String(u || "").trim();
+  if (!s || s.startsWith("./") || s.startsWith("images/") || s.startsWith("videos/") || s.startsWith("sizes/") || s.startsWith("data:") || s.startsWith("blob:")) return false;
+  if (s.includes("raw.githubusercontent.com/moonchuyensi-cmd/havana-sale")) return false;
+  return SAPO_CDN_RX.test(s) || /^https?:\/\//i.test(s);
+}
 
 function stripAccents(str) {
   return String(str || "")
@@ -56,11 +62,12 @@ function extractSapoImagesFromProd(prod, domain) {
 export async function onRequestGet(context) {
   const { request, env } = context;
   const domain = (env.SAPO_DOMAIN || "havanago.mysapogo.com").trim();
-  const token = (env.SAPO_ACCESS_TOKEN || "").trim();
-  const cookie = (env.SAPO_COOKIE || "").trim();
+  const cleanHdr = (v, pfx) => { let s = String(v || "").trim().replace(/^[\"']+|[\"']+$/g, "").replace(/[\r\n]+/g, " ").trim(); if (pfx && s.toLowerCase().startsWith(pfx)) s = s.slice(pfx.length).trim(); return s.replace(/[^\x20-\x7E]/g, ""); };
+  const token = cleanHdr(env.SAPO_ACCESS_TOKEN, "x-sapo-access-token:");
+  const cookie = cleanHdr(env.SAPO_COOKIE, "cookie:");
 
   const cache = caches.default;
-  const cacheKey = new Request(new URL("/api/stock-edge-v19", request.url).toString());
+  const cacheKey = new Request(new URL("/api/stock-edge-v20", request.url).toString());
   if (token || cookie) {
     const cached = await cache.match(cacheKey);
     if (cached) return cached;
@@ -94,10 +101,10 @@ export async function onRequestGet(context) {
       "accept": "application/json",
       "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/131.0.0.0 Safari/537.36"
     };
-    if (token) {
+    if (token && !token.includes("sapo-admin=") && !token.includes(".AspNetCore") && !token.includes(";")) {
       headers["X-Sapo-Access-Token"] = token;
     } else {
-      headers["cookie"] = cookie;
+      headers["cookie"] = cookie || cleanHdr(token, "cookie:");
       headers["referer"] = `https://${domain}/admin/products`;
       headers["x-sapo-client"] = "sapo-frontend-v3";
       headers["x-sapo-serviceid"] = "sapo-frontend-v3";
@@ -227,7 +234,7 @@ export async function onRequestGet(context) {
       for (const u of [p.image, ...rawImgs, ...(sapoImgsByBase[code] || [])]) {
         const s = String(u || "").trim();
         if (!s || s.startsWith("data:image/svg+xml")) continue;
-        if (SAPO_CDN_RX.test(s)) {
+        if (isExternalSapoUrl(s)) {
           if (!sapoImgs.includes(s)) sapoImgs.push(s);
         } else {
           if (!customImgs.includes(s)) customImgs.push(s);
@@ -236,7 +243,7 @@ export async function onRequestGet(context) {
 
       const finalImgs = customImgs.length > 0 ? customImgs : sapoImgs;
       p.sapoImages = sapoImgs;
-      p.hasCustomMedia = customImgs.length > 0 || Boolean(p.video && !SAPO_CDN_RX.test(String(p.video)));
+      p.hasCustomMedia = customImgs.length > 0 || Boolean(p.video && !isExternalSapoUrl(String(p.video)));
       p.images = finalImgs;
       p.image = finalImgs[0] || "";
     }
