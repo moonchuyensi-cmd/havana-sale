@@ -1,5 +1,5 @@
 {
-  "synced_at": "09:27 21/11",
+  "synced_at": "09:41 21/11",
   "warehouses": [
     {
       "id": "wh_havana",
@@ -3314,12 +3314,10 @@
       "origPrice": 259000,
       "salePrice": 159000,
       "discountPct": 39,
-      "image": "./images/SAT532_6afc9121c7104e20968d2da50aceec24~tplv-aphluv4xwc-origin-jpeg.jpeg",
+      "image": "https://sapo.dktcdn.net/100/618/480/variants/b5c96cde-6261-484a-9488-8430557a22d2.jpg",
       "images": [
-        "./images/SAT532_6afc9121c7104e20968d2da50aceec24~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./images/SAT532_7af71785f83b473db37b0a131874a9f2~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./images/SAT532_a2787d482afd49819b5cf2ddc0804f68~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./images/SAT532_a98968e656984a50b919445736d48e35~tplv-aphluv4xwc-origin-jpeg.jpeg"
+        "https://sapo.dktcdn.net/100/618/480/variants/b5c96cde-6261-484a-9488-8430557a22d2.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/d6be6ac5-ecf9-4643-9d74-1a6ed49c7324.jpg"
       ],
       "sapoImages": [
         "https://sapo.dktcdn.net/100/618/480/variants/b5c96cde-6261-484a-9488-8430557a22d2.jpg",
@@ -3351,7 +3349,7 @@
           }
         }
       ],
-      "hasCustomMedia": true
+      "hasCustomMedia": false
     },
     {
       "sku": "PK1037",
