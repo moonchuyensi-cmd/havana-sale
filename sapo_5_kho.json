@@ -1,5 +1,5 @@
 {
-  "synced_at": "09:57 21/11",
+  "synced_at": "10:13 21/11",
   "warehouses": [
     {
       "id": "wh_havana",
@@ -16999,7 +16999,7 @@
         {
           "size": "Trắng - S",
           "stocks": {
-            "wh_havana": 43,
+            "wh_havana": 42,
             "wh_pct": 9,
             "wh_auco": 12,
             "wh_leduan": 11,
