@@ -1,5 +1,5 @@
 {
-  "synced_at": "09:05 21/11",
+  "synced_at": "09:27 21/11",
   "warehouses": [
     {
       "id": "wh_havana",
@@ -5071,7 +5071,7 @@
           "size": "Hồng",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 4,
+            "wh_pct": 3,
             "wh_auco": 3,
             "wh_leduan": 6,
             "wh_online": 0,
@@ -5914,7 +5914,7 @@
           "size": "Xanh dương",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 3,
+            "wh_pct": 2,
             "wh_auco": 3,
             "wh_leduan": 3,
             "wh_online": 0,
