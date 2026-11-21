@@ -1,4 +1,4 @@
-// Cloudflare Pages Function: /api/stock (v19 Priority Custom Media -> Sapo Image Fallback + 60s Edge Cache)
+// Cloudflare Pages Function: /api/stock (v21 Fix SAT532 Wrong SAT533 Image + Sapo Image Fallback + 60s Edge Cache)
 const EXCLUDED_SKUS = new Set(["LEN374", "QJ358"]);
 const SAPO_CDN_RX = /(dktcdn\.net|mysapogo\.com|sapo\.vn|sapogo\.com|sapocdn\.net|amazonaws\.com|cloudfront\.net)/i;
 function isExternalSapoUrl(u) {
@@ -67,7 +67,7 @@ export async function onRequestGet(context) {
   const cookie = cleanHdr(env.SAPO_COOKIE, "cookie:");
 
   const cache = caches.default;
-  const cacheKey = new Request(new URL("/api/stock-edge-v20", request.url).toString());
+  const cacheKey = new Request(new URL("/api/stock-edge-v21", request.url).toString());
   if (token || cookie) {
     const cached = await cache.match(cacheKey);
     if (cached) return cached;
@@ -133,12 +133,19 @@ export async function onRequestGet(context) {
           const variants = prod.variants || [];
           if (!variants.length) continue;
           let baseCode = "";
-          for (const v of variants) {
-            const rawSku = String(v.sku || "").trim().toUpperCase().split("-")[0];
-            const m = rawSku.match(/^([A-Z]{1,5}\d{1,5})/);
-            if (m) {
-              if (saleRules && saleRules[m[1]]) { baseCode = m[1]; break; }
-              if (!m[1].startsWith("PVN") && !baseCode) baseCode = m[1];
+          const nameTokens = String(prod.name || "").toUpperCase().match(/\b([A-Z]{1,5}\d{1,5})\b/g) || [];
+          for (let ti = nameTokens.length - 1; ti >= 0; ti--) {
+            const tok = nameTokens[ti];
+            if (saleRules && saleRules[tok]) { baseCode = tok; break; }
+          }
+          if (!baseCode) {
+            for (const v of variants) {
+              const rawSku = String(v.sku || "").trim().toUpperCase().split("-")[0];
+              const m = rawSku.match(/^([A-Z]{1,5}\d{1,5})/);
+              if (m) {
+                if (saleRules && saleRules[m[1]]) { baseCode = m[1]; break; }
+                if (!m[1].startsWith("PVN") && !baseCode) baseCode = m[1];
+              }
             }
           }
           if (!baseCode || EXCLUDED_SKUS.has(baseCode)) continue;
@@ -224,21 +231,41 @@ export async function onRequestGet(context) {
       });
     }
 
-    // Uu tien 1: Anh tu up (khong phai dktcdn/sapo). Uu tien 2: Dung tam anh Sapo neu chua co anh tu up!
+    const sat533SapoSet = new Set(sapoImgsByBase["SAT533"] || []);
+    for (const p of payload.products) {
+      if (String(p.sku || "").trim().toUpperCase().split("-")[0] === "SAT533") {
+        for (const u of [p.image, ...(p.images || []), ...(p.sapoImages || [])]) {
+          if (isExternalSapoUrl(u)) sat533SapoSet.add(String(u).trim());
+        }
+      }
+    }
+
+    // Uu tien 1: Anh tu up. Uu tien 2: Dung anh Sapo! Rieng SAT532: xoa bo anh cu nham SAT533 & dung anh Sapo chuan cua SAT532!
     for (const p of payload.products) {
       const code = String(p.sku || "").trim().toUpperCase().split("-")[0];
       const rawImgs = Array.isArray(p.images) ? p.images : [];
-      const customImgs = [];
-      const sapoImgs = Array.isArray(p.sapoImages) ? [...p.sapoImages] : [];
+      let customImgs = [];
+      let sapoImgs = [];
 
-      for (const u of [p.image, ...rawImgs, ...(sapoImgsByBase[code] || [])]) {
+      const seedSapo = (code === "SAT532" && (sapoImgsByBase["SAT532"] || []).length > 0)
+        ? [...sapoImgsByBase["SAT532"]]
+        : [...(sapoImgsByBase[code] || []), ...(Array.isArray(p.sapoImages) ? p.sapoImages : [])];
+
+      for (const u of [p.image, ...rawImgs, ...seedSapo]) {
         const s = String(u || "").trim();
         if (!s || s.startsWith("data:image/svg+xml")) continue;
         if (isExternalSapoUrl(s)) {
+          if (code === "SAT532" && (sat533SapoSet.has(s) || s.toLowerCase().includes("sat533"))) continue;
           if (!sapoImgs.includes(s)) sapoImgs.push(s);
         } else {
+          if (code === "SAT532") continue; // Xoa sach anh tu up cu bi nham cua SAT532 de lay anh Sapo
           if (!customImgs.includes(s)) customImgs.push(s);
         }
+      }
+
+      if (code === "SAT532") {
+        p.video = "";
+        p.sizeChart = "";
       }
 
       const finalImgs = customImgs.length > 0 ? customImgs : sapoImgs;

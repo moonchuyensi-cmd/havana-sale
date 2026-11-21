@@ -12,7 +12,7 @@ import urllib.request
 import zipfile as zf_mod
 
 # ==============================================================================
-# AUTO_SYNC_SAPO.PY (v20 - FIX SAPO POS CDN + COOKIE SANITIZE + ACTIONS SUMMARY)
+# AUTO_SYNC_SAPO.PY (v21 - XOA ANH CU SAT532 BI NHAM SAT533 & BO SUNG ANH SAPO CHUAN)
 # ==============================================================================
 
 DEFAULT_COOKIE = ""
@@ -175,43 +175,129 @@ def parse_pct(val) -> float:
         return 0.0
 
 
-def sanitize_secret_header(raw_val: str, prefix_to_strip: str = "") -> str:
-    s = str(raw_val or "").strip().strip('"').strip("'")
+# Danh sach ma can xoa sach anh cu bi up nham de lay lai anh goc tu Sapo
+FORCE_RESET_TO_SAPO_SKUS = {"SAT532"}
+PURGE_STATE_FILE = ".purged_wrong_media_v21.json"
+
+
+def purge_wrong_custom_media_once():
+    """Xoa triet de file anh/video cu bi nham cua SAT532 tren repo (chay 1 lan duy nhat cho moi ky reset
+    de neu sau nay ban up anh moi dung cua SAT532 thi van nhan binh thuong)."""
+    already_purged = set()
+    if os.path.exists(PURGE_STATE_FILE):
+        try:
+            with open(PURGE_STATE_FILE, "r", encoding="utf-8") as pf:
+                already_purged = set(json.load(pf) or [])
+        except Exception:
+            already_purged = set()
+
+    pending = FORCE_RESET_TO_SAPO_SKUS - already_purged
+    if not pending:
+        return set()
+
+    compiled = build_sku_matcher(list(pending))
+    removed_files = []
+    for folder in ("images", "videos", "sizes"):
+        if not os.path.isdir(folder):
+            continue
+        for root, _, files in os.walk(folder):
+            for fname in files:
+                if fname.lower() == "keep.txt":
+                    continue
+                fpath = os.path.join(root, fname)
+                for code, rx in compiled:
+                    if rx.search(fname) or rx.search(root):
+                        try:
+                            os.remove(fpath)
+                            removed_files.append(fpath)
+                        except Exception:
+                            pass
+                        break
+
+    if removed_files:
+        print(f"[+] Da xoa {len(removed_files)} file anh/video cu bi nham cua {sorted(pending)}: {removed_files}")
+
+    try:
+        with open(PURGE_STATE_FILE, "w", encoding="utf-8") as pf:
+            json.dump(sorted(already_purged | pending), pf, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+    return pending
+
+
+def extract_smart_secret(raw_val: str) -> str:
+    raw = str(raw_val or "").strip()
+    if not raw:
+        return ""
+    m_b = re.search(r"(?:-b|--cookie)\s+(['\"])(.+?)\1", raw, flags=re.S)
+    if m_b:
+        raw = m_b.group(2)
+    else:
+        m_h = re.search(r"(?:-H|--header)\s+(['\"])cookie\s*:\s*(.+?)\1", raw, flags=re.I | re.S)
+        if m_h:
+            raw = m_h.group(2)
+        else:
+            m_line = re.search(r"(?:^|[\r\n])cookie\s*:\s*([^\r\n]+)", raw, flags=re.I)
+            if m_line:
+                raw = m_line.group(1)
+
+    if "^" in raw and ("sapo-admin" in raw or "AspNetCore" in raw):
+        raw = re.sub(r"\^([\"%&|<>^])", r"\1", raw)
+
+    s = raw.strip().strip('"').strip("'")
     s = re.sub(r"[\r\n]+", " ", s).strip()
-    if prefix_to_strip and s.lower().startswith(prefix_to_strip.lower()):
-        s = s[len(prefix_to_strip):].strip()
-    # Keep only valid HTTP header latin-1 printable bytes
+    for pfx in ("cookie:", "x-sapo-access-token:"):
+        if s.lower().startswith(pfx):
+            s = s[len(pfx):].strip()
     return "".join(ch for ch in s if 32 <= ord(ch) <= 126)
 
 
-def build_headers() -> dict:
-    headers = {
+def make_cookie_headers(cookie_str: str) -> dict:
+    return {
         "accept": "application/json, text/plain, */*",
         "accept-language": "vi",
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "cookie": cookie_str,
+        "referer": f"https://{DOMAIN}/admin/products",
+        "x-sapo-client": "sapo-frontend-v3",
+        "x-sapo-serviceid": "sapo-frontend-v3",
     }
-    token = sanitize_secret_header(os.environ.get("SAPO_ACCESS_TOKEN", ""), "x-sapo-access-token:")
-    cookie = sanitize_secret_header(os.environ.get("SAPO_COOKIE", "") or DEFAULT_COOKIE, "cookie:")
-    if cookie and ("sapo-admin=" in cookie or ".AspNetCore" in cookie or len(cookie) > 80) and not token:
-        headers["cookie"] = cookie
-        headers["referer"] = f"https://{DOMAIN}/admin/products"
-        headers["x-sapo-client"] = "sapo-frontend-v3"
-        headers["x-sapo-serviceid"] = "sapo-frontend-v3"
-    elif token:
-        # Neu user dan nham Cookie vao o SAPO_ACCESS_TOKEN -> tu dong nhan dien la Cookie luon!
-        if "sapo-admin=" in token or ".AspNetCore" in token or ";" in token:
-            headers["cookie"] = sanitize_secret_header(token, "cookie:")
-            headers["referer"] = f"https://{DOMAIN}/admin/products"
-            headers["x-sapo-client"] = "sapo-frontend-v3"
-            headers["x-sapo-serviceid"] = "sapo-frontend-v3"
+
+
+def make_token_headers(token_str: str) -> dict:
+    return {
+        "accept": "application/json, text/plain, */*",
+        "accept-language": "vi",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "X-Sapo-Access-Token": token_str,
+    }
+
+
+def build_header_candidates() -> list:
+    candidates = []
+    local_cookie = ""
+    if os.path.exists(".sapo_cookie.txt"):
+        try:
+            with open(".sapo_cookie.txt", "r", encoding="utf-8") as cf:
+                local_cookie = extract_smart_secret(cf.read())
+        except Exception:
+            pass
+
+    env_cookie = extract_smart_secret(os.environ.get("SAPO_COOKIE", "") or DEFAULT_COOKIE)
+    env_token = extract_smart_secret(os.environ.get("SAPO_ACCESS_TOKEN", ""))
+
+    for label, c_val in [("SAPO_COOKIE", env_cookie), (".sapo_cookie.txt", local_cookie)]:
+        if c_val:
+            candidates.append((label, make_cookie_headers(c_val)))
+
+    if env_token:
+        if "sapo-admin=" in env_token or ".AspNetCore" in env_token or ";" in env_token:
+            candidates.append(("SAPO_ACCESS_TOKEN (dang Cookie)", make_cookie_headers(env_token)))
         else:
-            headers["X-Sapo-Access-Token"] = token
-    elif cookie:
-        headers["cookie"] = cookie
-        headers["referer"] = f"https://{DOMAIN}/admin/products"
-        headers["x-sapo-client"] = "sapo-frontend-v3"
-        headers["x-sapo-serviceid"] = "sapo-frontend-v3"
-    return headers
+            candidates.append(("SAPO_ACCESS_TOKEN", make_token_headers(env_token)))
+            candidates.append(("SAPO_ACCESS_TOKEN (thu nhu Cookie)", make_cookie_headers(env_token)))
+
+    return candidates
 
 
 def write_github_summary(md_text: str):
@@ -516,20 +602,32 @@ def fetch_json(path: str, headers: dict) -> dict:
 
 
 def extract_base_code_from_sapo_product(p: dict, sale_rules: dict) -> str:
+    # Kiem tra ma SKU nam trong ten san pham Sapo truoc de tranh truong hop 1 bien the go nham SKU cua ma ke ben (VD: SAT532 vs SAT533)
+    name_tokens = re.findall(r"\b([A-Z]{1,5}\d{1,5})\b", norm_nfc(p.get("name") or "").upper())
+    name_sale_codes = [tok for tok in reversed(name_tokens) if sale_rules and tok in sale_rules]
+
+    var_sale_codes = []
     candidates = []
     for v in p.get("variants", []):
         sku_raw = str(v.get("sku") or "").strip().upper()
         base = clean_base_code(sku_raw.split("-")[0])
         if base:
             if sale_rules and base in sale_rules:
-                return base
-            if not base.startswith("PVN"):
+                if base not in var_sale_codes:
+                    var_sale_codes.append(base)
+            elif not base.startswith("PVN"):
                 candidates.append(base)
 
-    name_tokens = re.findall(r"\b([A-Z]{1,5}\d{1,5})\b", norm_nfc(p.get("name") or "").upper())
+    if name_sale_codes:
+        # Neu ten san pham ghi ro ma (VD: "... SAT533") thi uu tien ma trong ten de khong gop nham anh sang SAT532
+        if name_sale_codes[0] in var_sale_codes or len(var_sale_codes) != 1:
+            return name_sale_codes[0]
+        return name_sale_codes[0]
+
+    if var_sale_codes:
+        return var_sale_codes[0]
+
     for tok in reversed(name_tokens):
-        if sale_rules and tok in sale_rules:
-            return tok
         if not tok.startswith("PVN"):
             candidates.append(tok)
 
@@ -567,12 +665,33 @@ def write_outputs(warehouses_sorted: list, products_out: list, synced_at_str: st
                 f.write(html_src[:s_i] + new_blk + html_src[e_i:])
 
 
-def apply_priority_media_to_list(products_list: list, preserved_by_sku: dict) -> list:
-    """Uu tien so 1: Anh/video tu up tren repo (images/, videos/, sizes/).
-    Uu tien so 2 (khi ma chua co anh tu up): Dung tam anh tu Sapo (sapoImages).
-    Ngay khi user up anh moi cho ma do -> tu dong chuyen sang anh tu up!"""
+def local_media_url_exists(rel_url: str) -> bool:
+    u = str(rel_url or "").strip().split("?")[0]
+    if not u:
+        return False
+    if u.startswith(("http://", "https://")):
+        if "raw.githubusercontent.com/moonchuyensi-cmd/havana-sale/" in u:
+            rel_part = urllib.parse.unquote(u.split("/main/", 1)[-1])
+            return os.path.exists(rel_part)
+        return True
+    clean_p = urllib.parse.unquote(u.lstrip("./"))
+    return os.path.exists(clean_p)
+
+
+def apply_priority_media_to_list(products_list: list, preserved_by_sku: dict, purged_skus: set = None) -> list:
+    """Uu tien so 1: Anh/video tu up tren repo (images/, videos/, sizes/) CON TON TAI TREN DIA.
+    Uu tien so 2 (khi ma chua co anh tu up hoac vua xoa anh cu): Dung ngay anh tu Sapo (sapoImages)."""
+    purged_skus = purged_skus or set()
     codes = [str(p.get("sku") or "").upper() for p in products_list]
     repo_media = scan_repo_media_folders(codes)
+
+    # Thu thap tap anh Sapo cua SAT533 de dam bao SAT532 khong bao gio bi dinh nham anh SAT533
+    sat533_sapo_set = set()
+    for p in products_list:
+        if str(p.get("sku") or "").upper() == "SAT533":
+            _, s533, _, _ = split_custom_and_sapo_media(p)
+            sat533_sapo_set.update(s533)
+    sat533_sapo_set.update(preserved_by_sku.get("SAT533", {}).get("sapoImages") or [])
 
     for p in products_list:
         cur_custom, cur_sapo, cur_vid, cur_sz = split_custom_and_sapo_media(p)
@@ -580,12 +699,35 @@ def apply_priority_media_to_list(products_list: list, preserved_by_sku: dict) ->
         prev = preserved_by_sku.get(code, {})
         repo_m = repo_media.get(code, {})
 
-        custom_imgs = repo_m.get("images") or prev.get("customImages") or cur_custom or []
-        sapo_imgs = cur_sapo or prev.get("sapoImages") or []
-        vid = repo_m.get("video") or prev.get("video") or cur_vid or ""
-        szc = repo_m.get("sizeChart") or prev.get("sizeChart") or cur_sz or ""
+        if code in purged_skus or code in FORCE_RESET_TO_SAPO_SKUS:
+            # Chi nhan anh tu up neu la file MOI THUC SU dang nam trong repo_m (va khong chua chu SAT533)
+            custom_imgs = [
+                u for u in (repo_m.get("images") or [])
+                if "SAT533" not in u.upper() and local_media_url_exists(u)
+            ]
+            vid = repo_m.get("video") or ""
+            if "SAT533" in vid.upper() or (vid and not local_media_url_exists(vid)):
+                vid = ""
+            szc = repo_m.get("sizeChart") or ""
+            if "SAT533" in szc.upper() or (szc and not local_media_url_exists(szc)):
+                szc = ""
+        else:
+            prev_valid_imgs = [u for u in (prev.get("customImages") or []) if local_media_url_exists(u)]
+            cur_valid_imgs = [u for u in cur_custom if local_media_url_exists(u)]
+            custom_imgs = repo_m.get("images") or prev_valid_imgs or cur_valid_imgs or []
+            vid_cand = repo_m.get("video") or prev.get("video") or cur_vid or ""
+            vid = vid_cand if local_media_url_exists(vid_cand) else ""
+            sz_cand = repo_m.get("sizeChart") or prev.get("sizeChart") or cur_sz or ""
+            szc = sz_cand if local_media_url_exists(sz_cand) else ""
 
-        # Neu da co anh tu up (hoac video tu up kem anh) -> CHỈ dung anh tu up; chua co anh tu up -> dung tam anh Sapo!
+        sapo_imgs = cur_sapo if len(cur_sapo) > 0 else (prev.get("sapoImages") or [])
+        if code == "SAT532":
+            # Loai bo bat ky URL nao trung voi anh cua SAT533 hoac chua chu sat533
+            sapo_imgs = [
+                u for u in sapo_imgs
+                if u not in sat533_sapo_set and "sat533" not in u.lower()
+            ]
+
         final_imgs = custom_imgs if len(custom_imgs) > 0 else sapo_imgs
         p["sapoImages"] = sapo_imgs
         p["hasCustomMedia"] = bool(len(custom_imgs) > 0 or vid)
@@ -598,6 +740,7 @@ def apply_priority_media_to_list(products_list: list, preserved_by_sku: dict) ->
 
 
 def main():
+    purged_now = purge_wrong_custom_media_once()
     sale_rules = load_black_friday_rules()
     filter_only_bf = len(sale_rules) > 0
 
@@ -623,41 +766,51 @@ def main():
         except Exception:
             pass
 
-    headers = build_headers()
+    candidates = build_header_candidates()
     loc_meta = {}
     all_products = []
-
     sapo_err_reason = ""
-    if "cookie" not in headers and "X-Sapo-Access-Token" not in headers:
-        sapo_err_reason = "CHƯA CÓ SAPO_COOKIE HOẶC SAPO_ACCESS_TOKEN TRONG GITHUB SECRETS!"
+
+    if not candidates:
+        sapo_err_reason = "CHƯA CÓ SAPO_COOKIE TRONG GITHUB SECRETS (hoặc .sapo_cookie.txt)!"
         print(f"[CẢNH BÁO] {sapo_err_reason}")
     else:
-        try:
-            print(f"[{vn_now_str()}] Dang dong bo ton kho 5 chi nhanh & anh du phong Sapo...")
+        err_list = []
+        for auth_label, hdrs in candidates:
             try:
-                ldata = fetch_json("/admin/locations.json", headers)
-                for idx, loc in enumerate(ldata.get("locations", [])):
-                    raw_id = str(loc["id"])
-                    raw_loc_name = loc.get("label") or loc.get("name") or loc.get("location_name") or loc.get("address1") or loc.get("code") or ""
-                    wid, label, order = map_exact_havana_branch(raw_loc_name, raw_id, 10 + idx)
-                    loc_meta[raw_id] = {"id": wid, "sapo_name": raw_loc_name, "name": label, "order": order}
-            except Exception as e:
-                print("[*] Loi nhe khi doc locations.json:", e)
+                print(f"[{vn_now_str()}] Dang ket noi Sapo bang [{auth_label}]...")
+                first_page = fetch_json("/admin/products.json?page=1&limit=250", hdrs)
+                first_batch = first_page.get("products", [])
+                if first_batch is None:
+                    raise RuntimeError("Khong co truong products")
+                all_products.extend(first_batch)
+                try:
+                    ldata = fetch_json("/admin/locations.json", hdrs)
+                    for idx, loc in enumerate(ldata.get("locations", [])):
+                        raw_id = str(loc["id"])
+                        raw_loc_name = loc.get("label") or loc.get("name") or loc.get("location_name") or loc.get("address1") or loc.get("code") or ""
+                        wid, label, order = map_exact_havana_branch(raw_loc_name, raw_id, 10 + idx)
+                        loc_meta[raw_id] = {"id": wid, "sapo_name": raw_loc_name, "name": label, "order": order}
+                except Exception as e:
+                    print("[*] Loi nhe khi doc locations.json:", e)
 
-            page = 1
-            while page <= 60:
-                pdata = fetch_json(f"/admin/products.json?page={page}&limit=250", headers)
-                batch = pdata.get("products", [])
-                if not batch:
-                    break
-                all_products.extend(batch)
-                if len(batch) < 250:
-                    break
-                page += 1
-            print(f"[*] Da quet {len(all_products)} san pham tren Sapo.")
-        except Exception as err:
-            sapo_err_reason = f"Không đọc được Sapo API ({err}) — Kiểm tra lại SAPO_COOKIE / SAPO_ACCESS_TOKEN hết hạn hoặc sai định dạng!"
-            print(f"[!] {sapo_err_reason}")
+                page = 2
+                while len(first_batch) == 250 and page <= 60:
+                    pdata = fetch_json(f"/admin/products.json?page={page}&limit=250", hdrs)
+                    batch = pdata.get("products", [])
+                    if not batch:
+                        break
+                    all_products.extend(batch)
+                    if len(batch) < 250:
+                        break
+                    page += 1
+                print(f"[+] Ket noi thanh cong bang [{auth_label}]! Da quet {len(all_products)} san pham tren Sapo.")
+                break
+            except Exception as err:
+                err_list.append(f"{auth_label}: {err}")
+                print(f"[!] Thu [{auth_label}] loi: {err}")
+        if not all_products and err_list:
+            sapo_err_reason = " | ".join(err_list)
 
     if not all_products:
         if existing_products or sale_rules:
@@ -704,7 +857,7 @@ def main():
                         "variants": [{"size": "Freesize", "stocks": {"wh_pct": 1}}],
                     })
 
-            cleaned = apply_priority_media_to_list(updated_existing, preserved_media_by_sku)
+            cleaned = apply_priority_media_to_list(updated_existing, preserved_media_by_sku, purged_now)
             wh_out = existing_warehouses or [
                 {"id": "wh_havana", "sapo_name": "HAVANA", "name": "HAVANA (93-95 Hồ Phi Tích)"},
                 {"id": "wh_online", "sapo_name": "HAVANA ONLINE", "name": "HAVANA ONLINE"},
@@ -814,7 +967,7 @@ def main():
                     "variants": (ep_prev.get("variants") if (ep_prev and ep_prev.get("variants")) else [{"size": "Freesize", "stocks": {"wh_pct": 1}}]),
                 }
 
-    products_out = apply_priority_media_to_list(list(grouped_by_code.values()), preserved_media_by_sku)
+    products_out = apply_priority_media_to_list(list(grouped_by_code.values()), preserved_media_by_sku, purged_now)
     warehouses_sorted = [
         {k: v for k, v in item.items() if k != "order"}
         for item in sorted(loc_meta.values(), key=lambda x: x["order"])
@@ -824,8 +977,11 @@ def main():
     write_outputs(warehouses_sorted, products_out, now_stamp, sale_rules)
     with_custom = sum(1 for x in products_out if x.get("hasCustomMedia"))
     with_sapo_fb = sum(1 for x in products_out if (not x.get("hasCustomMedia")) and x.get("image"))
-    print(f"[+] Hoan tat Auto-Sync v20: {len(products_out)} ma ({with_custom} ma dung anh tu up, {with_sapo_fb} ma dung tam anh Sapo) luc {now_stamp}!")
-    write_github_summary(f"### ✅ Đồng bộ Sapo & Ảnh dự phòng thành công ({now_stamp})\n- **Tổng sản phẩm quét trên Sapo:** `{len(all_products)}`\n- **Tổng mã Sale trên web:** `{len(products_out)}`\n- **Mã dùng ảnh tự up:** `{with_custom}`\n- **Mã dùng tạm ảnh Sapo:** `{with_sapo_fb}`")
+    print(f"[+] Hoan tat Auto-Sync v21: {len(products_out)} ma ({with_custom} ma dung anh tu up, {with_sapo_fb} ma dung tam anh Sapo) luc {now_stamp}!")
+    sat532_item = next((x for x in products_out if x.get("sku") == "SAT532"), None)
+    sat532_imgs = (sat532_item.get("images") if sat532_item else []) or []
+    sat532_status = f"Đã cập nhật `{len(sat532_imgs)}` ảnh từ Sapo (`{sat532_imgs[0]}`)" if sat532_imgs else "Trên Sapo mã SAT532 hiện chưa có ảnh đính kèm"
+    write_github_summary(f"### ✅ Đồng bộ Sapo & Cập nhật ảnh SAT532 thành công ({now_stamp})\n- **Tổng sản phẩm quét trên Sapo:** `{len(all_products)}`\n- **Tổng mã Sale trên web:** `{len(products_out)}`\n- **Mã dùng ảnh tự up:** `{with_custom}`\n- **Mã dùng tạm ảnh Sapo:** `{with_sapo_fb}`\n- **Trạng thái mã `SAT532`:** {sat532_status}")
 
 
 if __name__ == "__main__":
