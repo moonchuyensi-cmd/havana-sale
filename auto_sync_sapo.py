@@ -9,18 +9,26 @@ import hashlib
 import concurrent.futures
 import subprocess
 import unicodedata
+import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile as zf_mod
 
 # ==============================================================================
-# AUTO_SYNC_SAPO.PY (v23 - CAP NHAT GIA AO1010=79K & AO726=39K + REALTIME SYNC 5 PHUT)
+# AUTO_SYNC_SAPO.PY (v25 - TU DONG LOC TONG TON >= 3 & LOAI MA TON < 3 MOI LAN CAP NHAT)
+# Khong them ma QR - Tu dong dong bo index.html, functions/api/stock.js & sapo_5_kho.json
 # ==============================================================================
 
+MIN_TOTAL_STOCK = 3
 DEFAULT_COOKIE = ""
 DOMAIN = os.environ.get("SAPO_DOMAIN", "havanago.mysapogo.com").strip()
 SKU_REGEX = re.compile(r"^([A-Z]{1,5}\d{1,5})", re.I)
 EXCLUDED_SKUS = {"LEN374", "QJ358"}
+PRICE_PATCH_V25 = {
+    "AO1010": (194000, 79000, 59, 0.5928),
+    "AO726":  (225000, 39000, 83, 0.8267),
+    "AO1016": (214000, 79000, 63, 0.6308),
+}
 SAPO_IMG_RX = re.compile(r"(dktcdn\.net|mysapogo\.com|sapo\.vn|sapogo\.com|sapocdn\.net|amazonaws\.com|cloudfront\.net)", re.I)
 
 IMG_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".jfif", ".avif", ".gif", ".bmp")
@@ -31,6 +39,841 @@ PK_KNOWN_SUBTYPES = {
     "PK897": "Phụ kiện", "PK898": "Túi xách", "PK976": "Túi xách", "PK995": "Túi xách",
     "PK997": "Túi xách", "PK999": "Túi xách", "PK1006": "Giày", "PK1027": "Túi xách", "PK1032": "Giày",
 }
+
+FORCE_RESET_TO_SAPO_SKUS = {"SAT532"}
+PURGE_STATE_FILE = ".purged_wrong_media_v21.json"
+
+CF_STOCK_JS_V25 = r'''// Cloudflare Pages Function: /api/stock (v25 Strict MIN_TOTAL_STOCK >= 3 + 45s Edge Sync)
+const MIN_TOTAL_STOCK = 3;
+const EXCLUDED_SKUS = new Set(["LEN374", "QJ358"]);
+const GITHUB_REPO_SLUG = "moonchuyensi-cmd/havana-sale";
+const SAPO_CDN_RX = /(dktcdn\.net|mysapogo\.com|sapo\.vn|sapogo\.com|sapocdn\.net|amazonaws\.com|cloudfront\.net)/i;
+const PRICE_PATCH_V25 = {
+  AO1010: { origPrice: 194000, salePrice: 79000, discountPct: 59 },
+  AO726:  { origPrice: 225000, salePrice: 39000, discountPct: 83 },
+  AO1016: { origPrice: 214000, salePrice: 79000, discountPct: 63 }
+};
+
+function isExternalSapoUrl(u) {
+  const s = String(u || "").trim();
+  if (!s || s.startsWith("./") || s.startsWith("images/") || s.startsWith("videos/") || s.startsWith("sizes/") || s.startsWith("data:") || s.startsWith("blob:")) return false;
+  if (s.includes("raw.githubusercontent.com/" + GITHUB_REPO_SLUG)) return false;
+  return SAPO_CDN_RX.test(s) || /^https?:\/\//i.test(s);
+}
+
+function calcTotalStock(p) {
+  if (!p || !Array.isArray(p.variants)) return 0;
+  let total = 0;
+  for (const v of p.variants) {
+    const st = (v && v.stocks) || {};
+    for (const q of Object.values(st)) total += Math.max(0, Number(q) || 0);
+  }
+  return total;
+}
+
+function extractSmartSecret(rawVal) {
+  let raw = String(rawVal || "").trim();
+  if (!raw) return "";
+  const mb = raw.match(/(?:-b|--cookie)\s+(['"])([\s\S]+?)\1/);
+  if (mb) raw = mb[2];
+  else {
+    const mh = raw.match(/(?:-H|--header)\s+(['"])cookie\s*:\s*([\s\S]+?)\1/i);
+    if (mh) raw = mh[2];
+    else {
+      const ml = raw.match(/(?:^|[\r\n])cookie\s*:\s*([^\r\n]+)/i);
+      if (ml) raw = ml[1];
+    }
+  }
+  if (raw.includes("^") && (raw.includes("sapo-admin") || raw.includes("AspNetCore"))) {
+    raw = raw.replace(/\^(["%&|<>^])/g, "$1");
+  }
+  let s = raw.trim().replace(/^["']+|["']+$/g, "").replace(/[\r\n]+/g, " ").trim();
+  for (const pfx of ["cookie:", "x-sapo-access-token:"]) {
+    if (s.toLowerCase().startsWith(pfx)) s = s.slice(pfx.length).trim();
+  }
+  return s.replace(/[^\x20-\x7E]/g, "");
+}
+
+function buildAuthCandidates(env, domain) {
+  const candidates = [];
+  const cookie = extractSmartSecret(env.SAPO_COOKIE);
+  const token = extractSmartSecret(env.SAPO_ACCESS_TOKEN);
+  const baseHdr = {
+    "accept": "application/json, text/plain, */*",
+    "accept-language": "vi",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+  };
+  const makeCookieHdr = (c) => ({
+    ...baseHdr,
+    "cookie": c,
+    "referer": `https://${domain}/admin/products`,
+    "x-sapo-client": "sapo-frontend-v3",
+    "x-sapo-serviceid": "sapo-frontend-v3"
+  });
+  if (cookie) candidates.push(makeCookieHdr(cookie));
+  if (token) {
+    if (token.includes("sapo-admin=") || token.includes(".AspNetCore") || token.includes(";")) {
+      candidates.push(makeCookieHdr(token));
+    } else {
+      candidates.push({ ...baseHdr, "X-Sapo-Access-Token": token });
+      candidates.push(makeCookieHdr(token));
+    }
+  }
+  return candidates;
+}
+
+function stripAccents(str) {
+  return String(str || "").replace(/đ/g, "d").replace(/Đ/g, "D").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+}
+
+function mapWarehouseId(rawName, locId) {
+  const norm = stripAccents(rawName);
+  if (norm === "HAVANA" || norm.includes("HO PHI TICH") || norm.includes("93-95") || norm.includes("93 - 95")) return "wh_havana";
+  if (norm.includes("ONLINE")) return "wh_online";
+  if (norm.includes("261") || norm.includes("PHAN CHU TRINH") || norm.includes("PHAN CHAU TRINH")) return "wh_pct";
+  if (norm.includes("101") || norm.includes("AU CO")) return "wh_auco";
+  if (norm.includes("240") || norm.includes("LE DUAN")) return "wh_leduan";
+  return "wh_" + locId;
+}
+
+function normalizeSapoImg(rawUrl, domain) {
+  let u = String(rawUrl || "").trim();
+  if (!u || u.startsWith("data:")) return "";
+  if (u.startsWith("//")) u = "https:" + u;
+  else if (u.startsWith("/")) u = `https://${domain}${u}`;
+  return /^https?:\/\//i.test(u) ? u : "";
+}
+
+function extractSapoImagesFromProd(prod, domain) {
+  const urls = [];
+  const addU = (val) => {
+    const nu = normalizeSapoImg(val, domain);
+    if (nu && !urls.includes(nu)) urls.push(nu);
+  };
+  if (prod.image) addU(typeof prod.image === "object" ? (prod.image.full_path || prod.image.src || prod.image.path) : prod.image);
+  for (const im of (prod.images || [])) addU(typeof im === "object" ? (im.full_path || im.src || im.path) : im);
+  for (const v of (prod.variants || [])) {
+    for (const vim of (v.images || [])) addU(typeof vim === "object" ? (vim.full_path || vim.src || vim.path) : vim);
+    if (v.image) addU(typeof v.image === "object" ? (v.image.full_path || v.image.src || v.image.path) : v.image);
+  }
+  return urls;
+}
+
+function parseStampToMinutes(stampStr) {
+  const m = String(stampStr || "").trim().match(/^(\d{1,2}):(\d{2})\s+(\d{1,2})\/(\d{1,2})/);
+  if (!m) return 0;
+  const [, hh, mm, dd, mo] = m.map(Number);
+  return (((mo * 32 + dd) * 24 + hh) * 60) + mm;
+}
+
+export async function onRequestGet(context) {
+  const { request, env } = context;
+  const reqUrl = new URL(request.url);
+  const forceBypass = reqUrl.searchParams.get("force") === "1";
+  const domain = (env.SAPO_DOMAIN || "havanago.mysapogo.com").trim();
+  const authCandidates = buildAuthCandidates(env, domain);
+
+  const cache = caches.default;
+  const cacheKey = new Request(new URL("/api/stock-edge-v25", request.url).toString());
+  if (!forceBypass) {
+    const cached = await cache.match(cacheKey);
+    if (cached) return cached;
+  }
+
+  const baseAsset = await env.ASSETS.fetch(new URL("/sapo_5_kho.json", request.url));
+  if (!baseAsset.ok) {
+    return new Response(JSON.stringify({ error: "Missing sapo_5_kho.json" }), {
+      status: 404,
+      headers: { "content-type": "application/json; charset=utf-8" }
+    });
+  }
+
+  const payload = await baseAsset.json();
+  let saleRules = null;
+  try {
+    const rulesAsset = await env.ASSETS.fetch(new URL("/sale_rules.json", request.url));
+    if (rulesAsset.ok) {
+      saleRules = await rulesAsset.json();
+      for (const ex of EXCLUDED_SKUS) {
+        if (saleRules) delete saleRules[ex];
+      }
+      if (saleRules) {
+        for (const [k, patch] of Object.entries(PRICE_PATCH_V25)) {
+          if (saleRules[k]) Object.assign(saleRules[k], patch);
+        }
+      }
+    }
+  } catch (_) {}
+
+  let syncedLive = false;
+  let syncSource = "static_json";
+  const sapoImgsByBase = {};
+
+  for (const headers of authCandidates) {
+    try {
+      const p1Res = await fetch(`https://${domain}/admin/products.json?page=1&limit=250`, { headers });
+      if (!p1Res.ok) continue;
+      const p1Text = await p1Res.text();
+      if (p1Text.trimStart().startsWith("<")) continue;
+      const p1Data = JSON.parse(p1Text);
+      const firstBatch = p1Data.products || [];
+      if (!firstBatch.length) continue;
+
+      const allProds = [...firstBatch];
+      const locMap = {};
+      const locPromise = fetch(`https://${domain}/admin/locations.json`, { headers })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null);
+
+      if (firstBatch.length === 250) {
+        const total = Number((p1Data.metadata && p1Data.metadata.total) || 0);
+        const maxPage = total > 250 ? Math.min(25, Math.ceil(total / 250)) : 12;
+        for (let startP = 2; startP <= maxPage; startP += 5) {
+          const batchPages = [];
+          for (let pg = startP; pg < startP + 5 && pg <= maxPage; pg++) {
+            batchPages.push(
+              fetch(`https://${domain}/admin/products.json?page=${pg}&limit=250`, { headers })
+                .then((r) => (r.ok ? r.json() : { products: [] }))
+                .catch(() => ({ products: [] }))
+            );
+          }
+          const results = await Promise.all(batchPages);
+          let gotEmpty = false;
+          for (const rData of results) {
+            const b = rData.products || [];
+            if (!b.length) gotEmpty = true;
+            else allProds.push(...b);
+          }
+          if (gotEmpty) break;
+        }
+      }
+
+      const locData = await locPromise;
+      if (locData && Array.isArray(locData.locations)) {
+        for (const l of locData.locations) {
+          locMap[String(l.id)] = mapWarehouseId(l.label || l.name || l.location_name, l.id);
+        }
+      }
+
+      const liveByBase = {};
+      const nameByBase = {};
+      for (const prod of allProds) {
+        const variants = prod.variants || [];
+        if (!variants.length) continue;
+        let baseCode = "";
+        const nameTokens = String(prod.name || "").toUpperCase().match(/\b([A-Z]{1,5}\d{1,5})\b/g) || [];
+        for (let ti = nameTokens.length - 1; ti >= 0; ti--) {
+          const tok = nameTokens[ti];
+          if (saleRules && saleRules[tok]) { baseCode = tok; break; }
+        }
+        if (!baseCode) {
+          for (const v of variants) {
+            const rawSku = String(v.sku || "").trim().toUpperCase().split("-")[0];
+            const m = rawSku.match(/^([A-Z]{1,5}\d{1,5})/);
+            if (m) {
+              if (saleRules && saleRules[m[1]]) { baseCode = m[1]; break; }
+              if (!m[1].startsWith("PVN") && !baseCode) baseCode = m[1];
+            }
+          }
+        }
+        if (!baseCode || EXCLUDED_SKUS.has(baseCode)) continue;
+        if (!nameByBase[baseCode] && prod.name) nameByBase[baseCode] = String(prod.name).trim();
+        liveByBase[baseCode] = liveByBase[baseCode] || [];
+
+        const pImgs = extractSapoImagesFromProd(prod, domain);
+        if (pImgs.length) {
+          sapoImgsByBase[baseCode] = sapoImgsByBase[baseCode] || [];
+          for (const u of pImgs) {
+            if (!sapoImgsByBase[baseCode].includes(u)) sapoImgsByBase[baseCode].push(u);
+          }
+        }
+
+        for (const v of variants) {
+          const opts = [v.opt1, v.opt2, v.opt3].filter(Boolean).map((s) => String(s).trim());
+          let sz = opts.length ? opts.join(" - ") : String(v.title || "Freesize").trim();
+          if (sz.toLowerCase() === "default title") sz = "Freesize";
+          const stocks = {};
+          for (const inv of (v.inventories || [])) {
+            const wid = locMap[String(inv.location_id)] || mapWarehouseId(inv.location_label || inv.location_name, inv.location_id);
+            const avail = inv.available !== undefined && inv.available !== null ? inv.available : (inv.on_hand || 0);
+            stocks[wid] = (stocks[wid] || 0) + Math.max(0, Number(avail) || 0);
+          }
+          liveByBase[baseCode].push({ size: sz, stocks });
+        }
+      }
+
+      if (Object.keys(liveByBase).length > 0 && Array.isArray(payload.products)) {
+        const seen = new Set();
+        for (const item of payload.products) {
+          const code = String(item.sku || "").trim().toUpperCase().split("-")[0];
+          seen.add(code);
+          item.variants = liveByBase[code] || [];
+          if (nameByBase[code]) item.name = nameByBase[code];
+        }
+        if (saleRules) {
+          for (const [code, rule] of Object.entries(saleRules)) {
+            if (!seen.has(code) && !EXCLUDED_SKUS.has(code) && liveByBase[code]) {
+              payload.products.push({
+                sku: code,
+                name: nameByBase[code] || ("Sản phẩm Havana " + code),
+                subType: rule.subType || "",
+                origPrice: rule.origPrice || 299000,
+                salePrice: rule.salePrice || 159000,
+                discountPct: rule.discountPct || 30,
+                image: "",
+                images: [],
+                sapoImages: sapoImgsByBase[code] || [],
+                video: "",
+                sizeChart: "",
+                variants: liveByBase[code]
+              });
+            }
+          }
+        }
+        const nowVN = new Date(Date.now() + 7 * 3600 * 1000);
+        const pad = (n) => String(n).padStart(2, "0");
+        payload.synced_at = `${pad(nowVN.getUTCHours())}:${pad(nowVN.getUTCMinutes())} ${pad(nowVN.getUTCDate())}/${pad(nowVN.getUTCMonth() + 1)}`;
+        payload.synced_epoch = Math.floor(Date.now() / 1000);
+        syncedLive = true;
+        syncSource = "cloudflare_edge_sapo_live";
+        break;
+      }
+    } catch (_) {}
+  }
+
+  if (!syncedLive && Array.isArray(payload.products)) {
+    try {
+      const ghRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO_SLUG}/releases/tags/live-stock`, {
+        headers: { "Accept": "application/vnd.github+json", "User-Agent": "havana-sale-cf-edge-v25" }
+      });
+      if (ghRes.ok) {
+        const relJson = await ghRes.json();
+        if (relJson && relJson.body) {
+          const feed = JSON.parse(relJson.body);
+          if (feed && feed.items && Array.isArray(feed.warehouses)) {
+            const feedMins = parseStampToMinutes(feed.synced_at);
+            const baseMins = parseStampToMinutes(payload.synced_at);
+            if (feedMins >= baseMins) {
+              const whIds = feed.warehouses.map((w) => w.id);
+              payload.warehouses = feed.warehouses;
+              const seenInBase = new Set();
+              for (const item of payload.products) {
+                const code = String(item.sku || "").trim().toUpperCase().split("-")[0];
+                seenInBase.add(code);
+                const fEntry = feed.items[code];
+                if (fEntry && Array.isArray(fEntry.v)) {
+                  item.variants = fEntry.v.map(([sz, qArr]) => {
+                    const st = {};
+                    whIds.forEach((wid, idx) => { st[wid] = Number((qArr && qArr[idx]) || 0); });
+                    return { size: sz || "Freesize", stocks: st };
+                  });
+                  if (fEntry.n) item.name = fEntry.n;
+                } else if (feed.full) {
+                  item.variants = [];
+                }
+              }
+              if (saleRules) {
+                for (const [code, fEntry] of Object.entries(feed.items)) {
+                  if (!seenInBase.has(code) && saleRules[code] && !EXCLUDED_SKUS.has(code) && Array.isArray(fEntry.v)) {
+                    const rule = saleRules[code];
+                    const builtVars = fEntry.v.map(([sz, qArr]) => {
+                      const st = {};
+                      whIds.forEach((wid, idx) => { st[wid] = Number((qArr && qArr[idx]) || 0); });
+                      return { size: sz || "Freesize", stocks: st };
+                    });
+                    payload.products.push({
+                      sku: code,
+                      name: fEntry.n || ("Sản phẩm Havana " + code),
+                      subType: rule.subType || "",
+                      origPrice: rule.origPrice || 299000,
+                      salePrice: rule.salePrice || 159000,
+                      discountPct: rule.discountPct || 30,
+                      image: "",
+                      images: [],
+                      sapoImages: fEntry.si || [],
+                      video: "",
+                      sizeChart: "",
+                      variants: builtVars
+                    });
+                  }
+                }
+              }
+              payload.synced_at = feed.synced_at;
+              payload.synced_epoch = feed.synced_epoch || Math.floor(Date.now() / 1000);
+              syncedLive = true;
+              syncSource = "github_release_live_feed";
+            }
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  if (Array.isArray(payload.products)) {
+    payload.products = payload.products.filter((p) => {
+      const baseSku = String(p.sku || "").trim().toUpperCase().split("-")[0];
+      if (EXCLUDED_SKUS.has(baseSku)) return false;
+      if (saleRules && Object.keys(saleRules).length > 0) {
+        const rule = saleRules[baseSku];
+        if (!rule) return false;
+        if (rule.origPrice > 0) p.origPrice = rule.origPrice;
+        if (rule.salePrice > 0) p.salePrice = rule.salePrice;
+        if (p.origPrice > p.salePrice && p.salePrice > 0) {
+          p.discountPct = Math.max(1, Math.round((1 - p.salePrice / p.origPrice) * 100));
+        }
+        if (rule.subType && !p.subType) p.subType = rule.subType;
+      }
+      return calcTotalStock(p) >= MIN_TOTAL_STOCK;
+    });
+
+    const sat533SapoSet = new Set(sapoImgsByBase["SAT533"] || []);
+    for (const p of payload.products) {
+      if (String(p.sku || "").trim().toUpperCase().split("-")[0] === "SAT533") {
+        for (const u of [p.image, ...(p.images || []), ...(p.sapoImages || [])]) {
+          if (isExternalSapoUrl(u)) sat533SapoSet.add(String(u).trim());
+        }
+      }
+    }
+
+    for (const p of payload.products) {
+      const code = String(p.sku || "").trim().toUpperCase().split("-")[0];
+      const rawImgs = Array.isArray(p.images) ? p.images : [];
+      let customImgs = [];
+      let sapoImgs = [];
+      const seedSapo = (code === "SAT532" && (sapoImgsByBase["SAT532"] || []).length > 0)
+        ? [...sapoImgsByBase["SAT532"]]
+        : [...(sapoImgsByBase[code] || []), ...(Array.isArray(p.sapoImages) ? p.sapoImages : [])];
+
+      for (const u of [p.image, ...rawImgs, ...seedSapo]) {
+        const s = String(u || "").trim();
+        if (!s || s.startsWith("data:image/svg+xml")) continue;
+        if (isExternalSapoUrl(s)) {
+          if (code === "SAT532" && (sat533SapoSet.has(s) || s.toLowerCase().includes("sat533"))) continue;
+          if (!sapoImgs.includes(s)) sapoImgs.push(s);
+        } else {
+          if (code === "SAT532") continue;
+          if (!customImgs.includes(s)) customImgs.push(s);
+        }
+      }
+      if (code === "SAT532") { p.video = ""; p.sizeChart = ""; }
+      const finalImgs = customImgs.length > 0 ? customImgs : sapoImgs;
+      p.sapoImages = sapoImgs;
+      p.hasCustomMedia = customImgs.length > 0 || Boolean(p.video && !isExternalSapoUrl(String(p.video)));
+      p.images = finalImgs;
+      p.image = finalImgs[0] || "";
+    }
+  }
+
+  payload.min_stock_rule = MIN_TOTAL_STOCK;
+  payload.sync_source = syncSource;
+  const outResp = new Response(JSON.stringify(payload), {
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": syncedLive ? "public, s-maxage=45, stale-while-revalidate=45" : "no-store, max-age=0"
+    }
+  });
+  if (syncedLive && !forceBypass) context.waitUntil(cache.put(cacheKey, outResp.clone()));
+  return outResp;
+}
+'''
+
+V25_INDEX_JS_ADDON = r'''/* === v25: AUTO FILTER TOTAL STOCK >= 3 & PURGE LOW STOCK (< 3) ON EVERY SYNC === */
+    const MIN_TOTAL_STOCK_V25 = 3;
+    let v25SyncInFlight = false;
+    let v25LastReleaseCheckMs = 0;
+    if (typeof MEDIA_CACHE_VERSION !== "undefined" && MEDIA_CACHE_VERSION < 25) {
+      MEDIA_CACHE_VERSION = 25;
+    }
+
+    const v25ApplyPriceFixes = (rulesMap) => {
+      if (!rulesMap || typeof rulesMap !== "object") return;
+      const fixed = {
+        AO1010: { origPrice: 194000, salePrice: 79000, discountPct: 59 },
+        AO726:  { origPrice: 225000, salePrice: 39000, discountPct: 83 },
+        AO1016: { origPrice: 214000, salePrice: 79000, discountPct: 63 }
+      };
+      Object.keys(fixed).forEach((k) => {
+        if (rulesMap[k]) Object.assign(rulesMap[k], fixed[k]);
+      });
+    };
+
+    const v25CalcTotalStock = (p) => {
+      if (!p || !Array.isArray(p.variants)) return 0;
+      return p.variants.reduce((sum, v) => {
+        const st = (v && v.stocks && typeof v.stocks === "object") ? v.stocks : {};
+        return sum + Object.values(st).reduce((a, b) => a + Math.max(0, Number(b) || 0), 0);
+      }, 0);
+    };
+
+    const v25SyncStockBadgeLabel = () => {
+      const stTxt = document.getElementById("onlyInStockText");
+      if (stTxt) {
+        stTxt.textContent = currentLang === "VI" ? "Tồn ≥ 3" : "Stock ≥ 3";
+      }
+    };
+
+    const v25EnforceMinStock = (notifyCartChange = false) => {
+      v25ApplyPriceFixes(SALE_RULES_MASTER);
+      if (Array.isArray(BASELINE_PRODUCTS)) {
+        BASELINE_PRODUCTS = BASELINE_PRODUCTS.filter((p) => v25CalcTotalStock(p) >= MIN_TOTAL_STOCK_V25);
+      }
+      if (Array.isArray(PRODUCTS)) {
+        PRODUCTS.forEach((p) => {
+          const code = normalizeBaseCode(String(p?.sku || "").split("-")[0]);
+          const rule = SALE_RULES_MASTER && SALE_RULES_MASTER[code];
+          if (rule) {
+            if (Number(rule.origPrice) > 0) p.origPrice = Number(rule.origPrice);
+            if (Number(rule.salePrice) > 0) p.salePrice = Number(rule.salePrice);
+            p.discountPct = getProductDiscountPct(p);
+          }
+        });
+        PRODUCTS = PRODUCTS.filter((p) => v25CalcTotalStock(p) >= MIN_TOTAL_STOCK_V25);
+      }
+      if (Array.isArray(cart) && cart.length) {
+        let adjusted = false;
+        cart = cart.filter((c) => {
+          const matchedP = (PRODUCTS || []).find((x) => x.sku === c.sku);
+          if (!matchedP || v25CalcTotalStock(matchedP) < MIN_TOTAL_STOCK_V25) {
+            adjusted = true;
+            return false;
+          }
+          c.origPrice = matchedP.origPrice;
+          c.finalPrice = getProductSalePrice(matchedP);
+          c.discountPct = getProductDiscountPct(matchedP);
+          const maxAvail = getMaxStockForSkuSize(c.sku, c.size);
+          if (maxAvail <= 0) {
+            adjusted = true;
+            return false;
+          }
+          if (c.qty > maxAvail) {
+            c.qty = maxAvail;
+            adjusted = true;
+          }
+          return true;
+        });
+        if (adjusted) {
+          persistCart();
+          updateCartBar();
+          if (notifyCartChange) {
+            showToast("Tồn kho Sapo vừa thay đổi — các mã tổng tồn dưới 3 đã tự động rút khỏi danh sách & Phiếu Bill!");
+          }
+        }
+      }
+      v25SyncStockBadgeLabel();
+    };
+
+    const _preV25MergeRules = mergeAndApplySaleRules;
+    mergeAndApplySaleRules = function(liveList, rulesObj) {
+      v25ApplyPriceFixes(SALE_RULES_MASTER);
+      v25ApplyPriceFixes(rulesObj);
+      const baseRules = (rulesObj && Object.keys(rulesObj).length > 0) ? rulesObj : SALE_RULES_MASTER;
+      let scopedRules = baseRules;
+      if (Array.isArray(liveList) && liveList.length > 0 && baseRules) {
+        const liveSet = new Set(
+          liveList.map((it) => normalizeBaseCode(String(it?.sku || "").split("-")[0])).filter(Boolean)
+        );
+        scopedRules = {};
+        Object.keys(baseRules).forEach((k) => {
+          if (liveSet.has(k)) scopedRules[k] = baseRules[k];
+        });
+      }
+      const merged = _preV25MergeRules(liveList, scopedRules);
+      return merged.filter((p) => v25CalcTotalStock(p) >= MIN_TOTAL_STOCK_V25);
+    };
+
+    const _preV25RenderCatalog = renderCatalog;
+    renderCatalog = function() {
+      v25EnforceMinStock(false);
+      _preV25RenderCatalog();
+    };
+
+    const _preV25SetLang = setLang;
+    setLang = function(lang) {
+      _preV25SetLang(lang);
+      v25SyncStockBadgeLabel();
+    };
+
+    if (typeof exportCleanIndexHtml === "function") {
+      const _preV25ExportCleanHtml = exportCleanIndexHtml;
+      exportCleanIndexHtml = function() {
+        v25EnforceMinStock(false);
+        _preV25ExportCleanHtml();
+      };
+    }
+
+    const v25ParseStampMins = (stampStr) => {
+      const m = String(stampStr || "").trim().match(/^(\d{1,2}):(\d{2})\s+(\d{1,2})\/(\d{1,2})/);
+      if (!m) return 0;
+      return (((Number(m[4]) * 32 + Number(m[3])) * 24 + Number(m[1])) * 60) + Number(m[2]);
+    };
+
+    const v25FetchLiveRelease = async (forceNow = false) => {
+      const cacheKey = "havana_live_rel_v25";
+      const nowMs = Date.now();
+      if (!forceNow && (nowMs - v25LastReleaseCheckMs < 45000)) {
+        try {
+          const cached = JSON.parse(sessionStorage.getItem(cacheKey) || "null");
+          if (cached && (nowMs - cached.ts < 45000)) return cached.feed;
+        } catch (_) {}
+      }
+      v25LastReleaseCheckMs = nowMs;
+      try {
+        const repoSlug = typeof GITHUB_REPO_SLUG !== "undefined" ? GITHUB_REPO_SLUG : "moonchuyensi-cmd/havana-sale";
+        const res = await fetch(`https://api.github.com/repos/${repoSlug}/releases/tags/live-stock`, {
+          headers: { "Accept": "application/vnd.github+json" },
+          cache: "no-store"
+        });
+        if (!res.ok) return null;
+        const rel = await res.json();
+        if (!rel || !rel.body) return null;
+        const feed = JSON.parse(rel.body);
+        if (feed && feed.items && Array.isArray(feed.warehouses)) {
+          try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: nowMs, feed })); } catch (_) {}
+          return feed;
+        }
+      } catch (_) {}
+      return null;
+    };
+
+    const v25ApplyReleaseFeed = (basePayload, feed) => {
+      if (!feed || !feed.items || !Array.isArray(feed.warehouses) || !basePayload || !Array.isArray(basePayload.products)) {
+        return basePayload;
+      }
+      const feedMins = v25ParseStampMins(feed.synced_at);
+      const baseMins = v25ParseStampMins(basePayload.synced_at);
+      const feedEpoch = Number(feed.synced_epoch || 0);
+      const baseEpoch = Number(basePayload.synced_epoch || 0);
+      if ((feedEpoch && baseEpoch && feedEpoch < baseEpoch) || (!feedEpoch && feedMins < baseMins)) {
+        return basePayload;
+      }
+
+      const whIds = feed.warehouses.map((w) => w.id);
+      basePayload.warehouses = feed.warehouses;
+      const seen = new Set();
+      basePayload.products.forEach((item) => {
+        const code = normalizeBaseCode(String(item.sku || "").split("-")[0]);
+        seen.add(code);
+        const fEntry = feed.items[code];
+        if (fEntry && Array.isArray(fEntry.v)) {
+          item.variants = fEntry.v.map(([sz, qArr]) => {
+            const st = {};
+            whIds.forEach((wid, idx) => { st[wid] = Number((qArr && qArr[idx]) || 0); });
+            return { size: sz || "Freesize", stocks: st };
+          });
+          if (fEntry.n) item.name = fEntry.n;
+        } else if (feed.full) {
+          item.variants = [];
+        }
+      });
+
+      if (SALE_RULES_MASTER) {
+        Object.keys(feed.items).forEach((code) => {
+          if (seen.has(code) || !SALE_RULES_MASTER[code]) return;
+          const fEntry = feed.items[code];
+          if (!fEntry || !Array.isArray(fEntry.v)) return;
+          const builtVars = fEntry.v.map(([sz, qArr]) => {
+            const st = {};
+            whIds.forEach((wid, idx) => { st[wid] = Number((qArr && qArr[idx]) || 0); });
+            return { size: sz || "Freesize", stocks: st };
+          });
+          const tempProd = {
+            sku: code,
+            name: fEntry.n || ("Sản phẩm Havana " + code),
+            subType: SALE_RULES_MASTER[code].subType || "",
+            origPrice: SALE_RULES_MASTER[code].origPrice || 299000,
+            salePrice: SALE_RULES_MASTER[code].salePrice || 159000,
+            discountPct: SALE_RULES_MASTER[code].discountPct || 30,
+            image: "",
+            images: [],
+            sapoImages: fEntry.si || [],
+            video: "",
+            sizeChart: "",
+            variants: builtVars
+          };
+          if (v25CalcTotalStock(tempProd) >= MIN_TOTAL_STOCK_V25) {
+            basePayload.products.push(tempProd);
+          }
+        });
+      }
+
+      basePayload.products = basePayload.products.filter((it) => v25CalcTotalStock(it) >= MIN_TOTAL_STOCK_V25);
+      basePayload.synced_at = feed.synced_at || basePayload.synced_at;
+      basePayload.synced_epoch = feedEpoch || basePayload.synced_epoch;
+      basePayload.sync_source = "github_release_live_feed";
+      return basePayload;
+    };
+
+    const v25SilentUpdateDOM = () => {
+      if (typeof purgeExcludedSkusEverywhere === "function") purgeExcludedSkusEverywhere();
+      v25EnforceMinStock(false);
+      syncMobileGridClass();
+      ensureDefaultSelectedSizes();
+      renderDynamicCategoryBar();
+      renderDynamicPriceTierBar();
+      stripSapoImagesFromProducts(PRODUCTS);
+      updateAdminMediaStats();
+
+      const q = (document.getElementById("searchInput")?.value || "").trim().toLowerCase();
+      const grid = document.getElementById("productGrid");
+      const sentinel = document.getElementById("scrollSentinel");
+      if (!grid) return;
+
+      const prevSkusRendered = Array.from(grid.querySelectorAll(".card")).map((el) => el.id.replace(/^card-/, ""));
+      const keepCount = Math.max(RENDER_BATCH_SIZE, renderedCount || RENDER_BATCH_SIZE);
+
+      filteredProductsCache = PRODUCTS.filter((p) => {
+        if (v25CalcTotalStock(p) < MIN_TOTAL_STOCK_V25) return false;
+        if (document.body.classList.contains("is-admin")) {
+          if (adminMediaFilter === "MISSING" && hasCustomProductMedia(p)) return false;
+          if (adminMediaFilter === "HAS_MEDIA" && !hasCustomProductMedia(p)) return false;
+        }
+        const cat = classifyProduct(p);
+        if (currentCategory !== "ALL" && cat !== currentCategory) return false;
+        const sPrice = getProductSalePrice(p);
+        if (currentPriceTier !== "ALL") {
+          if (String(currentPriceTier).startsWith("EXACT_")) {
+            if (sPrice !== Number(String(currentPriceTier).slice(6))) return false;
+          } else if (currentPriceTier === "UNDER_99" && sPrice > 99000) return false;
+          else if (currentPriceTier === "159" && (sPrice < 149000 || sPrice > 169000)) return false;
+          else if (currentPriceTier === "199_UP" && sPrice < 190000) return false;
+        }
+        if (q && !p.sku.toLowerCase().includes(q) && !p.name.toLowerCase().includes(q)) return false;
+        if (onlyInStock && getProductTotal(p) < MIN_TOTAL_STOCK_V25) return false;
+        return true;
+      });
+
+      const badgeCnt = document.getElementById("countResultBadge");
+      if (badgeCnt) {
+        badgeCnt.textContent = currentLang === "VI" ? `${filteredProductsCache.length} mẫu` : `${filteredProductsCache.length} items`;
+      }
+
+      if (!filteredProductsCache.length) {
+        _preV25RenderCatalog();
+        return;
+      }
+
+      const targetSlice = filteredProductsCache.slice(0, Math.min(keepCount, filteredProductsCache.length));
+      const nextSkus = targetSlice.map((p) => p.sku);
+      const sameOrder = prevSkusRendered.length === nextSkus.length && prevSkusRendered.every((s, idx) => s === nextSkus[idx]);
+
+      if (sameOrder && prevSkusRendered.length > 0) {
+        targetSlice.forEach((p, idx) => {
+          const cardEl = document.getElementById("card-" + p.sku);
+          if (!cardEl) return;
+          if (cardEl.querySelector("video")) {
+            const tmp = document.createElement("div");
+            tmp.innerHTML = buildCardInnerHtml(p, idx);
+            const newBody = tmp.querySelector(".card-body");
+            const curBody = cardEl.querySelector(".card-body");
+            if (newBody && curBody && curBody.innerHTML !== newBody.innerHTML) curBody.innerHTML = newBody.innerHTML;
+          } else {
+            const nextHtml = buildCardInnerHtml(p, idx);
+            if (cardEl.innerHTML !== nextHtml) cardEl.innerHTML = nextHtml;
+          }
+        });
+      } else {
+        grid.innerHTML = targetSlice.map((p, idx) => `<article class="card" id="card-${p.sku}">${buildCardInnerHtml(p, idx)}</article>`).join("");
+        renderedCount = targetSlice.length;
+        if (sentinel) {
+          sentinel.textContent = renderedCount < filteredProductsCache.length
+            ? `Đang hiển thị ${renderedCount}/${filteredProductsCache.length} mẫu — Cuộn xuống để xem tiếp...`
+            : "";
+        }
+        ensureScrollObserver();
+      }
+    };
+
+    refreshLiveSapoStock = async function(silent = true) {
+      if (v25SyncInFlight) return false;
+      v25SyncInFlight = true;
+      const timeEl = document.getElementById("liveSyncTimeText");
+      if (!silent && timeEl) {
+        timeEl.textContent = currentLang === "VI" ? "Đang cập nhật tồn..." : "Syncing stock...";
+      }
+      try {
+        let data = null;
+        if (location.protocol.startsWith("http")) {
+          try {
+            const qs = (!silent ? "force=1&" : "") + "t=" + Date.now();
+            const apiResp = await fetch("./api/stock?" + qs, { cache: "no-store" });
+            if (apiResp.ok && (apiResp.headers.get("content-type") || "").includes("application/json")) {
+              data = await apiResp.json();
+            }
+          } catch (_) {}
+        }
+
+        if (!data || !Array.isArray(data.products)) {
+          try {
+            const jsonResp = await fetch("./sapo_5_kho.json?t=" + Date.now(), { cache: "no-store" });
+            if (jsonResp.ok) data = await jsonResp.json();
+          } catch (_) {}
+        }
+
+        if (!data || !Array.isArray(data.products)) {
+          data = {
+            synced_at: lastSyncedStamp || "",
+            warehouses: WAREHOUSE_CONFIG,
+            products: JSON.parse(JSON.stringify(PRODUCTS))
+          };
+        }
+
+        if (data.sync_source !== "cloudflare_edge_sapo_live") {
+          const liveFeed = await v25FetchLiveRelease(!silent);
+          if (liveFeed) data = v25ApplyReleaseFeed(data, liveFeed);
+        }
+
+        if (data && Array.isArray(data.products)) {
+          if (Array.isArray(data.warehouses) && data.warehouses.length) {
+            WAREHOUSE_CONFIG = data.warehouses;
+          }
+          try {
+            const srResp = await fetch("./sale_rules.json?t=" + Date.now(), { cache: "no-store" });
+            if (srResp.ok) {
+              const remoteRules = await srResp.json();
+              if (remoteRules && Object.keys(remoteRules).length >= 10) {
+                v25ApplyPriceFixes(remoteRules);
+                SALE_RULES_MASTER = remoteRules;
+              }
+            }
+          } catch (_) {}
+
+          const cleanLiveProds = data.products.filter((p) => v25CalcTotalStock(p) >= MIN_TOTAL_STOCK_V25);
+          stripSapoImagesFromProducts(cleanLiveProds);
+          PRODUCTS = mergeAndApplySaleRules(cleanLiveProds, SALE_RULES_MASTER);
+          v25EnforceMinStock(true);
+
+          if (timeEl && data.synced_at) {
+            timeEl.textContent = (currentLang === "VI" ? "Cập nhật: " : "Synced: ") + data.synced_at;
+          }
+          if (!silent && data.synced_at) {
+            showToast(`⚡ Đã đồng bộ tồn 5 kho (${data.synced_at}) • Hiện ${PRODUCTS.length} mã tồn ≥ 3`);
+          }
+          lastSyncedStamp = data.synced_at || "";
+
+          v25SilentUpdateDOM();
+          updateCartBar();
+          const billModalEl = document.getElementById("billModal");
+          if (billModalEl && billModalEl.classList.contains("open")) {
+            if (!cart.length) closeBillModal();
+            else renderBillModal();
+          }
+          return true;
+        }
+      } catch (_) {
+      } finally {
+        v25SyncInFlight = false;
+      }
+      return false;
+    };
+
+    v25EnforceMinStock(false);
+    v25SilentUpdateDOM();
+    updateCartBar();
+    setInterval(() => {
+      if (document.visibilityState === "visible") refreshLiveSapoStock(true);
+    }, 45 * 1000);
+    window.addEventListener("focus", () => refreshLiveSapoStock(true), { passive: true });
+    refreshLiveSapoStock(true);'''
 
 
 def vn_now_str() -> str:
@@ -51,6 +894,19 @@ def clean_base_code(val) -> str:
     raw = str(val or "").strip().upper().rstrip("-")
     m = SKU_REGEX.match(raw)
     return m.group(1).upper() if m else ""
+
+
+def calc_product_total_stock(prod: dict) -> int:
+    total = 0
+    for v in (prod.get("variants") or []):
+        stocks = v.get("stocks") or {}
+        if isinstance(stocks, dict):
+            for qty in stocks.values():
+                try:
+                    total += max(0, int(qty or 0))
+                except (ValueError, TypeError):
+                    pass
+    return total
 
 
 def is_sapo_cdn_url(url: str) -> bool:
@@ -118,9 +974,7 @@ def split_custom_and_sapo_media(prod: dict) -> tuple:
     raw_imgs = prod.get("images") if isinstance(prod.get("images"), list) else []
     main_img = str(prod.get("image") or "").strip()
     raw_sapo = prod.get("sapoImages") if isinstance(prod.get("sapoImages"), list) else []
-
-    custom_imgs = []
-    sapo_imgs = []
+    custom_imgs, sapo_imgs = [], []
 
     for u in ([main_img] + list(raw_imgs) + list(raw_sapo)):
         s = str(u or "").strip()
@@ -156,11 +1010,7 @@ def parse_money(val) -> int:
     if not s_digits:
         return 0
     num = int(s_digits)
-    return num * 1000 if 0 < v_safe(num) < 1000 else num
-
-
-def v_safe(n: int) -> int:
-    return n
+    return num * 1000 if 0 < num < 1000 else num
 
 
 def parse_pct(val) -> float:
@@ -177,14 +1027,113 @@ def parse_pct(val) -> float:
         return 0.0
 
 
-# Danh sach ma can xoa sach anh cu bi up nham de lay lai anh goc tu Sapo
-FORCE_RESET_TO_SAPO_SKUS = {"SAT532"}
-PURGE_STATE_FILE = ".purged_wrong_media_v21.json"
+def upgrade_repo_files_v25() -> bool:
+    """Tu dong nang cap functions/api/stock.js va index.html len ban v25 (Loc ton >= 3, khong QR)."""
+    changed = False
+
+    os.makedirs(os.path.join("functions", "api"), exist_ok=True)
+    stock_js_path = os.path.join("functions", "api", "stock.js")
+    old_js = ""
+    if os.path.exists(stock_js_path):
+        with open(stock_js_path, "r", encoding="utf-8") as f:
+            old_js = f.read()
+    if old_js.strip() != CF_STOCK_JS_V25.strip():
+        with open(stock_js_path, "w", encoding="utf-8") as f:
+            f.write(CF_STOCK_JS_V25)
+        print("[+] Da cap nhat functions/api/stock.js -> v25 (MIN_TOTAL_STOCK = 3)")
+        changed = True
+
+    if os.path.exists("index.html"):
+        with open("index.html", "r", encoding="utf-8") as f:
+            html_orig = f.read()
+        html = html_orig
+
+        s_i = html.find("/* [BLOCK:DATA_PAYLOAD_START] */")
+        e_i = html.find("/* [BLOCK:DATA_PAYLOAD_END] */")
+        if s_i != -1 and e_i > s_i:
+            seg = html[s_i:e_i]
+            m_wh = re.search(r"let WAREHOUSE_CONFIG = (\[[^\n]*\]);", seg) or re.search(r"let WAREHOUSE_CONFIG = (\[.*?\]);", seg, re.S)
+            m_sr = re.search(r"let SALE_RULES_MASTER = (\{[^\n]*\});", seg) or re.search(r"let SALE_RULES_MASTER = (\{.*?\});", seg, re.S)
+            m_bp = re.search(r"let BASELINE_PRODUCTS = (\[[^\n]*\]);", seg) or re.search(r"let BASELINE_PRODUCTS = (\[.*?\]);", seg, re.S)
+            if m_wh and m_sr and m_bp:
+                wh_data = json.loads(m_wh.group(1))
+                sr_data = json.loads(m_sr.group(1))
+                bp_data = json.loads(m_bp.group(1))
+                for ex in EXCLUDED_SKUS:
+                    sr_data.pop(ex, None)
+                for code, (orig_p, sale_p, disc_p, _) in PRICE_PATCH_V25.items():
+                    if code in sr_data:
+                        sr_data[code]["origPrice"] = orig_p
+                        sr_data[code]["salePrice"] = sale_p
+                        sr_data[code]["discountPct"] = disc_p
+                filtered_bp = []
+                for item in bp_data:
+                    c = clean_base_code(str(item.get("sku") or "").split("-")[0])
+                    if not c or c in EXCLUDED_SKUS:
+                        continue
+                    if c in PRICE_PATCH_V25:
+                        item["origPrice"] = PRICE_PATCH_V25[c][0]
+                        item["salePrice"] = PRICE_PATCH_V25[c][1]
+                        item["discountPct"] = PRICE_PATCH_V25[c][2]
+                    if calc_product_total_stock(item) >= MIN_TOTAL_STOCK:
+                        filtered_bp.append(item)
+                new_seg = (
+                    "/* [BLOCK:DATA_PAYLOAD_START] */\n"
+                    f"    let WAREHOUSE_CONFIG = {json.dumps(wh_data, ensure_ascii=False)};\n"
+                    f"    let SALE_RULES_MASTER = {json.dumps(sr_data, ensure_ascii=False)};\n"
+                    f"    let BASELINE_PRODUCTS = {json.dumps(filtered_bp, ensure_ascii=False)};\n"
+                    "    let PRODUCTS = BASELINE_PRODUCTS.map((p) => Object.assign({}, p));\n"
+                    "    "
+                )
+                html = html[:s_i] + new_seg + html[e_i:]
+
+        end_logic = html.rfind("/* [BLOCK:APP_LOGIC_END] */")
+        if end_logic != -1:
+            cuts = [
+                html.find(m, 0, end_logic)
+                for m in ("/* === v22:", "/* === v23:", "/* === v25:")
+            ]
+            valid_cuts = [pos for pos in cuts if pos != -1]
+            cut_at = min(valid_cuts) if valid_cuts else end_logic
+            html = (
+                html[:cut_at].rstrip()
+                + "\n\n    "
+                + V25_INDEX_JS_ADDON.strip()
+                + "\n    /* [BLOCK:APP_LOGIC_END] */"
+                + html[end_logic + len("/* [BLOCK:APP_LOGIC_END] */"):]
+            )
+
+        html = re.sub(
+            r'(<span id="onlyInStockText">)(?:Còn tồn|In Stock)(</span>)',
+            r'\1Tồn ≥ 3\2',
+            html,
+            count=1
+        )
+
+        if html != html_orig:
+            with open("index.html", "w", encoding="utf-8") as f:
+                f.write(html)
+            print("[+] Da nang cap index.html -> v25 (Tu dong loc ma tong ton >= 3, khong them QR)")
+            changed = True
+
+    return changed
+
+
+def build_sku_matcher(codes: list):
+    sorted_codes = sorted(set(c.upper() for c in codes if c), key=len, reverse=True)
+    compiled = []
+    for c in sorted_codes:
+        m = re.match(r"^([A-Z]+)(\d+)$", c)
+        if m:
+            pfx, num = re.escape(m.group(1)), re.escape(m.group(2))
+            rx = re.compile(rf"(^|[^A-Z0-9]){pfx}[\s_\-]*{num}([^0-9]|$)", re.I)
+        else:
+            rx = re.compile(rf"(^|[^A-Z0-9]){re.escape(c)}([^A-Z0-9]|$)", re.I)
+        compiled.append((c, rx))
+    return compiled
 
 
 def purge_wrong_custom_media_once():
-    """Xoa triet de file anh/video cu bi nham cua SAT532 tren repo (chay 1 lan duy nhat cho moi ky reset
-    de neu sau nay ban up anh moi dung cua SAT532 thi van nhan binh thuong)."""
     already_purged = set()
     if os.path.exists(PURGE_STATE_FILE):
         try:
@@ -198,7 +1147,6 @@ def purge_wrong_custom_media_once():
         return set()
 
     compiled = build_sku_matcher(list(pending))
-    removed_files = []
     for folder in ("images", "videos", "sizes"):
         if not os.path.isdir(folder):
             continue
@@ -207,17 +1155,13 @@ def purge_wrong_custom_media_once():
                 if fname.lower() == "keep.txt":
                     continue
                 fpath = os.path.join(root, fname)
-                for code, rx in compiled:
+                for _, rx in compiled:
                     if rx.search(fname) or rx.search(root):
                         try:
                             os.remove(fpath)
-                            removed_files.append(fpath)
                         except Exception:
                             pass
                         break
-
-    if removed_files:
-        print(f"[+] Da xoa {len(removed_files)} file anh/video cu bi nham cua {sorted(pending)}: {removed_files}")
 
     try:
         with open(PURGE_STATE_FILE, "w", encoding="utf-8") as pf:
@@ -313,66 +1257,37 @@ def write_github_summary(md_text: str):
 
 
 def load_black_friday_rules() -> dict:
-    excel_files = [f for f in glob.glob("*.xlsx") if not os.path.basename(f).startswith("~$")]
-    csv_files = glob.glob("*.csv")
+    target_xlsx = "Black Friday.xlsx" if os.path.exists("Black Friday.xlsx") else None
+    if not target_xlsx:
+        excel_files = [f for f in glob.glob("*.xlsx") if not os.path.basename(f).startswith("~$")]
+        if excel_files:
+            excel_files.sort(key=lambda x: (0 if "black" in x.lower() else 1, len(x), x))
+            target_xlsx = excel_files[0]
+
     sale_rules = {}
-
-    if excel_files:
-        excel_files.sort(key=lambda x: (0 if "black" in x.lower() else 1, x))
-        target_xlsx = excel_files[0]
-        xlsx_sha = ""
-        try:
-            with open(target_xlsx, "rb") as xf:
-                xlsx_sha = hashlib.sha256(xf.read()).hexdigest()[:16]
-        except Exception:
-            pass
-        # Neu tren repo van la file Black Friday.xlsx ban v22 cu (chua kip keo de file v23) -> tu dong cap nhat dung 2 ma AO1010=79K, AO726=39K
-        if xlsx_sha == "8470550bc1000ee7":
-            try:
-                import openpyxl as _ox
-            except ImportError:
-                subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl", "-q"])
-                import openpyxl as _ox
-            _wb = _ox.load_workbook(target_xlsx)
-            if "Tổng CH" in _wb.sheetnames:
-                _ws = _wb["Tổng CH"]
-                for _r in range(2, _ws.max_row + 1):
-                    _c = str(_ws.cell(_r, 1).value or "").strip().upper()
-                    if _c == "AO1010":
-                        _ws.cell(_r, 3).value = 79000
-                        _ws.cell(_r, 4).value = 0.5928
-                    elif _c == "AO726":
-                        _ws.cell(_r, 3).value = 39000
-                        _ws.cell(_r, 4).value = 0.8267
-                _wb.save(target_xlsx)
-                with open(target_xlsx, "rb") as xf:
-                    xlsx_sha = hashlib.sha256(xf.read()).hexdigest()[:16]
-                print("[+] Da tu dong cap nhat AO1010 -> 79K & AO726 -> 39K trong Black Friday.xlsx!")
-        sha_marker = ".bf_xlsx_hash.txt"
-        prev_sha = ""
-        if os.path.exists(sha_marker):
-            try:
-                with open(sha_marker, "r", encoding="utf-8") as mf:
-                    prev_sha = mf.read().strip()
-            except Exception:
-                pass
-        if xlsx_sha and xlsx_sha == prev_sha and os.path.exists("sale_rules.json"):
-            try:
-                with open("sale_rules.json", "r", encoding="utf-8") as rf:
-                    cached_rules = json.load(rf)
-                if len(cached_rules) >= 50:
-                    for ex_code in EXCLUDED_SKUS:
-                        cached_rules.pop(ex_code, None)
-                    return cached_rules
-            except Exception:
-                pass
-
-        print(f"[*] Tu dong doc bang Excel tren repo: {target_xlsx}")
+    if target_xlsx:
         try:
             import openpyxl
         except ImportError:
             subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl", "-q"])
             import openpyxl
+
+        wb_edit = openpyxl.load_workbook(target_xlsx)
+        xlsx_patched = False
+        if "Tổng CH" in wb_edit.sheetnames:
+            ws_e = wb_edit["Tổng CH"]
+            for r_idx in range(2, ws_e.max_row + 1):
+                c_val = str(ws_e.cell(r_idx, 1).value or "").strip().upper()
+                if c_val in PRICE_PATCH_V25:
+                    _, target_sale, _, target_pct_dec = PRICE_PATCH_V25[c_val]
+                    cur_sale = parse_money(ws_e.cell(r_idx, 3).value)
+                    if cur_sale in (99000, 159000) and cur_sale != target_sale:
+                        ws_e.cell(r_idx, 3).value = target_sale
+                        ws_e.cell(r_idx, 4).value = target_pct_dec
+                        xlsx_patched = True
+        if xlsx_patched:
+            wb_edit.save(target_xlsx)
+            print(f"[+] Da cap nhat gia AO1010/AO726/AO1016 trong {target_xlsx}")
 
         wb = openpyxl.load_workbook(target_xlsx, data_only=True)
         ordered_sheets = sorted(
@@ -429,49 +1344,30 @@ def load_black_friday_rules() -> dict:
                     sale_rules[code] = {
                         "origPrice": orig_p,
                         "salePrice": sale_p,
-                        "discountPct": round(pct_v, 1) if pct_v > 0 else (round((1 - sale_p / orig_p) * 100) if orig_p > sale_p > 0 else 30),
+                        "discountPct": round((1 - sale_p / orig_p) * 100) if orig_p > sale_p > 0 else round(pct_v, 1),
                         "subType": sub_type or prev_sub,
                     }
-        for ex_code in EXCLUDED_SKUS:
-            sale_rules.pop(ex_code, None)
-        with open("sale_rules.json", "w", encoding="utf-8") as f:
-            json.dump(sale_rules, f, ensure_ascii=False, indent=2)
-        if xlsx_sha:
-            try:
-                with open(".bf_xlsx_hash.txt", "w", encoding="utf-8") as mf:
-                    mf.write(xlsx_sha)
-            except Exception:
-                pass
-        print(f"[+] Da trich xuat {len(sale_rules)} ma Sale tu {target_xlsx}")
     elif os.path.exists("sale_rules.json"):
         with open("sale_rules.json", "r", encoding="utf-8") as f:
             sale_rules = json.load(f)
-    elif csv_files:
-        import csv
-        with open(csv_files[0], "r", encoding="utf-8-sig") as f:
-            for r in list(csv.reader(f))[1:]:
-                if len(r) >= 2:
-                    code = clean_base_code(r[0])
-                    sale_p = parse_money(r[1])
-                    if code and sale_p >= 1000:
-                        sale_rules[code] = {"origPrice": 0, "salePrice": sale_p, "discountPct": 0, "subType": ""}
+    elif os.path.exists("index.html"):
+        with open("index.html", "r", encoding="utf-8") as f:
+            m = re.search(r"let SALE_RULES_MASTER = (\{[^\n]*\});", f.read())
+            if m:
+                sale_rules = json.loads(m.group(1))
+
     for ex_code in EXCLUDED_SKUS:
         sale_rules.pop(ex_code, None)
+    for code, (orig_p, sale_p, disc_p, _) in PRICE_PATCH_V25.items():
+        if code in sale_rules and sale_rules[code].get("salePrice") in (99000, 159000, sale_p):
+            sale_rules[code]["origPrice"] = orig_p
+            sale_rules[code]["salePrice"] = sale_p
+            sale_rules[code]["discountPct"] = disc_p
+
+    if sale_rules:
+        with open("sale_rules.json", "w", encoding="utf-8") as f:
+            json.dump(sale_rules, f, ensure_ascii=False, indent=2)
     return sale_rules
-
-
-def build_sku_matcher(codes: list):
-    sorted_codes = sorted(set(c.upper() for c in codes if c), key=len, reverse=True)
-    compiled = []
-    for c in sorted_codes:
-        m = re.match(r"^([A-Z]+)(\d+)$", c)
-        if m:
-            pfx, num = re.escape(m.group(1)), re.escape(m.group(2))
-            rx = re.compile(rf"(^|[^A-Z0-9]){pfx}[\s_\-]*{num}([^0-9]|$)", re.I)
-        else:
-            rx = re.compile(rf"(^|[^A-Z0-9]){re.escape(c)}([^A-Z0-9]|$)", re.I)
-        compiled.append((c, rx))
-    return compiled
 
 
 def unpack_any_zip_archives():
@@ -494,7 +1390,6 @@ def unpack_any_zip_archives():
             with zf_mod.ZipFile(zpath, "r") as zf:
                 zf.extractall(extract_dir)
             os.remove(zpath)
-            print(f"[+] Da giai nen {zpath} -> {extract_dir}")
         except Exception as e:
             print(f"[!] Loi giai nen {zpath}: {e}")
 
@@ -510,15 +1405,12 @@ def unpack_any_zip_archives():
                 target_name = fname
                 if sku_prefix and sku_prefix not in re.sub(r"[\s_\-]+", "", fname.upper()):
                     target_name = f"{sku_prefix}_{fname}"
-
                 if low.endswith(VID_EXTS):
                     shutil.copy2(src_path, os.path.join("videos", target_name))
                     os.remove(src_path)
                 elif low.endswith(IMG_EXTS):
-                    if "size" in low or "bang_size" in low or "bangsize" in low:
-                        shutil.copy2(src_path, os.path.join("sizes", target_name))
-                    else:
-                        shutil.copy2(src_path, os.path.join("images", target_name))
+                    dest_dir = "sizes" if ("size" in low or "bang_size" in low or "bangsize" in low) else "images"
+                    shutil.copy2(src_path, os.path.join(dest_dir, target_name))
                     os.remove(src_path)
 
         for entry in os.listdir("media"):
@@ -536,20 +1428,13 @@ def scan_repo_media_folders(codes: list) -> dict:
     compiled = build_sku_matcher(codes)
     media_map = {}
 
-    def ensure_entry(c):
-        if c not in media_map:
-            media_map[c] = {"images": [], "video": "", "sizeChart": ""}
-        return media_map[c]
-
     all_repo_files = []
     for root, dirs, files in os.walk("."):
         dirs[:] = [d for d in sorted(dirs) if d not in SKIP_DIRS and not d.startswith(".")]
         for fname in sorted(files):
             if fname.startswith(".") or fname.lower() in ("keep.txt", "readme.md"):
                 continue
-            rel = os.path.join(root, fname).replace("\\", "/")
-            if rel.startswith("./"):
-                rel = rel[2:]
+            rel = os.path.join(root, fname).replace("\\", "/").lstrip("./")
             all_repo_files.append(rel)
 
     all_repo_files.sort(key=lambda p: (0 if p.startswith(("images/", "videos/", "sizes/")) else 1, p.lower()))
@@ -560,7 +1445,6 @@ def scan_repo_media_folders(codes: list) -> dict:
         is_vid = low.endswith(VID_EXTS)
         if not (is_img or is_vid):
             continue
-
         fname_only = os.path.basename(rel_path)
         parent_dirs = os.path.dirname(rel_path)
         matched_code = ""
@@ -577,7 +1461,7 @@ def scan_repo_media_folders(codes: list) -> dict:
             continue
 
         encoded_url = encode_rel_url(rel_path)
-        entry = ensure_entry(matched_code)
+        entry = media_map.setdefault(matched_code, {"images": [], "video": "", "sizeChart": ""})
         if is_vid:
             if not entry["video"]:
                 entry["video"] = encoded_url
@@ -585,16 +1469,15 @@ def scan_repo_media_folders(codes: list) -> dict:
             if rel_path.startswith("sizes/") or "size" in fname_only.lower() or "bangsize" in fname_only.lower():
                 if not entry["sizeChart"]:
                     entry["sizeChart"] = encoded_url
-            else:
-                if encoded_url not in entry["images"]:
-                    entry["images"].append(encoded_url)
+            elif encoded_url not in entry["images"]:
+                entry["images"].append(encoded_url)
 
     return media_map
 
 
 def map_exact_havana_branch(raw_name: str, loc_id: str, fallback_idx: int = 9):
     norm = strip_accents(raw_name)
-    if norm == "HAVANA" or "HO PHI TICH" in norm or "93-95" in norm or "93 - 95" in norm:
+    if norm == "HAVANA" || "HO PHI TICH" in norm if False else (norm == "HAVANA" or "HO PHI TICH" in norm or "93-95" in norm or "93 - 95" in norm):
         return ("wh_havana", "HAVANA (93-95 Hồ Phi Tích)", 1)
     if "ONLINE" in norm:
         return ("wh_online", "HAVANA ONLINE", 2)
@@ -613,7 +1496,6 @@ def infer_category(code: str, pname: str, sub_type: str = "") -> str:
     name_l = norm_nfc(pname).lower()
     sub_l = norm_nfc(sub_type).lower()
     hint = f"{sub_l} {name_l}".strip()
-
     if up.startswith("PK"):
         first_src = sub_l or name_l
         if re.search(r"^(giày|dép|guốc|sandal|sục|boot|bốt)", first_src):
@@ -625,25 +1507,15 @@ def infer_category(code: str, pname: str, sub_type: str = "") -> str:
         if re.search(r"(túi|\bví\b|balo|ba lô|clutch|tote|đeo chéo|kẹp nách)", hint):
             return "PK_TUI_XACH"
         return "PK_PHU_KIEN"
-
-    if up.startswith("AD"):
-        return "AO_DAI"
-    if up.startswith("ATH"):
-        return "AO_THUN"
-    if up.startswith(("AO", "AE")):
-        return "AO_SO_MI" if ("sơ mi" in name_l or "sơmi" in name_l) else "AO_KIEU"
-    if up.startswith(("AK", "HD")):
-        return "AO_KHOAC"
-    if up.startswith("LEN"):
-        return "AO_LEN"
-    if up.startswith("CV"):
-        return "CHAN_VAY"
-    if up.startswith(("DA", "BE")):
-        return "DAM"
-    if up.startswith("SAT"):
-        return "SET_BO"
-    if up.startswith("Q"):
-        return "QUAN"
+    if up.startswith("AD"): return "AO_DAI"
+    if up.startswith("ATH"): return "AO_THUN"
+    if up.startswith(("AO", "AE")): return "AO_SO_MI" if ("sơ mi" in name_l or "sơmi" in name_l) else "AO_KIEU"
+    if up.startswith(("AK", "HD")): return "AO_KHOAC"
+    if up.startswith("LEN"): return "AO_LEN"
+    if up.startswith("CV"): return "CHAN_VAY"
+    if up.startswith(("DA", "BE")): return "DAM"
+    if up.startswith("SAT"): return "SET_BO"
+    if up.startswith("Q"): return "QUAN"
     return "AO_KIEU"
 
 
@@ -657,12 +1529,9 @@ def fetch_json(path: str, headers: dict) -> dict:
 
 
 def extract_base_code_from_sapo_product(p: dict, sale_rules: dict) -> str:
-    # Kiem tra ma SKU nam trong ten san pham Sapo truoc de tranh truong hop 1 bien the go nham SKU cua ma ke ben (VD: SAT532 vs SAT533)
     name_tokens = re.findall(r"\b([A-Z]{1,5}\d{1,5})\b", norm_nfc(p.get("name") or "").upper())
     name_sale_codes = [tok for tok in reversed(name_tokens) if sale_rules and tok in sale_rules]
-
-    var_sale_codes = []
-    candidates = []
+    var_sale_codes, candidates = [], []
     for v in p.get("variants", []):
         sku_raw = str(v.get("sku") or "").strip().upper()
         base = clean_base_code(sku_raw.split("-")[0])
@@ -672,33 +1541,28 @@ def extract_base_code_from_sapo_product(p: dict, sale_rules: dict) -> str:
                     var_sale_codes.append(base)
             elif not base.startswith("PVN"):
                 candidates.append(base)
-
     if name_sale_codes:
-        # Neu ten san pham ghi ro ma (VD: "... SAT533") thi uu tien ma trong ten de khong gop nham anh sang SAT532
-        if name_sale_codes[0] in var_sale_codes or len(var_sale_codes) != 1:
-            return name_sale_codes[0]
         return name_sale_codes[0]
-
     if var_sale_codes:
         return var_sale_codes[0]
-
     for tok in reversed(name_tokens):
         if not tok.startswith("PVN"):
             candidates.append(tok)
-
     return candidates[0] if candidates else ""
 
 
 def write_outputs(warehouses_sorted: list, products_out: list, synced_at_str: str, sale_rules: dict = None):
+    filtered_out = [p for p in products_out if calc_product_total_stock(p) >= MIN_TOTAL_STOCK]
     payload = {
+        "min_stock_rule": MIN_TOTAL_STOCK,
         "synced_at": synced_at_str,
         "warehouses": warehouses_sorted,
-        "products": products_out,
+        "products": filtered_out,
     }
     with open("sapo_5_kho.json", "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
 
-    if os.path.exists("index.html") and products_out:
+    if os.path.exists("index.html"):
         with open("index.html", "r", encoding="utf-8") as f:
             html_src = f.read()
         s_i = html_src.find("/* [BLOCK:DATA_PAYLOAD_START] */")
@@ -706,7 +1570,7 @@ def write_outputs(warehouses_sorted: list, products_out: list, synced_at_str: st
         if s_i != -1 and e_i > s_i:
             e_i += len("/* [BLOCK:DATA_PAYLOAD_END] */")
             wh_js = json.dumps(warehouses_sorted, ensure_ascii=False)
-            pr_js = json.dumps(products_out, ensure_ascii=False)
+            pr_js = json.dumps(filtered_out, ensure_ascii=False)
             sr_js = json.dumps(sale_rules or {}, ensure_ascii=False)
             new_blk = (
                 "/* [BLOCK:DATA_PAYLOAD_START] */\n"
@@ -729,18 +1593,14 @@ def local_media_url_exists(rel_url: str) -> bool:
             rel_part = urllib.parse.unquote(u.split("/main/", 1)[-1])
             return os.path.exists(rel_part)
         return True
-    clean_p = urllib.parse.unquote(u.lstrip("./"))
-    return os.path.exists(clean_p)
+    return os.path.exists(urllib.parse.unquote(u.lstrip("./")))
 
 
 def apply_priority_media_to_list(products_list: list, preserved_by_sku: dict, purged_skus: set = None) -> list:
-    """Uu tien so 1: Anh/video tu up tren repo (images/, videos/, sizes/) CON TON TAI TREN DIA.
-    Uu tien so 2 (khi ma chua co anh tu up hoac vua xoa anh cu): Dung ngay anh tu Sapo (sapoImages)."""
     purged_skus = purged_skus or set()
     codes = [str(p.get("sku") or "").upper() for p in products_list]
     repo_media = scan_repo_media_folders(codes)
 
-    # Thu thap tap anh Sapo cua SAT533 de dam bao SAT532 khong bao gio bi dinh nham anh SAT533
     sat533_sapo_set = set()
     for p in products_list:
         if str(p.get("sku") or "").upper() == "SAT533":
@@ -755,11 +1615,7 @@ def apply_priority_media_to_list(products_list: list, preserved_by_sku: dict, pu
         repo_m = repo_media.get(code, {})
 
         if code in purged_skus or code in FORCE_RESET_TO_SAPO_SKUS:
-            # Chi nhan anh tu up neu la file MOI THUC SU dang nam trong repo_m (va khong chua chu SAT533)
-            custom_imgs = [
-                u for u in (repo_m.get("images") or [])
-                if "SAT533" not in u.upper() and local_media_url_exists(u)
-            ]
+            custom_imgs = [u for u in (repo_m.get("images") or []) if "SAT533" not in u.upper() and local_media_url_exists(u)]
             vid = repo_m.get("video") or ""
             if "SAT533" in vid.upper() or (vid and not local_media_url_exists(vid)):
                 vid = ""
@@ -777,11 +1633,7 @@ def apply_priority_media_to_list(products_list: list, preserved_by_sku: dict, pu
 
         sapo_imgs = cur_sapo if len(cur_sapo) > 0 else (prev.get("sapoImages") or [])
         if code == "SAT532":
-            # Loai bo bat ky URL nao trung voi anh cua SAT533 hoac chua chu sat533
-            sapo_imgs = [
-                u for u in sapo_imgs
-                if u not in sat533_sapo_set and "sat533" not in u.lower()
-            ]
+            sapo_imgs = [u for u in sapo_imgs if u not in sat533_sapo_set and "sat533" not in u.lower()]
 
         final_imgs = custom_imgs if len(custom_imgs) > 0 else sapo_imgs
         p["sapoImages"] = sapo_imgs
@@ -794,12 +1646,11 @@ def apply_priority_media_to_list(products_list: list, preserved_by_sku: dict, pu
     return products_list
 
 
-def build_compact_stock_feed(warehouses_sorted: list, products_out: list, synced_at_str: str) -> str:
-    """Dong goi bang ton kho 5 chi nhanh sieu gon (~20KB) de phat truc tiep qua GitHub Release API moi 5 phut
-    ma KHONG ton bat ky luot build nao cua Cloudflare Pages."""
+def build_compact_stock_feed(warehouses_sorted: list, all_sale_products: list, synced_at_str: str) -> str:
+    """Gui day du ton kho thuc te (ke ca 0, 1, 2) len kenh live-stock de trinh duyet phat hien & go bo tuc thi ma vua tut duoi 3."""
     wh_ids = [w.get("id") for w in warehouses_sorted]
     items_compact = {}
-    for p in products_out:
+    for p in all_sale_products:
         code = str(p.get("sku") or "").upper()
         if not code:
             continue
@@ -814,7 +1665,9 @@ def build_compact_stock_feed(warehouses_sorted: list, products_out: list, synced
         items_compact[code] = entry
 
     feed_obj = {
-        "v": 22,
+        "v": 25,
+        "full": 1,
+        "min_stock": MIN_TOTAL_STOCK,
         "synced_at": synced_at_str,
         "synced_epoch": int(datetime.datetime.now(datetime.timezone.utc).timestamp()),
         "warehouses": warehouses_sorted,
@@ -823,16 +1676,14 @@ def build_compact_stock_feed(warehouses_sorted: list, products_out: list, synced
     return json.dumps(feed_obj, ensure_ascii=False, separators=(",", ":"))
 
 
-def publish_live_release_feed(warehouses_sorted: list, products_out: list, synced_at_str: str) -> bool:
-    """Cap nhat truc tiep Release tag `live-stock` tren GitHub bang GITHUB_TOKEN co san."""
+def publish_live_release_feed(warehouses_sorted: list, all_sale_products: list, synced_at_str: str) -> bool:
     gh_token = os.environ.get("GITHUB_TOKEN", "").strip()
     repo_slug = os.environ.get("GITHUB_REPOSITORY", "moonchuyensi-cmd/havana-sale").strip()
     if not gh_token or not repo_slug:
         return False
 
-    compact_body = build_compact_stock_feed(warehouses_sorted, products_out, synced_at_str)
+    compact_body = build_compact_stock_feed(warehouses_sorted, all_sale_products, synced_at_str)
     if len(compact_body) > 120000:
-        # Neu vuot 120KB thi bo truong ten 'n' cho sieu nhe (~18KB)
         data_tmp = json.loads(compact_body)
         for k in data_tmp.get("items", {}).values():
             k.pop("n", None)
@@ -843,7 +1694,7 @@ def publish_live_release_feed(warehouses_sorted: list, products_out: list, synce
         "Accept": "application/vnd.github+json",
         "Content-Type": "application/json",
         "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "havana-sale-auto-sync-v22",
+        "User-Agent": "havana-sale-auto-sync-v25",
     }
 
     tag_url = f"https://api.github.com/repos/{repo_slug}/releases/tags/live-stock"
@@ -851,32 +1702,28 @@ def publish_live_release_feed(warehouses_sorted: list, products_out: list, synce
     try:
         req = urllib.request.Request(tag_url, headers=api_headers)
         with urllib.request.urlopen(req, timeout=15) as resp:
-            rel_data = json.loads(resp.read().decode("utf-8"))
-            rel_id = rel_data.get("id")
+            rel_id = json.loads(resp.read().decode("utf-8")).get("id")
     except urllib.error.HTTPError as he:
         if he.code != 404:
             print(f"[!] Loi kiem tra release live-stock ({he.code}): {he}")
-    except Exception as e:
-        print(f"[!] Loi mang khi kiem tra release live-stock: {e}")
+    except Exception:
+        pass
 
     payload_bytes = json.dumps({
         "tag_name": "live-stock",
-        "name": f"Live Sapo Stock ({synced_at_str})",
+        "name": f"Live Sapo Stock ({synced_at_str}) [Min Stock >= {MIN_TOTAL_STOCK}]",
         "body": compact_body,
         "draft": False,
         "prerelease": True,
     }, ensure_ascii=False).encode("utf-8")
 
     try:
-        if rel_id:
-            patch_url = f"https://api.github.com/repos/{repo_slug}/releases/{rel_id}"
-            req = urllib.request.Request(patch_url, data=payload_bytes, headers=api_headers, method="PATCH")
-        else:
-            create_url = f"https://api.github.com/repos/{repo_slug}/releases"
-            req = urllib.request.Request(create_url, data=payload_bytes, headers=api_headers, method="POST")
+        url = f"https://api.github.com/repos/{repo_slug}/releases/{rel_id}" if rel_id else f"https://api.github.com/repos/{repo_slug}/releases"
+        method = "PATCH" if rel_id else "POST"
+        req = urllib.request.Request(url, data=payload_bytes, headers=api_headers, method=method)
         with urllib.request.urlopen(req, timeout=20) as resp:
             _ = resp.read()
-        print(f"[+] Da phat Live Stock Feed ({len(compact_body)} bytes) len Release [live-stock] luc {synced_at_str}!")
+        print(f"[+] Da phat Live Stock Feed v25 ({len(compact_body)} bytes) luc {synced_at_str}!")
         return True
     except Exception as e:
         print(f"[!] Khong cap nhat duoc Release live-stock: {e}")
@@ -884,9 +1731,8 @@ def publish_live_release_feed(warehouses_sorted: list, products_out: list, synce
 
 
 def compute_products_fingerprint(products_list: list) -> str:
-    norm_items = []
-    for p in sorted(products_list, key=lambda x: str(x.get("sku") or "")):
-        norm_items.append({
+    norm_items = [
+        {
             "s": p.get("sku"),
             "op": p.get("origPrice"),
             "sp": p.get("salePrice"),
@@ -894,24 +1740,25 @@ def compute_products_fingerprint(products_list: list) -> str:
             "vd": p.get("video") or "",
             "sz": p.get("sizeChart") or "",
             "vr": p.get("variants") or [],
-        })
-    raw = json.dumps(norm_items, ensure_ascii=False, sort_keys=True)
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+        }
+        for p in sorted(products_list, key=lambda x: str(x.get("sku") or ""))
+    ]
+    return hashlib.sha256(json.dumps(norm_items, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
 
 
 def compute_media_rules_fingerprint(products_list: list) -> str:
-    norm_items = []
-    for p in sorted(products_list, key=lambda x: str(x.get("sku") or "")):
-        norm_items.append({
+    norm_items = [
+        {
             "s": p.get("sku"),
             "op": p.get("origPrice"),
             "sp": p.get("salePrice"),
             "im": p.get("images") or [],
             "vd": p.get("video") or "",
             "sz": p.get("sizeChart") or "",
-        })
-    raw = json.dumps(norm_items, ensure_ascii=False, sort_keys=True)
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+        }
+        for p in sorted(products_list, key=lambda x: str(x.get("sku") or ""))
+    ]
+    return hashlib.sha256(json.dumps(norm_items, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
 
 
 def last_git_commit_age_seconds() -> int:
@@ -923,40 +1770,46 @@ def last_git_commit_age_seconds() -> int:
 
 
 def main():
+    upgraded_files = upgrade_repo_files_v25()
     purged_now = purge_wrong_custom_media_once()
     sale_rules = load_black_friday_rules()
     filter_only_bf = len(sale_rules) > 0
 
-    existing_warehouses = []
-    existing_products = []
-    preserved_media_by_sku = {}
+    existing_warehouses, existing_products, preserved_media_by_sku = [], [], {}
     if os.path.exists("sapo_5_kho.json"):
         try:
             with open("sapo_5_kho.json", "r", encoding="utf-8") as f:
                 old_data = json.load(f)
             existing_warehouses = old_data.get("warehouses") or []
             existing_products = old_data.get("products") or []
-            for op in existing_products:
-                c_imgs, s_imgs, vid, szc = split_custom_and_sapo_media(op)
-                c = clean_base_code(str(op.get("sku") or "").split("-")[0])
-                if c:
-                    preserved_media_by_sku[c] = {
-                        "customImages": c_imgs,
-                        "sapoImages": s_imgs,
-                        "video": vid,
-                        "sizeChart": szc,
-                    }
+        except Exception:
+            pass
+    elif os.path.exists("index.html"):
+        try:
+            with open("index.html", "r", encoding="utf-8") as f:
+                h_src = f.read()
+            m_wh = re.search(r"let WAREHOUSE_CONFIG = (\[[^\n]*\]);", h_src)
+            m_bp = re.search(r"let BASELINE_PRODUCTS = (\[[^\n]*\]);", h_src)
+            if m_wh:
+                existing_warehouses = json.loads(m_wh.group(1))
+            if m_bp:
+                existing_products = json.loads(m_bp.group(1))
         except Exception:
             pass
 
+    for op in existing_products:
+        c_imgs, s_imgs, vid, szc = split_custom_and_sapo_media(op)
+        c = clean_base_code(str(op.get("sku") or "").split("-")[0])
+        if c:
+            preserved_media_by_sku[c] = {"customImages": c_imgs, "sapoImages": s_imgs, "video": vid, "sizeChart": szc}
+
     candidates = build_header_candidates()
-    loc_meta = {}
-    all_products = []
+    loc_meta, all_products = {}, []
     sapo_err_reason = ""
 
     if not candidates:
-        sapo_err_reason = "CHƯA CÓ SAPO_COOKIE TRONG GITHUB SECRETS (hoặc .sapo_cookie.txt)!"
-        print(f"[CẢNH BÁO] {sapo_err_reason}")
+        sapo_err_reason = "Chưa có SAPO_COOKIE trong GitHub Secrets (hoặc .sapo_cookie.txt)"
+        print(f"[*] {sapo_err_reason} -> lọc trực tiếp trên dữ liệu hiện có.")
     else:
         err_list = []
         for auth_label, hdrs in candidates:
@@ -974,8 +1827,8 @@ def main():
                         raw_loc_name = loc.get("label") or loc.get("name") or loc.get("location_name") or loc.get("address1") or loc.get("code") or ""
                         wid, label, order = map_exact_havana_branch(raw_loc_name, raw_id, 10 + idx)
                         loc_meta[raw_id] = {"id": wid, "sapo_name": raw_loc_name, "name": label, "order": order}
-                except Exception as e:
-                    print("[*] Loi nhe khi doc locations.json:", e)
+                except Exception:
+                    pass
 
                 if len(first_batch) == 250:
                     meta_total = int((first_page.get("metadata") or {}).get("total") or 0)
@@ -987,8 +1840,7 @@ def main():
                             for pg in pages_to_fetch:
                                 for fut, f_pg in futs.items():
                                     if f_pg == pg:
-                                        pdata = fut.result()
-                                        all_products.extend(pdata.get("products") or [])
+                                        all_products.extend(fut.result().get("products") or [])
                                         break
                     else:
                         page = 2
@@ -1010,65 +1862,36 @@ def main():
             sapo_err_reason = " | ".join(err_list)
 
     if not all_products:
-        if existing_products or sale_rules:
-            updated_existing = []
-            seen_skus = set()
-            for ep in existing_products:
-                c = clean_base_code(str(ep.get("sku") or "").split("-")[0])
-                if c in EXCLUDED_SKUS or (filter_only_bf and c not in sale_rules):
-                    continue
-                if c in sale_rules:
-                    r_info = sale_rules[c]
-                    orig_p = r_info.get("origPrice") or int(ep.get("origPrice") or 299000)
-                    sale_p = r_info.get("salePrice") or int(ep.get("salePrice") or 159000)
-                    if orig_p < sale_p:
-                        orig_p = max(orig_p, int(ep.get("origPrice") or sale_p))
-                    disc_p = max(1, round((1.0 - sale_p / orig_p) * 100)) if orig_p > sale_p > 0 else r_info.get("discountPct", 30)
-                    sub_t = r_info.get("subType") or ep.get("subType") or PK_KNOWN_SUBTYPES.get(c, "")
-                    ep["sku"] = c
-                    ep["origPrice"] = orig_p
-                    ep["salePrice"] = sale_p
-                    ep["discountPct"] = disc_p
-                    ep["subType"] = sub_t
-                    ep["category"] = infer_category(c, ep.get("name") or c, sub_t)
-                seen_skus.add(c)
+        updated_existing = []
+        for ep in existing_products:
+            c = clean_base_code(str(ep.get("sku") or "").split("-")[0])
+            if not c or c in EXCLUDED_SKUS or (filter_only_bf and c not in sale_rules):
+                continue
+            if c in sale_rules:
+                r_info = sale_rules[c]
+                orig_p = r_info.get("origPrice") or int(ep.get("origPrice") or 299000)
+                sale_p = r_info.get("salePrice") or int(ep.get("salePrice") or 159000)
+                disc_p = max(1, round((1.0 - sale_p / orig_p) * 100)) if orig_p > sale_p > 0 else r_info.get("discountPct", 30)
+                sub_t = r_info.get("subType") or ep.get("subType") or PK_KNOWN_SUBTYPES.get(c, "")
+                ep["sku"] = c
+                ep["origPrice"] = orig_p
+                ep["salePrice"] = sale_p
+                ep["discountPct"] = disc_p
+                ep["subType"] = sub_t
+                ep["category"] = infer_category(c, ep.get("name") or c, sub_t)
+            if calc_product_total_stock(ep) >= MIN_TOTAL_STOCK:
                 updated_existing.append(ep)
 
-            for c, r_info in sale_rules.items():
-                if c not in seen_skus and c not in EXCLUDED_SKUS:
-                    sub_t = r_info.get("subType") or PK_KNOWN_SUBTYPES.get(c, "")
-                    pname_fb = f"{sub_t} Havana {c}".strip() if sub_t else f"Sản phẩm Havana {c}"
-                    updated_existing.append({
-                        "sku": c,
-                        "name": pname_fb,
-                        "subType": sub_t,
-                        "category": infer_category(c, pname_fb, sub_t),
-                        "origPrice": r_info.get("origPrice") or 299000,
-                        "salePrice": r_info.get("salePrice") or 159000,
-                        "discountPct": r_info.get("discountPct") or 30,
-                        "image": "",
-                        "images": [],
-                        "sapoImages": [],
-                        "video": "",
-                        "sizeChart": "",
-                        "variants": [{"size": "Freesize", "stocks": {"wh_pct": 1}}],
-                    })
-
-            cleaned = apply_priority_media_to_list(updated_existing, preserved_media_by_sku, purged_now)
-            wh_out = existing_warehouses or [
-                {"id": "wh_havana", "sapo_name": "HAVANA", "name": "HAVANA (93-95 Hồ Phi Tích)"},
-                {"id": "wh_online", "sapo_name": "HAVANA ONLINE", "name": "HAVANA ONLINE"},
-                {"id": "wh_pct", "sapo_name": "261 - 263 phan chu trinh", "name": "261 - 263 Phan Châu Trinh"},
-                {"id": "wh_auco", "sapo_name": "101 Âu Cơ", "name": "101 Âu Cơ"},
-                {"id": "wh_leduan", "sapo_name": "240 Lê Duẩn", "name": "240 Lê Duẩn"},
-            ]
-            write_outputs(wh_out, cleaned, vn_now_str(), sale_rules)
-            with_custom = sum(1 for x in cleaned if x.get("hasCustomMedia"))
-            with_any = sum(1 for x in cleaned if x.get("image") or x.get("video"))
-            print(f"[+] Da cap nhat {len(cleaned)} ma ({with_custom} ma anh tu up, {with_any - with_custom} ma dung tam anh Sapo)!")
-            write_github_summary(f"### ⚠️ Chưa kéo được ảnh mới từ Sapo\n- **Nguyên nhân:** `{sapo_err_reason or 'Sapo trả về 0 sản phẩm'}`\n- ** Trạng thái hiện tại:** `{len(cleaned)}` mã Sale (`{with_custom}` mã đã có ảnh tự up, `{with_any - with_custom}` mã có ảnh tạm Sapo).\n- **Cách khắc phục:** Vào `Settings -> Secrets and variables -> Actions` cập nhật biến `SAPO_COOKIE` (hoặc `SAPO_ACCESS_TOKEN`) rồi bấm `Run workflow` lại.")
-        else:
-            unpack_any_zip_archives()
+        cleaned = apply_priority_media_to_list(updated_existing, preserved_media_by_sku, purged_now)
+        wh_out = existing_warehouses or [
+            {"id": "wh_havana", "sapo_name": "HAVANA", "name": "HAVANA (93-95 Hồ Phi Tích)"},
+            {"id": "wh_online", "sapo_name": "HAVANA ONLINE", "name": "HAVANA ONLINE"},
+            {"id": "wh_pct", "sapo_name": "261 - 263 phan chu trinh", "name": "261 - 263 Phan Châu Trinh"},
+            {"id": "wh_auco", "sapo_name": "101 Âu Cơ", "name": "101 Âu Cơ"},
+            {"id": "wh_leduan", "sapo_name": "240 Lê Duẩn", "name": "240 Lê Duẩn"},
+        ]
+        write_outputs(wh_out, cleaned, vn_now_str(), sale_rules)
+        print(f"[+] Da loc & giu lai {len(cleaned)} ma co tong ton >= {MIN_TOTAL_STOCK}!")
         return
 
     grouped_by_code = {}
@@ -1077,7 +1900,7 @@ def main():
         if not variants_raw:
             continue
         base_code = extract_base_code_from_sapo_product(p, sale_rules)
-        if base_code in EXCLUDED_SKUS or (filter_only_bf and base_code not in sale_rules):
+        if not base_code or base_code in EXCLUDED_SKUS or (filter_only_bf and base_code not in sale_rules):
             continue
 
         rule = sale_rules.get(base_code, {})
@@ -1094,7 +1917,6 @@ def main():
             disc_pct = max(1, round((1.0 - sale_price / orig_price) * 100))
 
         sapo_imgs_found = extract_sapo_product_images(p)
-
         v_list = []
         for v in variants_raw:
             opt_parts = [norm_nfc(v.get(k)) for k in ("opt1", "opt2", "opt3") if v.get(k)]
@@ -1117,19 +1939,17 @@ def main():
 
         pname_nfc = norm_nfc(p.get("name") or base_code)
         sub_type = rule.get("subType", "")
-        key = base_code or (first_v.get("sku") or f"SP{p['id']}").strip()
-
-        if key in grouped_by_code:
-            grouped_by_code[key]["variants"].extend(v_list)
+        if base_code in grouped_by_code:
+            grouped_by_code[base_code]["variants"].extend(v_list)
             for u in sapo_imgs_found:
-                if u not in grouped_by_code[key]["sapoImages"]:
-                    grouped_by_code[key]["sapoImages"].append(u)
+                if u not in grouped_by_code[base_code]["sapoImages"]:
+                    grouped_by_code[base_code]["sapoImages"].append(u)
         else:
-            grouped_by_code[key] = {
-                "sku": key,
+            grouped_by_code[base_code] = {
+                "sku": base_code,
                 "name": pname_nfc,
                 "subType": sub_type,
-                "category": infer_category(key, pname_nfc, sub_type),
+                "category": infer_category(base_code, pname_nfc, sub_type),
                 "origPrice": orig_price,
                 "salePrice": sale_price,
                 "discountPct": disc_pct,
@@ -1141,56 +1961,52 @@ def main():
                 "variants": v_list,
             }
 
-    if filter_only_bf and sale_rules:
-        existing_by_code = {clean_base_code(str(ep.get("sku") or "").split("-")[0]): ep for ep in existing_products}
-        for c, r_info in sale_rules.items():
-            if c not in grouped_by_code and c not in EXCLUDED_SKUS:
-                ep_prev = existing_by_code.get(c)
-                sub_t = r_info.get("subType") or (ep_prev.get("subType") if ep_prev else "") or PK_KNOWN_SUBTYPES.get(c, "")
-                pname_fb = (ep_prev.get("name") if ep_prev else "") or (f"{sub_t} Havana {c}".strip() if sub_t else f"Sản phẩm Havana {c}")
-                grouped_by_code[c] = {
-                    "sku": c,
-                    "name": pname_fb,
-                    "subType": sub_t,
-                    "category": infer_category(c, pname_fb, sub_t),
-                    "origPrice": r_info.get("origPrice") or (ep_prev.get("origPrice") if ep_prev else 299000),
-                    "salePrice": r_info.get("salePrice") or (ep_prev.get("salePrice") if ep_prev else 159000),
-                    "discountPct": r_info.get("discountPct") or (ep_prev.get("discountPct") if ep_prev else 30),
-                    "image": "",
-                    "images": [],
-                    "sapoImages": (ep_prev.get("sapoImages") if ep_prev and isinstance(ep_prev.get("sapoImages"), list) else []),
-                    "video": "",
-                    "sizeChart": "",
-                    "variants": (ep_prev.get("variants") if (ep_prev and ep_prev.get("variants")) else [{"size": "Freesize", "stocks": {"wh_pct": 1}}]),
-                }
-
-    products_out = apply_priority_media_to_list(list(grouped_by_code.values()), preserved_media_by_sku, purged_now)
+    all_sale_products = apply_priority_media_to_list(list(grouped_by_code.values()), preserved_media_by_sku, purged_now)
     warehouses_sorted = [
         {k: v for k, v in item.items() if k != "order"}
         for item in sorted(loc_meta.values(), key=lambda x: x["order"])
     ]
 
+    # LOC NGHIEM NGAT: Chi giu cac ma co tong ton 5 kho >= 3; tu dong loai bo cac ma ton 0, 1, 2
+    removed_low_stock = [
+        f"{p.get('sku')}({calc_product_total_stock(p)})"
+        for p in all_sale_products
+        if calc_product_total_stock(p) < MIN_TOTAL_STOCK
+    ]
+    products_out = [
+        p for p in all_sale_products
+        if calc_product_total_stock(p) >= MIN_TOTAL_STOCK
+    ]
+
     now_stamp = vn_now_str()
+    old_sku_set = {str(p.get("sku") or "").upper() for p in existing_products}
+    new_sku_set = {str(p.get("sku") or "").upper() for p in products_out}
+    sku_list_changed = (old_sku_set != new_sku_set)
+
     old_full_fp = compute_products_fingerprint(existing_products) if existing_products else ""
     old_media_fp = compute_media_rules_fingerprint(existing_products) if existing_products else ""
     new_full_fp = compute_products_fingerprint(products_out)
     new_media_fp = compute_media_rules_fingerprint(products_out)
 
-    # 1. LUON LUON phat Live Stock Feed tuc thi moi 5 phut (0 ton build Cloudflare!)
-    live_feed_ok = publish_live_release_feed(warehouses_sorted, products_out, now_stamp)
+    # 1. Phat Live Stock Feed tuc thi (chua ca cac ma vua tut duoi 3 de web go bo ngay lap tuc)
+    live_feed_ok = publish_live_release_feed(warehouses_sorted, all_sale_products, now_stamp)
 
-    # 2. Quyet dinh co can commit len nhanh main hay khong (bao ve han muc 500 builds/thang cua Cloudflare Pages)
+    # 2. Neu danh sach ma >= 3 thay doi (co ma vua tut duoi 3 can xoa khoi file), commit ngay lap tuc!
     event_name = os.environ.get("GITHUB_EVENT_NAME", "").strip()
     commit_age = last_git_commit_age_seconds()
     media_or_price_changed = (old_media_fp != new_media_fp)
     stock_changed = (old_full_fp != new_full_fp)
 
     should_commit_main = True
-    if event_name == "schedule" and live_feed_ok and not purged_now and not media_or_price_changed:
-        if not stock_changed:
-            should_commit_main = False
-        elif commit_age < 1800:
-            # Ton kho da len Live Feed ngay lap tuc; gom commit tren main moi 30 phut de tiet kiem quota Cloudflare
+    if (
+        event_name == "schedule"
+        and live_feed_ok
+        and not upgraded_files
+        and not purged_now
+        and not media_or_price_changed
+        and not sku_list_changed
+    ):
+        if not stock_changed or commit_age < 1800:
             should_commit_main = False
 
     if should_commit_main:
@@ -1201,14 +2017,13 @@ def main():
         with open(".skip_git_commit", "w", encoding="utf-8") as sf:
             sf.write(now_stamp)
 
-    with_custom = sum(1 for x in products_out if x.get("hasCustomMedia"))
-    with_sapo_fb = sum(1 for x in products_out if (not x.get("hasCustomMedia")) and x.get("image"))
-    mode_note = "Đã đẩy Live Feed tức thì + Commit lên nhánh chính" if should_commit_main else "Đã đẩy Live Feed tức thì (tiết kiệm lượt build Cloudflare)"
-    print(f"[+] Hoan tat Auto-Sync v22: {len(products_out)} ma ({with_custom} anh tu up, {with_sapo_fb} anh Sapo) luc {now_stamp}! [{mode_note}]")
-    sat532_item = next((x for x in products_out if x.get("sku") == "SAT532"), None)
-    sat532_imgs = (sat532_item.get("images") if sat532_item else []) or []
-    sat532_status = f"Đã cập nhật `{len(sat532_imgs)}` ảnh từ Sapo (`{sat532_imgs[0]}`)" if sat532_imgs else "Trên Sapo mã SAT532 hiện chưa có ảnh đính kèm"
-    write_github_summary(f"### ✅ Tự động đồng bộ Tồn Kho Liên Tục v22 ({now_stamp})\n- **Chế độ cập nhật:** `{mode_note}`\n- **Tổng sản phẩm quét trên Sapo:** `{len(all_products)}`\n- **Tổng mã Sale trên web:** `{len(products_out)}` (`{with_custom}` ảnh tự up • `{with_sapo_fb}` ảnh Sapo)\n- **Trạng thái mã `SAT532`:** {sat532_status}")
+    print(f"[+] Hoan tat Auto-Sync v25 ({now_stamp}): Giu {len(products_out)} ma (ton >= {MIN_TOTAL_STOCK}), da loai {len(removed_low_stock)} ma ton thap.")
+    sample_removed = ", ".join(removed_low_stock[:20]) + ("..." if len(removed_low_stock) > 20 else "")
+    write_github_summary(
+        f"### ✅ Đồng bộ Sapo v25 — Lọc Tồn ≥ {MIN_TOTAL_STOCK} ({now_stamp})\n"
+        f"- **Mã đủ điều kiện (Tổng tồn ≥ {MIN_TOTAL_STOCK}):** `{len(products_out)}` mã\n"
+        f"- **Mã tự động loại khỏi file (Tổng tồn 0–2):** `{len(removed_low_stock)}` mã ({sample_removed or 'Không có'})"
+    )
 
 
 if __name__ == "__main__":
