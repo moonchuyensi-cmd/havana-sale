@@ -52,12 +52,12 @@ jobs:
           SAPO_ACCESS_TOKEN: ${{ secrets.SAPO_ACCESS_TOKEN }}
         run: python auto_sync_sapo.py
 
-      - name: Commit & Deploy to Cloudflare Pages (Smart Quota Guard)
+      - name: Commit & Deploy to Cloudflare Pages
         if: steps.guard.outputs.skip != 'true'
         run: |
           if [ -f ".skip_git_commit" ]; then
             rm -f .skip_git_commit
-            echo "Da cap nhat Live Stock Feed tuc thi (khong can tao commit moi tren main)."
+            echo "Da cap nhat Live Stock Feed tuc thi."
             exit 0
           fi
           rm -f .skip_git_commit
@@ -67,7 +67,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "Khong co thay doi moi tren nhanh main."
           else
-            git commit -m "chore(auto): dong bo ton 5 kho Sapo & anh moi"
+            git commit -m "chore(auto): dong bo ton 5 kho Sapo va loc ma ton tu 3 tro len"
             git pull --rebase origin main || true
             git push origin HEAD:main
           fi
