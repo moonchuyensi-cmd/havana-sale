@@ -1,6 +1,6 @@
 {
   "min_stock_rule": 3,
-  "synced_at": "11:55 23/11",
+  "synced_at": "13:21 23/11",
   "warehouses": [
     {
       "id": "wh_havana",
@@ -2213,14 +2213,9 @@
       "origPrice": 149000,
       "salePrice": 79000,
       "discountPct": 47,
-      "image": "https://sapo.dktcdn.net/100/618/480/variants/18b5f91e-1796-4cf5-8b47-c22901bfc029.jpg",
+      "image": "./images/Ath938.jpg",
       "images": [
-        "https://sapo.dktcdn.net/100/618/480/variants/18b5f91e-1796-4cf5-8b47-c22901bfc029.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/b58e2e13-55b3-4ae0-8772-b98944396bc6.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/91081bf9-efc0-45c6-9190-0b6e0c3dada1.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/4240bc29-c52d-4056-bd04-a232d8a32ef4.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/97ede20a-b3d1-4202-bcb9-0bc43ab377c5.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/cc3bf933-c27e-42b3-9062-c18779616c20.jpg"
+        "./images/Ath938.jpg"
       ],
       "sapoImages": [
         "https://sapo.dktcdn.net/100/618/480/variants/18b5f91e-1796-4cf5-8b47-c22901bfc029.jpg",
@@ -2300,7 +2295,7 @@
           }
         }
       ],
-      "hasCustomMedia": false
+      "hasCustomMedia": true
     },
     {
       "sku": "LEN367",
@@ -2344,11 +2339,9 @@
       "origPrice": 266000,
       "salePrice": 159000,
       "discountPct": 40,
-      "image": "https://sapo.dktcdn.net/100/618/480/variants/2a2499c7-7581-470f-abdb-94f2dddaf672.jpg",
+      "image": "./images/Len366.jpg",
       "images": [
-        "https://sapo.dktcdn.net/100/618/480/variants/2a2499c7-7581-470f-abdb-94f2dddaf672.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/ed1bb0e1-93dc-43ce-8f33-3492f41d2abf.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/645240df-cf81-414d-81fb-364d0cf661a8.jpg"
+        "./images/Len366.jpg"
       ],
       "sapoImages": [
         "https://sapo.dktcdn.net/100/618/480/variants/2a2499c7-7581-470f-abdb-94f2dddaf672.jpg",
@@ -2392,7 +2385,7 @@
           }
         }
       ],
-      "hasCustomMedia": false
+      "hasCustomMedia": true
     },
     {
       "sku": "AK196",
@@ -3533,13 +3526,9 @@
       "origPrice": 309000,
       "salePrice": 99000,
       "discountPct": 68,
-      "image": "https://sapo.dktcdn.net/100/618/480/variants/72baf8f0-9ebb-4190-afa0-645dd2b36973.jpg",
+      "image": "./images/Len360.jpg",
       "images": [
-        "https://sapo.dktcdn.net/100/618/480/variants/72baf8f0-9ebb-4190-afa0-645dd2b36973.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/655d87c2-e5e4-42b0-aa67-2a87576eae07.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/d190c183-7af0-4ce8-89f1-4829ea62830d.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/f6fc8992-aaab-45c2-9fca-6a814785d982.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/b490ceb7-d833-410d-97af-958d42cc8f71.jpg"
+        "./images/Len360.jpg"
       ],
       "sapoImages": [
         "https://sapo.dktcdn.net/100/618/480/variants/72baf8f0-9ebb-4190-afa0-645dd2b36973.jpg",
@@ -3607,7 +3596,7 @@
           }
         }
       ],
-      "hasCustomMedia": false
+      "hasCustomMedia": true
     },
     {
       "sku": "LEN358",
@@ -5284,13 +5273,9 @@
       "origPrice": 299000,
       "salePrice": 99000,
       "discountPct": 67,
-      "image": "https://sapo.dktcdn.net/100/618/480/variants/dcbf961e-111a-45f0-aa1b-037706a3cf64.jpg",
+      "image": "./images/Len351.jpg",
       "images": [
-        "https://sapo.dktcdn.net/100/618/480/variants/dcbf961e-111a-45f0-aa1b-037706a3cf64.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/a6aa5079-f97d-40fd-8fc5-60b03dc3d7f4.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/b39df235-9f9a-4e40-84cc-492b663959ea.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/bb90d1fe-cd13-4772-a81b-80d0451586df.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/1e3403e4-f3c8-4bbe-bc2b-05471ddc307e.jpg"
+        "./images/Len351.jpg"
       ],
       "sapoImages": [
         "https://sapo.dktcdn.net/100/618/480/variants/dcbf961e-111a-45f0-aa1b-037706a3cf64.jpg",
@@ -5358,7 +5343,7 @@
           }
         }
       ],
-      "hasCustomMedia": false
+      "hasCustomMedia": true
     },
     {
       "sku": "SAT523",
@@ -9275,14 +9260,9 @@
       "origPrice": 169000,
       "salePrice": 79000,
       "discountPct": 53,
-      "image": "https://sapo.dktcdn.net/100/618/480/variants/f146fdbe-4262-4ca4-81f4-729aa9504f29.jpg",
+      "image": "./images/Ath871.jpg",
       "images": [
-        "https://sapo.dktcdn.net/100/618/480/variants/f146fdbe-4262-4ca4-81f4-729aa9504f29.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/70549b70-a3a5-4347-9099-cc610ea6a807.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/7eff6930-1f41-4c31-bf78-fdaae729313a.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/3405765a-1ca0-4896-9206-f9c49cb46e76.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/e17bc130-a734-47a3-a4b1-7b7922e141ce.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/3c32cb57-3588-44b4-aec3-b28f718b563a.jpg"
+        "./images/Ath871.jpg"
       ],
       "sapoImages": [
         "https://sapo.dktcdn.net/100/618/480/variants/f146fdbe-4262-4ca4-81f4-729aa9504f29.jpg",
@@ -9362,7 +9342,7 @@
           }
         }
       ],
-      "hasCustomMedia": false
+      "hasCustomMedia": true
     },
     {
       "sku": "CV555",
@@ -10514,13 +10494,9 @@
       "origPrice": 199000,
       "salePrice": 79000,
       "discountPct": 60,
-      "image": "https://sapo.dktcdn.net/100/618/480/variants/961673ee-01f1-4214-a7cf-d4110a04a64c.jpg",
+      "image": "./images/Ath851.jpg",
       "images": [
-        "https://sapo.dktcdn.net/100/618/480/variants/961673ee-01f1-4214-a7cf-d4110a04a64c.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/afb5530e-9f3b-4dc6-9e04-d53aa8d970a8.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/12f95cb4-5cda-44e1-a944-7eaea4b98285.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/eb2f8a7b-6c24-493f-bf20-fa0c2167a6ed.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/9c870367-e9ff-40e0-8977-ef35f4d5ac60.jpg"
+        "./images/Ath851.jpg"
       ],
       "sapoImages": [
         "https://sapo.dktcdn.net/100/618/480/variants/961673ee-01f1-4214-a7cf-d4110a04a64c.jpg",
@@ -10588,7 +10564,7 @@
           }
         }
       ],
-      "hasCustomMedia": false
+      "hasCustomMedia": true
     },
     {
       "sku": "QTH24",
@@ -10796,12 +10772,9 @@
       "origPrice": 179000,
       "salePrice": 99000,
       "discountPct": 45,
-      "image": "https://sapo.dktcdn.net/100/618/480/variants/cd4acbd2-ef7b-4a67-8a4f-389f4dec45ee.jpg",
+      "image": "./images/Qj456.jpg",
       "images": [
-        "https://sapo.dktcdn.net/100/618/480/variants/cd4acbd2-ef7b-4a67-8a4f-389f4dec45ee.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/c0927e19-4ae1-4bbd-8405-70a52b51e9f3.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/db0384bc-79fc-4951-8f43-192829b5a152.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/21514631-2b53-4e05-8d1f-90eb150aa21c.jpg"
+        "./images/Qj456.jpg"
       ],
       "sapoImages": [
         "https://sapo.dktcdn.net/100/618/480/variants/cd4acbd2-ef7b-4a67-8a4f-389f4dec45ee.jpg",
@@ -10945,7 +10918,7 @@
           }
         }
       ],
-      "hasCustomMedia": false
+      "hasCustomMedia": true
     },
     {
       "sku": "ATH848",
@@ -10955,12 +10928,9 @@
       "origPrice": 269000,
       "salePrice": 79000,
       "discountPct": 71,
-      "image": "https://sapo.dktcdn.net/100/618/480/variants/4ff580d7-e644-4e1d-b271-42dec8ee7fcd.jpg",
+      "image": "./images/Ath848.jpg",
       "images": [
-        "https://sapo.dktcdn.net/100/618/480/variants/4ff580d7-e644-4e1d-b271-42dec8ee7fcd.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/3804b0e8-15a5-4418-920f-65e89bf55024.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/deecc208-7be5-42b9-b0fe-70218e78ecfd.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/c66e6f88-5d35-4876-9be4-8651bd15952e.jpg"
+        "./images/Ath848.jpg"
       ],
       "sapoImages": [
         "https://sapo.dktcdn.net/100/618/480/variants/4ff580d7-e644-4e1d-b271-42dec8ee7fcd.jpg",
@@ -11016,7 +10986,7 @@
           }
         }
       ],
-      "hasCustomMedia": false
+      "hasCustomMedia": true
     },
     {
       "sku": "ATH847",
@@ -18038,10 +18008,9 @@
       "origPrice": 209000,
       "salePrice": 99000,
       "discountPct": 53,
-      "image": "https://sapo.dktcdn.net/100/618/480/variants/90a01c2f-3ff0-413a-a89f-b35524dc324d.jpg",
+      "image": "./images/Cv492.jpg",
       "images": [
-        "https://sapo.dktcdn.net/100/618/480/variants/90a01c2f-3ff0-413a-a89f-b35524dc324d.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/0693fb83-f514-44b9-a58d-c02d5d6a4edd.jpg"
+        "./images/Cv492.jpg"
       ],
       "sapoImages": [
         "https://sapo.dktcdn.net/100/618/480/variants/90a01c2f-3ff0-413a-a89f-b35524dc324d.jpg",
@@ -18117,7 +18086,7 @@
           }
         }
       ],
-      "hasCustomMedia": false
+      "hasCustomMedia": true
     },
     {
       "sku": "QJ410",
@@ -20374,11 +20343,9 @@
       "origPrice": 429000,
       "salePrice": 99000,
       "discountPct": 77,
-      "image": "https://sapo.dktcdn.net/100/618/480/variants/5b40ddd9-4497-4bf8-815d-5e8b3553fe3e.jpg",
+      "image": "./images/Len320.jpg",
       "images": [
-        "https://sapo.dktcdn.net/100/618/480/variants/5b40ddd9-4497-4bf8-815d-5e8b3553fe3e.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/93821c8b-1b36-4291-a919-8301b35f8953.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/dc0d9506-f642-4dc2-b2bc-0a01f6a88759.jpg"
+        "./images/Len320.jpg"
       ],
       "sapoImages": [
         "https://sapo.dktcdn.net/100/618/480/variants/5b40ddd9-4497-4bf8-815d-5e8b3553fe3e.jpg",
@@ -20422,7 +20389,7 @@
           }
         }
       ],
-      "hasCustomMedia": false
+      "hasCustomMedia": true
     },
     {
       "sku": "LEN317",
