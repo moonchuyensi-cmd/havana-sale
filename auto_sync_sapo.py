@@ -3,6 +3,7 @@ import re
 import sys
 import glob
 import json
+import time
 import shutil
 import datetime
 import hashlib
@@ -15,7 +16,7 @@ import urllib.request
 import zipfile as zf_mod
 
 # ==============================================================================
-# AUTO_SYNC_SAPO.PY (v25 - TU DONG LOC TONG TON >= 3 & LOAI MA TON < 3 MOI LAN CAP NHAT)
+# AUTO_SYNC_SAPO.PY (v25.1 - FIX SYNTAX + TU DONG LOC TONG TON >= 3 MOI LAN QUET)
 # Khong them ma QR - Tu dong dong bo index.html, functions/api/stock.js & sapo_5_kho.json
 # ==============================================================================
 
@@ -782,6 +783,7 @@ V25_INDEX_JS_ADDON = r'''/* === v25: AUTO FILTER TOTAL STOCK >= 3 & PURGE LOW ST
         ensureScrollObserver();
       }
     };
+    window.silentUpdateCatalogInPlace = v25SilentUpdateDOM;
 
     refreshLiveSapoStock = async function(silent = true) {
       if (v25SyncInFlight) return false;
@@ -1028,7 +1030,6 @@ def parse_pct(val) -> float:
 
 
 def upgrade_repo_files_v25() -> bool:
-    """Tu dong nang cap functions/api/stock.js va index.html len ban v25 (Loc ton >= 3, khong QR)."""
     changed = False
 
     os.makedirs(os.path.join("functions", "api"), exist_ok=True)
@@ -1048,44 +1049,47 @@ def upgrade_repo_files_v25() -> bool:
             html_orig = f.read()
         html = html_orig
 
-        s_i = html.find("/* [BLOCK:DATA_PAYLOAD_START] */")
-        e_i = html.find("/* [BLOCK:DATA_PAYLOAD_END] */")
-        if s_i != -1 and e_i > s_i:
-            seg = html[s_i:e_i]
-            m_wh = re.search(r"let WAREHOUSE_CONFIG = (\[[^\n]*\]);", seg) or re.search(r"let WAREHOUSE_CONFIG = (\[.*?\]);", seg, re.S)
-            m_sr = re.search(r"let SALE_RULES_MASTER = (\{[^\n]*\});", seg) or re.search(r"let SALE_RULES_MASTER = (\{.*?\});", seg, re.S)
-            m_bp = re.search(r"let BASELINE_PRODUCTS = (\[[^\n]*\]);", seg) or re.search(r"let BASELINE_PRODUCTS = (\[.*?\]);", seg, re.S)
-            if m_wh and m_sr and m_bp:
-                wh_data = json.loads(m_wh.group(1))
-                sr_data = json.loads(m_sr.group(1))
-                bp_data = json.loads(m_bp.group(1))
-                for ex in EXCLUDED_SKUS:
-                    sr_data.pop(ex, None)
-                for code, (orig_p, sale_p, disc_p, _) in PRICE_PATCH_V25.items():
-                    if code in sr_data:
-                        sr_data[code]["origPrice"] = orig_p
-                        sr_data[code]["salePrice"] = sale_p
-                        sr_data[code]["discountPct"] = disc_p
-                filtered_bp = []
-                for item in bp_data:
-                    c = clean_base_code(str(item.get("sku") or "").split("-")[0])
-                    if not c or c in EXCLUDED_SKUS:
-                        continue
-                    if c in PRICE_PATCH_V25:
-                        item["origPrice"] = PRICE_PATCH_V25[c][0]
-                        item["salePrice"] = PRICE_PATCH_V25[c][1]
-                        item["discountPct"] = PRICE_PATCH_V25[c][2]
-                    if calc_product_total_stock(item) >= MIN_TOTAL_STOCK:
-                        filtered_bp.append(item)
-                new_seg = (
-                    "/* [BLOCK:DATA_PAYLOAD_START] */\n"
-                    f"    let WAREHOUSE_CONFIG = {json.dumps(wh_data, ensure_ascii=False)};\n"
-                    f"    let SALE_RULES_MASTER = {json.dumps(sr_data, ensure_ascii=False)};\n"
-                    f"    let BASELINE_PRODUCTS = {json.dumps(filtered_bp, ensure_ascii=False)};\n"
-                    "    let PRODUCTS = BASELINE_PRODUCTS.map((p) => Object.assign({}, p));\n"
-                    "    "
-                )
-                html = html[:s_i] + new_seg + html[e_i:]
+        try:
+            s_i = html.find("/* [BLOCK:DATA_PAYLOAD_START] */")
+            e_i = html.find("/* [BLOCK:DATA_PAYLOAD_END] */")
+            if s_i != -1 and e_i > s_i:
+                seg = html[s_i:e_i]
+                m_wh = re.search(r"let WAREHOUSE_CONFIG = (\[[^\n]*\]);", seg) or re.search(r"let WAREHOUSE_CONFIG = (\[.*?\]);", seg, re.S)
+                m_sr = re.search(r"let SALE_RULES_MASTER = (\{[^\n]*\});", seg) or re.search(r"let SALE_RULES_MASTER = (\{.*?\});", seg, re.S)
+                m_bp = re.search(r"let BASELINE_PRODUCTS = (\[[^\n]*\]);", seg) or re.search(r"let BASELINE_PRODUCTS = (\[.*?\]);", seg, re.S)
+                if m_wh and m_sr and m_bp:
+                    wh_data = json.loads(m_wh.group(1))
+                    sr_data = json.loads(m_sr.group(1))
+                    bp_data = json.loads(m_bp.group(1))
+                    for ex in EXCLUDED_SKUS:
+                        sr_data.pop(ex, None)
+                    for code, (orig_p, sale_p, disc_p, _) in PRICE_PATCH_V25.items():
+                        if code in sr_data:
+                            sr_data[code]["origPrice"] = orig_p
+                            sr_data[code]["salePrice"] = sale_p
+                            sr_data[code]["discountPct"] = disc_p
+                    filtered_bp = []
+                    for item in bp_data:
+                        c = clean_base_code(str(item.get("sku") or "").split("-")[0])
+                        if not c or c in EXCLUDED_SKUS:
+                            continue
+                        if c in PRICE_PATCH_V25:
+                            item["origPrice"] = PRICE_PATCH_V25[c][0]
+                            item["salePrice"] = PRICE_PATCH_V25[c][1]
+                            item["discountPct"] = PRICE_PATCH_V25[c][2]
+                        if calc_product_total_stock(item) >= MIN_TOTAL_STOCK:
+                            filtered_bp.append(item)
+                    new_seg = (
+                        "/* [BLOCK:DATA_PAYLOAD_START] */\n"
+                        f"    let WAREHOUSE_CONFIG = {json.dumps(wh_data, ensure_ascii=False)};\n"
+                        f"    let SALE_RULES_MASTER = {json.dumps(sr_data, ensure_ascii=False)};\n"
+                        f"    let BASELINE_PRODUCTS = {json.dumps(filtered_bp, ensure_ascii=False)};\n"
+                        "    let PRODUCTS = BASELINE_PRODUCTS.map((p) => Object.assign({}, p));\n"
+                        "    "
+                    )
+                    html = html[:s_i] + new_seg + html[e_i:]
+        except Exception as e:
+            print("[*] Bo qua buoc loc khoi tao DATA_PAYLOAD:", e)
 
         end_logic = html.rfind("/* [BLOCK:APP_LOGIC_END] */")
         if end_logic != -1:
@@ -1272,22 +1276,25 @@ def load_black_friday_rules() -> dict:
             subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl", "-q"])
             import openpyxl
 
-        wb_edit = openpyxl.load_workbook(target_xlsx)
-        xlsx_patched = False
-        if "Tổng CH" in wb_edit.sheetnames:
-            ws_e = wb_edit["Tổng CH"]
-            for r_idx in range(2, ws_e.max_row + 1):
-                c_val = str(ws_e.cell(r_idx, 1).value or "").strip().upper()
-                if c_val in PRICE_PATCH_V25:
-                    _, target_sale, _, target_pct_dec = PRICE_PATCH_V25[c_val]
-                    cur_sale = parse_money(ws_e.cell(r_idx, 3).value)
-                    if cur_sale in (99000, 159000) and cur_sale != target_sale:
-                        ws_e.cell(r_idx, 3).value = target_sale
-                        ws_e.cell(r_idx, 4).value = target_pct_dec
-                        xlsx_patched = True
-        if xlsx_patched:
-            wb_edit.save(target_xlsx)
-            print(f"[+] Da cap nhat gia AO1010/AO726/AO1016 trong {target_xlsx}")
+        try:
+            wb_edit = openpyxl.load_workbook(target_xlsx)
+            xlsx_patched = False
+            if "Tổng CH" in wb_edit.sheetnames:
+                ws_e = wb_edit["Tổng CH"]
+                for r_idx in range(2, ws_e.max_row + 1):
+                    c_val = str(ws_e.cell(r_idx, 1).value or "").strip().upper()
+                    if c_val in PRICE_PATCH_V25:
+                        _, target_sale, _, target_pct_dec = PRICE_PATCH_V25[c_val]
+                        cur_sale = parse_money(ws_e.cell(r_idx, 3).value)
+                        if cur_sale in (99000, 159000) and cur_sale != target_sale:
+                            ws_e.cell(r_idx, 3).value = target_sale
+                            ws_e.cell(r_idx, 4).value = target_pct_dec
+                            xlsx_patched = True
+            if xlsx_patched:
+                wb_edit.save(target_xlsx)
+                print(f"[+] Da cap nhat gia AO1010/AO726/AO1016 trong {target_xlsx}")
+        except Exception as e:
+            print("[*] Bo qua ghi truc tiep xlsx:", e)
 
         wb = openpyxl.load_workbook(target_xlsx, data_only=True)
         ordered_sheets = sorted(
@@ -1477,7 +1484,7 @@ def scan_repo_media_folders(codes: list) -> dict:
 
 def map_exact_havana_branch(raw_name: str, loc_id: str, fallback_idx: int = 9):
     norm = strip_accents(raw_name)
-    if norm == "HAVANA" || "HO PHI TICH" in norm if False else (norm == "HAVANA" or "HO PHI TICH" in norm or "93-95" in norm or "93 - 95" in norm):
+    if norm == "HAVANA" or "HO PHI TICH" in norm or "93-95" in norm or "93 - 95" in norm:
         return ("wh_havana", "HAVANA (93-95 Hồ Phi Tích)", 1)
     if "ONLINE" in norm:
         return ("wh_online", "HAVANA ONLINE", 2)
@@ -1520,12 +1527,20 @@ def infer_category(code: str, pname: str, sub_type: str = "") -> str:
 
 
 def fetch_json(path: str, headers: dict) -> dict:
-    req = urllib.request.Request(f"https://{DOMAIN}{path}", headers=headers)
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        raw = resp.read().decode("utf-8")
-        if raw.lstrip().startswith("<"):
-            raise RuntimeError("Sapo Cookie/Token da het han!")
-        return json.loads(raw)
+    last_err = None
+    for attempt in range(2):
+        try:
+            req = urllib.request.Request(f"https://{DOMAIN}{path}", headers=headers)
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                raw = resp.read().decode("utf-8")
+                if raw.lstrip().startswith("<"):
+                    raise RuntimeError("Sapo Cookie/Token da het han!")
+                return json.loads(raw)
+        except Exception as e:
+            last_err = e
+            if attempt == 0:
+                time.sleep(1)
+    raise last_err
 
 
 def extract_base_code_from_sapo_product(p: dict, sale_rules: dict) -> str:
@@ -1647,7 +1662,6 @@ def apply_priority_media_to_list(products_list: list, preserved_by_sku: dict, pu
 
 
 def build_compact_stock_feed(warehouses_sorted: list, all_sale_products: list, synced_at_str: str) -> str:
-    """Gui day du ton kho thuc te (ke ca 0, 1, 2) len kenh live-stock de trinh duyet phat hien & go bo tuc thi ma vua tut duoi 3."""
     wh_ids = [w.get("id") for w in warehouses_sorted]
     items_compact = {}
     for p in all_sale_products:
@@ -1892,6 +1906,11 @@ def main():
         ]
         write_outputs(wh_out, cleaned, vn_now_str(), sale_rules)
         print(f"[+] Da loc & giu lai {len(cleaned)} ma co tong ton >= {MIN_TOTAL_STOCK}!")
+        write_github_summary(
+            f"### ⚠️ Sapo chưa trả dữ liệu mới — Đã lọc trên dữ liệu sẵn có\n"
+            f"- **Nguyên nhân Sapo:** `{sapo_err_reason}`\n"
+            f"- **Số mã giữ lại (Tồn từ {MIN_TOTAL_STOCK} trở lên):** `{len(cleaned)}` mã"
+        )
         return
 
     grouped_by_code = {}
@@ -1967,7 +1986,6 @@ def main():
         for item in sorted(loc_meta.values(), key=lambda x: x["order"])
     ]
 
-    # LOC NGHIEM NGAT: Chi giu cac ma co tong ton 5 kho >= 3; tu dong loai bo cac ma ton 0, 1, 2
     removed_low_stock = [
         f"{p.get('sku')}({calc_product_total_stock(p)})"
         for p in all_sale_products
@@ -1988,10 +2006,8 @@ def main():
     new_full_fp = compute_products_fingerprint(products_out)
     new_media_fp = compute_media_rules_fingerprint(products_out)
 
-    # 1. Phat Live Stock Feed tuc thi (chua ca cac ma vua tut duoi 3 de web go bo ngay lap tuc)
     live_feed_ok = publish_live_release_feed(warehouses_sorted, all_sale_products, now_stamp)
 
-    # 2. Neu danh sach ma >= 3 thay doi (co ma vua tut duoi 3 can xoa khoi file), commit ngay lap tuc!
     event_name = os.environ.get("GITHUB_EVENT_NAME", "").strip()
     commit_age = last_git_commit_age_seconds()
     media_or_price_changed = (old_media_fp != new_media_fp)
@@ -2017,11 +2033,11 @@ def main():
         with open(".skip_git_commit", "w", encoding="utf-8") as sf:
             sf.write(now_stamp)
 
-    print(f"[+] Hoan tat Auto-Sync v25 ({now_stamp}): Giu {len(products_out)} ma (ton >= {MIN_TOTAL_STOCK}), da loai {len(removed_low_stock)} ma ton thap.")
+    print(f"[+] Hoan tat Auto-Sync v25.1 ({now_stamp}): Giu {len(products_out)} ma (ton >= {MIN_TOTAL_STOCK}), da loai {len(removed_low_stock)} ma ton thap.")
     sample_removed = ", ".join(removed_low_stock[:20]) + ("..." if len(removed_low_stock) > 20 else "")
     write_github_summary(
-        f"### ✅ Đồng bộ Sapo v25 — Lọc Tồn ≥ {MIN_TOTAL_STOCK} ({now_stamp})\n"
-        f"- **Mã đủ điều kiện (Tổng tồn ≥ {MIN_TOTAL_STOCK}):** `{len(products_out)}` mã\n"
+        f"### ✅ Đồng bộ Sapo v25.1 — Lọc Tồn từ {MIN_TOTAL_STOCK} trở lên ({now_stamp})\n"
+        f"- **Mã đủ điều kiện (Tổng tồn từ {MIN_TOTAL_STOCK} trở lên):** `{len(products_out)}` mã\n"
         f"- **Mã tự động loại khỏi file (Tổng tồn 0–2):** `{len(removed_low_stock)}` mã ({sample_removed or 'Không có'})"
     )
 
