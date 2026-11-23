@@ -1,7 +1,13 @@
-// Cloudflare Pages Function: /api/stock (v22 Real-Time 45s Parallel Sapo Edge Sync + GitHub Live-Stock Release Bridge)
+// Cloudflare Pages Function: /api/stock (v25 Strict MIN_TOTAL_STOCK >= 3 + 45s Edge Sync)
+const MIN_TOTAL_STOCK = 3;
 const EXCLUDED_SKUS = new Set(["LEN374", "QJ358"]);
 const GITHUB_REPO_SLUG = "moonchuyensi-cmd/havana-sale";
 const SAPO_CDN_RX = /(dktcdn\.net|mysapogo\.com|sapo\.vn|sapogo\.com|sapocdn\.net|amazonaws\.com|cloudfront\.net)/i;
+const PRICE_PATCH_V25 = {
+  AO1010: { origPrice: 194000, salePrice: 79000, discountPct: 59 },
+  AO726:  { origPrice: 225000, salePrice: 39000, discountPct: 83 },
+  AO1016: { origPrice: 214000, salePrice: 79000, discountPct: 63 }
+};
 
 function isExternalSapoUrl(u) {
   const s = String(u || "").trim();
@@ -10,25 +16,33 @@ function isExternalSapoUrl(u) {
   return SAPO_CDN_RX.test(s) || /^https?:\/\//i.test(s);
 }
 
+function calcTotalStock(p) {
+  if (!p || !Array.isArray(p.variants)) return 0;
+  let total = 0;
+  for (const v of p.variants) {
+    const st = (v && v.stocks) || {};
+    for (const q of Object.values(st)) total += Math.max(0, Number(q) || 0);
+  }
+  return total;
+}
+
 function extractSmartSecret(rawVal) {
   let raw = String(rawVal || "").trim();
   if (!raw) return "";
   const mb = raw.match(/(?:-b|--cookie)\s+(['"])([\s\S]+?)\1/);
-  if (mb) {
-    raw = mb[2];
-  } else {
+  if (mb) raw = mb[2];
+  else {
     const mh = raw.match(/(?:-H|--header)\s+(['"])cookie\s*:\s*([\s\S]+?)\1/i);
-    if (mh) {
-      raw = mh[2];
-    } else {
+    if (mh) raw = mh[2];
+    else {
       const ml = raw.match(/(?:^|[\r\n])cookie\s*:\s*([^\r\n]+)/i);
       if (ml) raw = ml[1];
     }
   }
   if (raw.includes("^") && (raw.includes("sapo-admin") || raw.includes("AspNetCore"))) {
-    raw = raw.replace(/\^([\"%&|<>^])/g, "$1");
+    raw = raw.replace(/\^(["%&|<>^])/g, "$1");
   }
-  let s = raw.trim().replace(/^[\"']+|[\"']+$/g, "").replace(/[\r\n]+/g, " ").trim();
+  let s = raw.trim().replace(/^["']+|["']+$/g, "").replace(/[\r\n]+/g, " ").trim();
   for (const pfx of ["cookie:", "x-sapo-access-token:"]) {
     if (s.toLowerCase().startsWith(pfx)) s = s.slice(pfx.length).trim();
   }
@@ -51,7 +65,6 @@ function buildAuthCandidates(env, domain) {
     "x-sapo-client": "sapo-frontend-v3",
     "x-sapo-serviceid": "sapo-frontend-v3"
   });
-
   if (cookie) candidates.push(makeCookieHdr(cookie));
   if (token) {
     if (token.includes("sapo-admin=") || token.includes(".AspNetCore") || token.includes(";")) {
@@ -65,13 +78,7 @@ function buildAuthCandidates(env, domain) {
 }
 
 function stripAccents(str) {
-  return String(str || "")
-    .replace(/đ/g, "d")
-    .replace(/Đ/g, "D")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase()
-    .trim();
+  return String(str || "").replace(/đ/g, "d").replace(/Đ/g, "D").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
 }
 
 function mapWarehouseId(rawName, locId) {
@@ -98,25 +105,16 @@ function extractSapoImagesFromProd(prod, domain) {
     const nu = normalizeSapoImg(val, domain);
     if (nu && !urls.includes(nu)) urls.push(nu);
   };
-  if (prod.image) {
-    addU(typeof prod.image === "object" ? (prod.image.full_path || prod.image.src || prod.image.path) : prod.image);
-  }
-  for (const im of (prod.images || [])) {
-    addU(typeof im === "object" ? (im.full_path || im.src || im.path) : im);
-  }
+  if (prod.image) addU(typeof prod.image === "object" ? (prod.image.full_path || prod.image.src || prod.image.path) : prod.image);
+  for (const im of (prod.images || [])) addU(typeof im === "object" ? (im.full_path || im.src || im.path) : im);
   for (const v of (prod.variants || [])) {
-    for (const vim of (v.images || [])) {
-      addU(typeof vim === "object" ? (vim.full_path || vim.src || vim.path) : vim);
-    }
-    if (v.image) {
-      addU(typeof v.image === "object" ? (v.image.full_path || v.image.src || v.image.path) : v.image);
-    }
+    for (const vim of (v.images || [])) addU(typeof vim === "object" ? (vim.full_path || vim.src || vim.path) : vim);
+    if (v.image) addU(typeof v.image === "object" ? (v.image.full_path || v.image.src || v.image.path) : v.image);
   }
   return urls;
 }
 
 function parseStampToMinutes(stampStr) {
-  // Format: "HH:MM DD/MM"
   const m = String(stampStr || "").trim().match(/^(\d{1,2}):(\d{2})\s+(\d{1,2})\/(\d{1,2})/);
   if (!m) return 0;
   const [, hh, mm, dd, mo] = m.map(Number);
@@ -131,7 +129,7 @@ export async function onRequestGet(context) {
   const authCandidates = buildAuthCandidates(env, domain);
 
   const cache = caches.default;
-  const cacheKey = new Request(new URL("/api/stock-edge-v22", request.url).toString());
+  const cacheKey = new Request(new URL("/api/stock-edge-v25", request.url).toString());
   if (!forceBypass) {
     const cached = await cache.match(cacheKey);
     if (cached) return cached;
@@ -154,6 +152,11 @@ export async function onRequestGet(context) {
       for (const ex of EXCLUDED_SKUS) {
         if (saleRules) delete saleRules[ex];
       }
+      if (saleRules) {
+        for (const [k, patch] of Object.entries(PRICE_PATCH_V25)) {
+          if (saleRules[k]) Object.assign(saleRules[k], patch);
+        }
+      }
     }
   } catch (_) {}
 
@@ -161,7 +164,6 @@ export async function onRequestGet(context) {
   let syncSource = "static_json";
   const sapoImgsByBase = {};
 
-  // LUONG 1 (NHANH NHAT - REAL-TIME 45 GIAY): Ket noi thang Sapo tu Cloudflare Edge neu co SAPO_COOKIE
   for (const headers of authCandidates) {
     try {
       const p1Res = await fetch(`https://${domain}/admin/products.json?page=1&limit=250`, { headers });
@@ -174,7 +176,6 @@ export async function onRequestGet(context) {
 
       const allProds = [...firstBatch];
       const locMap = {};
-
       const locPromise = fetch(`https://${domain}/admin/locations.json`, { headers })
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null);
@@ -261,10 +262,8 @@ export async function onRequestGet(context) {
         for (const item of payload.products) {
           const code = String(item.sku || "").trim().toUpperCase().split("-")[0];
           seen.add(code);
-          if (liveByBase[code] && liveByBase[code].length) {
-            item.variants = liveByBase[code];
-            if (nameByBase[code]) item.name = nameByBase[code];
-          }
+          item.variants = liveByBase[code] || [];
+          if (nameByBase[code]) item.name = nameByBase[code];
         }
         if (saleRules) {
           for (const [code, rule] of Object.entries(saleRules)) {
@@ -297,14 +296,10 @@ export async function onRequestGet(context) {
     } catch (_) {}
   }
 
-  // LUONG 2 (TU DONG 100% KHONG CAN CAU HINH CLOUDFLARE): Doc Live Stock Feed 5 phut tu GitHub Release [live-stock]
   if (!syncedLive && Array.isArray(payload.products)) {
     try {
       const ghRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO_SLUG}/releases/tags/live-stock`, {
-        headers: {
-          "Accept": "application/vnd.github+json",
-          "User-Agent": "havana-sale-cf-edge-v22"
-        }
+        headers: { "Accept": "application/vnd.github+json", "User-Agent": "havana-sale-cf-edge-v25" }
       });
       if (ghRes.ok) {
         const relJson = await ghRes.json();
@@ -316,16 +311,46 @@ export async function onRequestGet(context) {
             if (feedMins >= baseMins) {
               const whIds = feed.warehouses.map((w) => w.id);
               payload.warehouses = feed.warehouses;
+              const seenInBase = new Set();
               for (const item of payload.products) {
                 const code = String(item.sku || "").trim().toUpperCase().split("-")[0];
+                seenInBase.add(code);
                 const fEntry = feed.items[code];
-                if (fEntry && Array.isArray(fEntry.v) && fEntry.v.length) {
+                if (fEntry && Array.isArray(fEntry.v)) {
                   item.variants = fEntry.v.map(([sz, qArr]) => {
                     const st = {};
                     whIds.forEach((wid, idx) => { st[wid] = Number((qArr && qArr[idx]) || 0); });
                     return { size: sz || "Freesize", stocks: st };
                   });
                   if (fEntry.n) item.name = fEntry.n;
+                } else if (feed.full) {
+                  item.variants = [];
+                }
+              }
+              if (saleRules) {
+                for (const [code, fEntry] of Object.entries(feed.items)) {
+                  if (!seenInBase.has(code) && saleRules[code] && !EXCLUDED_SKUS.has(code) && Array.isArray(fEntry.v)) {
+                    const rule = saleRules[code];
+                    const builtVars = fEntry.v.map(([sz, qArr]) => {
+                      const st = {};
+                      whIds.forEach((wid, idx) => { st[wid] = Number((qArr && qArr[idx]) || 0); });
+                      return { size: sz || "Freesize", stocks: st };
+                    });
+                    payload.products.push({
+                      sku: code,
+                      name: fEntry.n || ("Sản phẩm Havana " + code),
+                      subType: rule.subType || "",
+                      origPrice: rule.origPrice || 299000,
+                      salePrice: rule.salePrice || 159000,
+                      discountPct: rule.discountPct || 30,
+                      image: "",
+                      images: [],
+                      sapoImages: fEntry.si || [],
+                      video: "",
+                      sizeChart: "",
+                      variants: builtVars
+                    });
+                  }
                 }
               }
               payload.synced_at = feed.synced_at;
@@ -340,10 +365,10 @@ export async function onRequestGet(context) {
   }
 
   if (Array.isArray(payload.products)) {
-    if (saleRules && Object.keys(saleRules).length > 0) {
-      payload.products = payload.products.filter((p) => {
-        const baseSku = String(p.sku || "").trim().toUpperCase().split("-")[0];
-        if (EXCLUDED_SKUS.has(baseSku)) return false;
+    payload.products = payload.products.filter((p) => {
+      const baseSku = String(p.sku || "").trim().toUpperCase().split("-")[0];
+      if (EXCLUDED_SKUS.has(baseSku)) return false;
+      if (saleRules && Object.keys(saleRules).length > 0) {
         const rule = saleRules[baseSku];
         if (!rule) return false;
         if (rule.origPrice > 0) p.origPrice = rule.origPrice;
@@ -352,9 +377,9 @@ export async function onRequestGet(context) {
           p.discountPct = Math.max(1, Math.round((1 - p.salePrice / p.origPrice) * 100));
         }
         if (rule.subType && !p.subType) p.subType = rule.subType;
-        return true;
-      });
-    }
+      }
+      return calcTotalStock(p) >= MIN_TOTAL_STOCK;
+    });
 
     const sat533SapoSet = new Set(sapoImgsByBase["SAT533"] || []);
     for (const p of payload.products) {
@@ -370,7 +395,6 @@ export async function onRequestGet(context) {
       const rawImgs = Array.isArray(p.images) ? p.images : [];
       let customImgs = [];
       let sapoImgs = [];
-
       const seedSapo = (code === "SAT532" && (sapoImgsByBase["SAT532"] || []).length > 0)
         ? [...sapoImgsByBase["SAT532"]]
         : [...(sapoImgsByBase[code] || []), ...(Array.isArray(p.sapoImages) ? p.sapoImages : [])];
@@ -386,12 +410,7 @@ export async function onRequestGet(context) {
           if (!customImgs.includes(s)) customImgs.push(s);
         }
       }
-
-      if (code === "SAT532") {
-        p.video = "";
-        p.sizeChart = "";
-      }
-
+      if (code === "SAT532") { p.video = ""; p.sizeChart = ""; }
       const finalImgs = customImgs.length > 0 ? customImgs : sapoImgs;
       p.sapoImages = sapoImgs;
       p.hasCustomMedia = customImgs.length > 0 || Boolean(p.video && !isExternalSapoUrl(String(p.video)));
@@ -400,6 +419,7 @@ export async function onRequestGet(context) {
     }
   }
 
+  payload.min_stock_rule = MIN_TOTAL_STOCK;
   payload.sync_source = syncSource;
   const outResp = new Response(JSON.stringify(payload), {
     headers: {
