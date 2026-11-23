@@ -1,11 +1,11 @@
-// Cloudflare Pages Function: /api/stock (v27 Fix CV538 Sapo Image + Variant >= 3 + 45s Edge Sync)
+// Cloudflare Pages Function: /api/stock (v28 Fix Epoch Comparison + Cookie Expiry Flag + Variant >= 3)
 const MIN_TOTAL_STOCK = 3;
 const MIN_VARIANT_STOCK = 3;
 const EXCLUDED_SKUS = new Set(["LEN374", "QJ358"]);
 const FORCE_SAPO_MEDIA_SKUS = new Set(["SAT532", "CV538"]);
 const GITHUB_REPO_SLUG = "moonchuyensi-cmd/havana-sale";
 const SAPO_CDN_RX = /(dktcdn\.net|mysapogo\.com|sapo\.vn|sapogo\.com|sapocdn\.net|amazonaws\.com|cloudfront\.net)/i;
-const PRICE_PATCH_V27 = {
+const PRICE_PATCH_V28 = {
   AO1010: { origPrice: 194000, salePrice: 79000, discountPct: 59 },
   AO726:  { origPrice: 225000, salePrice: 39000, discountPct: 83 },
   AO1016: { origPrice: 214000, salePrice: 79000, discountPct: 63 }
@@ -159,7 +159,7 @@ export async function onRequestGet(context) {
   const authCandidates = buildAuthCandidates(env, domain);
 
   const cache = caches.default;
-  const cacheKey = new Request(new URL("/api/stock-edge-v27", request.url).toString());
+  const cacheKey = new Request(new URL("/api/stock-edge-v28", request.url).toString());
   if (!forceBypass) {
     const cached = await cache.match(cacheKey);
     if (cached) return cached;
@@ -183,7 +183,7 @@ export async function onRequestGet(context) {
         if (saleRules) delete saleRules[ex];
       }
       if (saleRules) {
-        for (const [k, patch] of Object.entries(PRICE_PATCH_V27)) {
+        for (const [k, patch] of Object.entries(PRICE_PATCH_V28)) {
           if (saleRules[k]) Object.assign(saleRules[k], patch);
         }
       }
@@ -322,6 +322,7 @@ export async function onRequestGet(context) {
         const pad = (n) => String(n).padStart(2, "0");
         payload.synced_at = `${pad(nowVN.getUTCHours())}:${pad(nowVN.getUTCMinutes())} ${pad(nowVN.getUTCDate())}/${pad(nowVN.getUTCMonth() + 1)}`;
         payload.synced_epoch = Math.floor(Date.now() / 1000);
+        payload.sapo_cookie_expired = false;
         syncedLive = true;
         syncSource = "cloudflare_edge_sapo_live";
         break;
@@ -332,16 +333,22 @@ export async function onRequestGet(context) {
   if (!syncedLive && Array.isArray(payload.products)) {
     try {
       const ghRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO_SLUG}/releases/tags/live-stock`, {
-        headers: { "Accept": "application/vnd.github+json", "User-Agent": "havana-sale-cf-edge-v27" }
+        headers: { "Accept": "application/vnd.github+json", "User-Agent": "havana-sale-cf-edge-v28" }
       });
       if (ghRes.ok) {
         const relJson = await ghRes.json();
         if (relJson && relJson.body) {
           const feed = JSON.parse(relJson.body);
           if (feed && feed.items && Array.isArray(feed.warehouses)) {
+            const feedEpoch = Number(feed.synced_epoch || 0);
+            const baseEpoch = Number(payload.synced_epoch || 0);
             const feedMins = parseStampToMinutes(feed.synced_at);
             const baseMins = parseStampToMinutes(payload.synced_at);
-            if (feedMins >= baseMins) {
+            const isNewer = (feedEpoch > 0 && baseEpoch > 0)
+              ? (feedEpoch >= baseEpoch)
+              : (feedMins > baseMins);
+
+            if (isNewer) {
               const whIds = feed.warehouses.map((w) => w.id);
               payload.warehouses = feed.warehouses;
               const seenInBase = new Set();
@@ -394,7 +401,8 @@ export async function onRequestGet(context) {
                 }
               }
               payload.synced_at = feed.synced_at;
-              payload.synced_epoch = feed.synced_epoch || Math.floor(Date.now() / 1000);
+              payload.synced_epoch = feedEpoch || payload.synced_epoch || 0;
+              payload.sapo_cookie_expired = Boolean(feed.cookie_expired);
               syncedLive = true;
               syncSource = "github_release_live_feed";
             }

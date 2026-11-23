@@ -5097,12 +5097,12 @@
     updateCartBar();
     refreshLiveSapoStock(true);
 
-    /* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRICT VARIANT >= 3 & TOTAL >= 3 === */
-    const MIN_TOTAL_STOCK_V27 = 3;
-    const MIN_VARIANT_STOCK_V27 = 3;
-    const FORCE_SAPO_MEDIA_V27 = new Set(["SAT532", "CV538"]);
-    let v27SyncInFlight = false;
-    let v27LastReleaseCheckMs = 0;
+    /* === v28: FIX EPOCH ROLLBACK + SAPO COOKIE EXPIRY INDICATOR + STRICT VARIANT >= 3 === */
+    const MIN_TOTAL_STOCK_V28 = 3;
+    const MIN_VARIANT_STOCK_V28 = 3;
+    const FORCE_SAPO_MEDIA_V28 = new Set(["SAT532", "CV538"]);
+    let v28SyncInFlight = false;
+    let v28LastReleaseCheckMs = 0;
 
     if (typeof RESET_TO_SAPO_SKUS_V21 !== "undefined" && RESET_TO_SAPO_SKUS_V21 && typeof RESET_TO_SAPO_SKUS_V21.add === "function") {
       RESET_TO_SAPO_SKUS_V21.add("CV538");
@@ -5114,13 +5114,13 @@
       sessionStorage.removeItem("havana_live_rel_v22");
       sessionStorage.removeItem("havana_live_rel_v25");
       sessionStorage.removeItem("havana_live_rel_v26");
+      sessionStorage.removeItem("havana_live_rel_v27");
     } catch (_) {}
 
-    if (typeof MEDIA_CACHE_VERSION !== "undefined" && MEDIA_CACHE_VERSION < 27) {
-      MEDIA_CACHE_VERSION = 27;
+    if (typeof MEDIA_CACHE_VERSION !== "undefined" && MEDIA_CACHE_VERSION < 28) {
+      MEDIA_CACHE_VERSION = 28;
     }
 
-    // Xoa sach anh CV538 cu nam trong IndexedDB trinh duyet (neu tung luu tam)
     (async function purgeStaleCv538VaultOnce() {
       try {
         if (!localStorage.getItem("havana_purged_cv538_v27")) {
@@ -5144,7 +5144,7 @@
                 (req.result || []).forEach((row) => {
                   const rSku = String(row.sku || "").toUpperCase();
                   const rPath = String(row.path || "").toUpperCase();
-                  if (FORCE_SAPO_MEDIA_V27.has(rSku) || rPath.includes("CV538") || rPath.includes("SAT532")) {
+                  if (FORCE_SAPO_MEDIA_V28.has(rSku) || rPath.includes("CV538") || rPath.includes("SAT532")) {
                     store.delete(row.path);
                   }
                 });
@@ -5156,18 +5156,18 @@
       } catch (_) {}
     })();
 
-    const v27ShouldForceSapoMedia = (code) => {
-      if (!FORCE_SAPO_MEDIA_V27.has(code)) return false;
+    const v28ShouldForceSapoMedia = (code) => {
+      if (!FORCE_SAPO_MEDIA_V28.has(code)) return false;
       if (typeof sessionFreshUploadedSkus !== "undefined" && sessionFreshUploadedSkus && sessionFreshUploadedSkus.has(code)) {
         return false;
       }
       return true;
     };
 
-    const v27CleanForcedSapoItem = (p) => {
+    const v28CleanForcedSapoItem = (p) => {
       if (!p) return;
       const code = normalizeBaseCode(String(p.sku || "").split("-")[0]);
-      if (!v27ShouldForceSapoMedia(code)) return;
+      if (!v28ShouldForceSapoMedia(code)) return;
 
       if (typeof repoLiveMediaBySku === "object" && repoLiveMediaBySku && repoLiveMediaBySku[code]) {
         delete repoLiveMediaBySku[code];
@@ -5195,28 +5195,28 @@
       p.image = sapoUrls[0] || "";
     };
 
-    const _preV27StripSapo = stripSapoImagesFromProducts;
+    const _preV28StripSapo = stripSapoImagesFromProducts;
     stripSapoImagesFromProducts = function(list) {
-      _preV27StripSapo(list);
+      _preV28StripSapo(list);
       if (Array.isArray(list)) {
-        list.forEach((p) => v27CleanForcedSapoItem(p));
+        list.forEach((p) => v28CleanForcedSapoItem(p));
       }
     };
 
-    const _preV27GetProductSlides = getProductSlides;
+    const _preV28GetProductSlides = getProductSlides;
     getProductSlides = function(p) {
       const code = normalizeBaseCode(String(p?.sku || "").split("-")[0]);
-      if (v27ShouldForceSapoMedia(code)) {
-        v27CleanForcedSapoItem(p);
+      if (v28ShouldForceSapoMedia(code)) {
+        v28CleanForcedSapoItem(p);
         if (Array.isArray(p.sapoImages) && p.sapoImages.length > 0) {
           return p.sapoImages.map((src) => ({ type: "image", src }));
         }
         return [{ type: "image", src: svgPlaceholder(p.sku, p.name, "#d8f1ef", "#eef9f8") }];
       }
-      return _preV27GetProductSlides(p);
+      return _preV28GetProductSlides(p);
     };
 
-    const v27ApplyPriceFixes = (rulesMap) => {
+    const v28ApplyPriceFixes = (rulesMap) => {
       if (!rulesMap || typeof rulesMap !== "object") return;
       const fixed = {
         AO1010: { origPrice: 194000, salePrice: 79000, discountPct: 59 },
@@ -5228,7 +5228,7 @@
       });
     };
 
-    const v27FilterVariants = (variantsArr) => {
+    const v28FilterVariants = (variantsArr) => {
       if (!Array.isArray(variantsArr)) return [];
       const order = [];
       const map = {};
@@ -5248,14 +5248,14 @@
       order.forEach((sz) => {
         const st = map[sz];
         const vTot = Object.values(st).reduce((a, b) => a + b, 0);
-        if (vTot >= MIN_VARIANT_STOCK_V27) {
+        if (vTot >= MIN_VARIANT_STOCK_V28) {
           valid.push({ size: sz, stocks: st });
         }
       });
       return valid;
     };
 
-    const v27CalcTotalStock = (p) => {
+    const v28CalcTotalStock = (p) => {
       if (!p || !Array.isArray(p.variants)) return 0;
       return p.variants.reduce((sum, v) => {
         const st = (v && v.stocks && typeof v.stocks === "object") ? v.stocks : {};
@@ -5263,7 +5263,7 @@
       }, 0);
     };
 
-    const v27SanitizeProductList = (list) => {
+    const v28SanitizeProductList = (list) => {
       if (!Array.isArray(list)) return [];
       const out = [];
       list.forEach((p) => {
@@ -5276,9 +5276,9 @@
           if (Number(rule.salePrice) > 0) p.salePrice = Number(rule.salePrice);
           p.discountPct = getProductDiscountPct(p);
         }
-        v27CleanForcedSapoItem(p);
-        p.variants = v27FilterVariants(p.variants);
-        if (p.variants.length > 0 && v27CalcTotalStock(p) >= MIN_TOTAL_STOCK_V27) {
+        v28CleanForcedSapoItem(p);
+        p.variants = v28FilterVariants(p.variants);
+        if (p.variants.length > 0 && v28CalcTotalStock(p) >= MIN_TOTAL_STOCK_V28) {
           out.push(p);
         }
       });
@@ -5294,27 +5294,27 @@
         }
         const curSz = selectedVariantBySku[p.sku];
         const curVar = curSz ? p.variants.find((v) => v.size === curSz) : null;
-        if (!curVar || getVariantTotal(curVar) < MIN_VARIANT_STOCK_V27) {
-          const firstValid = p.variants.find((v) => getVariantTotal(v) >= MIN_VARIANT_STOCK_V27) || p.variants[0];
+        if (!curVar || getVariantTotal(curVar) < MIN_VARIANT_STOCK_V28) {
+          const firstValid = p.variants.find((v) => getVariantTotal(v) >= MIN_VARIANT_STOCK_V28) || p.variants[0];
           if (firstValid) selectedVariantBySku[p.sku] = firstValid.size;
         }
       });
     };
 
-    const v27SyncStockBadgeLabel = () => {
+    const v28SyncStockBadgeLabel = () => {
       const stTxt = document.getElementById("onlyInStockText");
       if (stTxt) {
         stTxt.textContent = currentLang === "VI" ? "Tồn ≥ 3" : "Stock ≥ 3";
       }
     };
 
-    const v27EnforceMinStock = (notifyCartChange = false) => {
-      v27ApplyPriceFixes(SALE_RULES_MASTER);
+    const v28EnforceMinStock = (notifyCartChange = false) => {
+      v28ApplyPriceFixes(SALE_RULES_MASTER);
       if (Array.isArray(BASELINE_PRODUCTS)) {
-        BASELINE_PRODUCTS = v27SanitizeProductList(BASELINE_PRODUCTS);
+        BASELINE_PRODUCTS = v28SanitizeProductList(BASELINE_PRODUCTS);
       }
       if (Array.isArray(PRODUCTS)) {
-        PRODUCTS = v27SanitizeProductList(PRODUCTS);
+        PRODUCTS = v28SanitizeProductList(PRODUCTS);
       }
       ensureDefaultSelectedSizes();
 
@@ -5322,18 +5322,18 @@
         let adjusted = false;
         cart = cart.filter((c) => {
           const matchedP = (PRODUCTS || []).find((x) => x.sku === c.sku);
-          if (!matchedP || v27CalcTotalStock(matchedP) < MIN_TOTAL_STOCK_V27) {
+          if (!matchedP || v28CalcTotalStock(matchedP) < MIN_TOTAL_STOCK_V28) {
             adjusted = true;
             return false;
           }
           c.origPrice = matchedP.origPrice;
           c.finalPrice = getProductSalePrice(matchedP);
           c.discountPct = getProductDiscountPct(matchedP);
-          if (v27ShouldForceSapoMedia(c.sku)) {
+          if (v28ShouldForceSapoMedia(c.sku)) {
             c.image = matchedP.image || "";
           }
           const maxAvail = getMaxStockForSkuSize(c.sku, c.size);
-          if (maxAvail < MIN_VARIANT_STOCK_V27) {
+          if (maxAvail < MIN_VARIANT_STOCK_V28) {
             adjusted = true;
             return false;
           }
@@ -5351,14 +5351,14 @@
           }
         }
       }
-      v27SyncStockBadgeLabel();
+      v28SyncStockBadgeLabel();
     };
 
-    const _preV27MergeRules = mergeAndApplySaleRules;
+    const _preV28MergeRules = mergeAndApplySaleRules;
     mergeAndApplySaleRules = function(liveList, rulesObj) {
-      v27ApplyPriceFixes(SALE_RULES_MASTER);
-      v27ApplyPriceFixes(rulesObj);
-      const cleanedInput = v27SanitizeProductList(Array.isArray(liveList) ? liveList : []);
+      v28ApplyPriceFixes(SALE_RULES_MASTER);
+      v28ApplyPriceFixes(rulesObj);
+      const cleanedInput = v28SanitizeProductList(Array.isArray(liveList) ? liveList : []);
       const baseRules = (rulesObj && Object.keys(rulesObj).length > 0) ? rulesObj : SALE_RULES_MASTER;
       const scopedRules = {};
       if (baseRules) {
@@ -5367,49 +5367,49 @@
           if (liveSet.has(k)) scopedRules[k] = baseRules[k];
         });
       }
-      const merged = _preV27MergeRules(cleanedInput, scopedRules);
-      return v27SanitizeProductList(merged);
+      const merged = _preV28MergeRules(cleanedInput, scopedRules);
+      return v28SanitizeProductList(merged);
     };
 
-    const _preV27RenderCatalog = renderCatalog;
+    const _preV28RenderCatalog = renderCatalog;
     renderCatalog = function() {
-      v27EnforceMinStock(false);
-      _preV27RenderCatalog();
+      v28EnforceMinStock(false);
+      _preV28RenderCatalog();
     };
 
-    const _preV27SetLang = setLang;
+    const _preV28SetLang = setLang;
     setLang = function(lang) {
-      _preV27SetLang(lang);
-      v27SyncStockBadgeLabel();
+      _preV28SetLang(lang);
+      v28SyncStockBadgeLabel();
     };
 
     if (typeof exportCleanIndexHtml === "function") {
-      const _preV27ExportCleanHtml = exportCleanIndexHtml;
+      const _preV28ExportCleanHtml = exportCleanIndexHtml;
       exportCleanIndexHtml = function() {
-        v27EnforceMinStock(false);
-        _preV27ExportCleanHtml();
+        v28EnforceMinStock(false);
+        _preV28ExportCleanHtml();
       };
     }
 
-    const v27ParseStampMins = (stampStr) => {
+    const v28ParseStampMins = (stampStr) => {
       const m = String(stampStr || "").trim().match(/^(\d{1,2}):(\d{2})\s+(\d{1,2})\/(\d{1,2})/);
       if (!m) return 0;
       return (((Number(m[4]) * 32 + Number(m[3])) * 24 + Number(m[1])) * 60) + Number(m[2]);
     };
 
-    const v27FetchLiveRelease = async (forceNow = false) => {
-      const cacheKey = "havana_live_rel_v27";
+    const v28FetchLiveRelease = async (forceNow = false) => {
+      const cacheKey = "havana_live_rel_v28";
       const nowMs = Date.now();
-      if (!forceNow && (nowMs - v27LastReleaseCheckMs < 45000)) {
+      if (!forceNow && (nowMs - v28LastReleaseCheckMs < 45000)) {
         try {
           const cached = JSON.parse(sessionStorage.getItem(cacheKey) || "null");
           if (cached && (nowMs - cached.ts < 45000)) return cached.feed;
         } catch (_) {}
       }
-      v27LastReleaseCheckMs = nowMs;
+      v28LastReleaseCheckMs = nowMs;
       try {
         const repoSlug = typeof GITHUB_REPO_SLUG !== "undefined" ? GITHUB_REPO_SLUG : "moonchuyensi-cmd/havana-sale";
-        const res = await fetch(`https://api.github.com/repos/${repoSlug}/releases/tags/live-stock`, {
+        const res = await fetch(`https://api.github.com/repos/${repoSlug}/releases/tags/live-stock?t=${nowMs}`, {
           headers: { "Accept": "application/vnd.github+json" },
           cache: "no-store"
         });
@@ -5425,15 +5425,21 @@
       return null;
     };
 
-    const v27ApplyReleaseFeed = (basePayload, feed) => {
+    // SUA TRIET DE LOI SO SANH EPOCH: Khong bao gio lay goi live-stock cu de len du lieu moi
+    const v28ApplyReleaseFeed = (basePayload, feed) => {
       if (!feed || !feed.items || !Array.isArray(feed.warehouses) || !basePayload || !Array.isArray(basePayload.products)) {
         return basePayload;
       }
-      const feedMins = v27ParseStampMins(feed.synced_at);
-      const baseMins = v27ParseStampMins(basePayload.synced_at);
+      const feedMins = v28ParseStampMins(feed.synced_at);
+      const baseMins = v28ParseStampMins(basePayload.synced_at);
       const feedEpoch = Number(feed.synced_epoch || 0);
       const baseEpoch = Number(basePayload.synced_epoch || 0);
-      if ((feedEpoch && baseEpoch && feedEpoch < baseEpoch) || (!feedEpoch && feedMins < baseMins)) {
+
+      const feedIsOlder = (feedEpoch > 0 && baseEpoch > 0)
+        ? (feedEpoch < baseEpoch)
+        : (baseMins > 0 && feedMins < baseMins);
+
+      if (feedIsOlder) {
         return basePayload;
       }
 
@@ -5450,7 +5456,7 @@
             whIds.forEach((wid, idx) => { st[wid] = Number((qArr && qArr[idx]) || 0); });
             return { size: sz || "Freesize", stocks: st };
           });
-          item.variants = v27FilterVariants(rawVars);
+          item.variants = v28FilterVariants(rawVars);
           if (fEntry.n) item.name = fEntry.n;
           if (Array.isArray(fEntry.si) && fEntry.si.length) {
             item.sapoImages = fEntry.si;
@@ -5470,7 +5476,7 @@
             whIds.forEach((wid, idx) => { st[wid] = Number((qArr && qArr[idx]) || 0); });
             return { size: sz || "Freesize", stocks: st };
           });
-          const cleanVars = v27FilterVariants(rawVars);
+          const cleanVars = v28FilterVariants(rawVars);
           if (cleanVars.length > 0) {
             basePayload.products.push({
               sku: code,
@@ -5490,16 +5496,44 @@
         });
       }
 
-      basePayload.products = v27SanitizeProductList(basePayload.products);
+      basePayload.products = v28SanitizeProductList(basePayload.products);
       basePayload.synced_at = feed.synced_at || basePayload.synced_at;
-      basePayload.synced_epoch = feedEpoch || basePayload.synced_epoch;
+      basePayload.synced_epoch = feedEpoch || baseEpoch || 0;
+      if (typeof feed.cookie_expired === "boolean") {
+        basePayload.sapo_cookie_expired = feed.cookie_expired;
+      }
       basePayload.sync_source = "github_release_live_feed";
       return basePayload;
     };
 
-    const v27SilentUpdateDOM = () => {
+    const v28UpdateHeaderSyncStatus = (syncedAt, isExpired) => {
+      const badgeEl = document.getElementById("liveSyncBadge");
+      const dotEl = badgeEl ? badgeEl.querySelector(".live-sync-dot") : null;
+      const timeEl = document.getElementById("liveSyncTimeText");
+      if (!timeEl) return;
+
+      if (isExpired) {
+        timeEl.textContent = currentLang === "VI"
+          ? `⚠️ Cookie Sapo hết hạn (${syncedAt || "Cũ"})`
+          : `⚠️ Sapo Cookie Expired (${syncedAt || "Stale"})`;
+        if (badgeEl) {
+          badgeEl.style.background = "var(--warn-bg)";
+          badgeEl.style.color = "var(--warn-amber)";
+        }
+        if (dotEl) dotEl.style.background = "var(--warn-amber)";
+      } else {
+        timeEl.textContent = (currentLang === "VI" ? "Cập nhật: " : "Synced: ") + (syncedAt || "Live");
+        if (badgeEl) {
+          badgeEl.style.background = "";
+          badgeEl.style.color = "";
+        }
+        if (dotEl) dotEl.style.background = "";
+      }
+    };
+
+    const v28SilentUpdateDOM = () => {
       if (typeof purgeExcludedSkusEverywhere === "function") purgeExcludedSkusEverywhere();
-      v27EnforceMinStock(false);
+      v28EnforceMinStock(false);
       syncMobileGridClass();
       ensureDefaultSelectedSizes();
       renderDynamicCategoryBar();
@@ -5516,7 +5550,7 @@
       const keepCount = Math.max(RENDER_BATCH_SIZE, renderedCount || RENDER_BATCH_SIZE);
 
       filteredProductsCache = PRODUCTS.filter((p) => {
-        if (!Array.isArray(p.variants) || !p.variants.length || v27CalcTotalStock(p) < MIN_TOTAL_STOCK_V27) return false;
+        if (!Array.isArray(p.variants) || !p.variants.length || v28CalcTotalStock(p) < MIN_TOTAL_STOCK_V28) return false;
         if (document.body.classList.contains("is-admin")) {
           if (adminMediaFilter === "MISSING" && hasCustomProductMedia(p)) return false;
           if (adminMediaFilter === "HAS_MEDIA" && !hasCustomProductMedia(p)) return false;
@@ -5532,7 +5566,7 @@
           else if (currentPriceTier === "199_UP" && sPrice < 190000) return false;
         }
         if (q && !p.sku.toLowerCase().includes(q) && !p.name.toLowerCase().includes(q)) return false;
-        if (onlyInStock && getProductTotal(p) < MIN_TOTAL_STOCK_V27) return false;
+        if (onlyInStock && getProductTotal(p) < MIN_TOTAL_STOCK_V28) return false;
         return true;
       });
 
@@ -5542,7 +5576,7 @@
       }
 
       if (!filteredProductsCache.length) {
-        _preV27RenderCatalog();
+        _preV28RenderCatalog();
         return;
       }
 
@@ -5576,14 +5610,14 @@
         ensureScrollObserver();
       }
     };
-    window.silentUpdateCatalogInPlace = v27SilentUpdateDOM;
+    window.silentUpdateCatalogInPlace = v28SilentUpdateDOM;
 
     refreshLiveSapoStock = async function(silent = true) {
-      if (v27SyncInFlight) return false;
-      v27SyncInFlight = true;
+      if (v28SyncInFlight) return false;
+      v28SyncInFlight = true;
       const timeEl = document.getElementById("liveSyncTimeText");
       if (!silent && timeEl) {
-        timeEl.textContent = currentLang === "VI" ? "Đang cập nhật tồn..." : "Syncing stock...";
+        timeEl.textContent = currentLang === "VI" ? "Đang kiểm tra Sapo..." : "Checking Sapo...";
       }
       try {
         let data = null;
@@ -5613,8 +5647,8 @@
         }
 
         if (data.sync_source !== "cloudflare_edge_sapo_live") {
-          const liveFeed = await v27FetchLiveRelease(!silent);
-          if (liveFeed) data = v27ApplyReleaseFeed(data, liveFeed);
+          const liveFeed = await v28FetchLiveRelease(!silent);
+          if (liveFeed) data = v28ApplyReleaseFeed(data, liveFeed);
         }
 
         if (data && Array.isArray(data.products)) {
@@ -5626,26 +5660,30 @@
             if (srResp.ok) {
               const remoteRules = await srResp.json();
               if (remoteRules && Object.keys(remoteRules).length >= 10) {
-                v27ApplyPriceFixes(remoteRules);
+                v28ApplyPriceFixes(remoteRules);
                 SALE_RULES_MASTER = remoteRules;
               }
             }
           } catch (_) {}
 
-          const cleanLiveProds = v27SanitizeProductList(data.products);
+          const cleanLiveProds = v28SanitizeProductList(data.products);
           stripSapoImagesFromProducts(cleanLiveProds);
           PRODUCTS = mergeAndApplySaleRules(cleanLiveProds, SALE_RULES_MASTER);
-          v27EnforceMinStock(true);
+          v28EnforceMinStock(true);
 
-          if (timeEl && data.synced_at) {
-            timeEl.textContent = (currentLang === "VI" ? "Cập nhật: " : "Synced: ") + data.synced_at;
-          }
-          if (!silent && data.synced_at) {
-            showToast(`⚡ Đã đồng bộ tồn 5 kho (${data.synced_at}) • Hiện ${PRODUCTS.length} mẫu (mọi size đều ≥ 3)`);
+          const isExpired = Boolean(data.sapo_cookie_expired);
+          v28UpdateHeaderSyncStatus(data.synced_at, isExpired);
+
+          if (!silent) {
+            if (isExpired) {
+              showToast(`⚠️ SAPO_COOKIE trên GitHub đã hết hạn (Tồn đang dừng ở ${data.synced_at || "mốc cũ"}) — Hãy dán lại Cookie mới!`);
+            } else if (data.synced_at) {
+              showToast(`⚡ Đã đồng bộ Sapo mới nhất (${data.synced_at}) • Hiện ${PRODUCTS.length} mẫu (mọi size đều ≥ 3)`);
+            }
           }
           lastSyncedStamp = data.synced_at || "";
 
-          v27SilentUpdateDOM();
+          v28SilentUpdateDOM();
           updateCartBar();
           const billModalEl = document.getElementById("billModal");
           if (billModalEl && billModalEl.classList.contains("open")) {
@@ -5656,13 +5694,13 @@
         }
       } catch (_) {
       } finally {
-        v27SyncInFlight = false;
+        v28SyncInFlight = false;
       }
       return false;
     };
 
-    v27EnforceMinStock(false);
-    v27SilentUpdateDOM();
+    v28EnforceMinStock(false);
+    v28SilentUpdateDOM();
     updateCartBar();
     setInterval(() => {
       if (document.visibilityState === "visible") refreshLiveSapoStock(true);
