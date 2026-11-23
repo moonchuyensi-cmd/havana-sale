@@ -1,9 +1,11 @@
-// Cloudflare Pages Function: /api/stock (v25 Strict MIN_TOTAL_STOCK >= 3 + 45s Edge Sync)
+// Cloudflare Pages Function: /api/stock (v27 Fix CV538 Sapo Image + Variant >= 3 + 45s Edge Sync)
 const MIN_TOTAL_STOCK = 3;
+const MIN_VARIANT_STOCK = 3;
 const EXCLUDED_SKUS = new Set(["LEN374", "QJ358"]);
+const FORCE_SAPO_MEDIA_SKUS = new Set(["SAT532", "CV538"]);
 const GITHUB_REPO_SLUG = "moonchuyensi-cmd/havana-sale";
 const SAPO_CDN_RX = /(dktcdn\.net|mysapogo\.com|sapo\.vn|sapogo\.com|sapocdn\.net|amazonaws\.com|cloudfront\.net)/i;
-const PRICE_PATCH_V25 = {
+const PRICE_PATCH_V27 = {
   AO1010: { origPrice: 194000, salePrice: 79000, discountPct: 59 },
   AO726:  { origPrice: 225000, salePrice: 39000, discountPct: 83 },
   AO1016: { origPrice: 214000, salePrice: 79000, discountPct: 63 }
@@ -14,6 +16,34 @@ function isExternalSapoUrl(u) {
   if (!s || s.startsWith("./") || s.startsWith("images/") || s.startsWith("videos/") || s.startsWith("sizes/") || s.startsWith("data:") || s.startsWith("blob:")) return false;
   if (s.includes("raw.githubusercontent.com/" + GITHUB_REPO_SLUG)) return false;
   return SAPO_CDN_RX.test(s) || /^https?:\/\//i.test(s);
+}
+
+function filterProductVariantsMinStock(variantsArr, minVarStock = MIN_VARIANT_STOCK) {
+  if (!Array.isArray(variantsArr)) return [];
+  const order = [];
+  const map = {};
+  for (const v of variantsArr) {
+    if (!v) continue;
+    const sz = String(v.size || "Freesize").trim() || "Freesize";
+    if (!map[sz]) {
+      order.push(sz);
+      map[sz] = {};
+    }
+    const st = (v.stocks && typeof v.stocks === "object") ? v.stocks : {};
+    for (const [wid, q] of Object.entries(st)) {
+      map[sz][wid] = (map[sz][wid] || 0) + Math.max(0, Number(q) || 0);
+    }
+  }
+  const out = [];
+  for (const sz of order) {
+    const st = map[sz];
+    let vTot = 0;
+    for (const q of Object.values(st)) vTot += q;
+    if (vTot >= minVarStock) {
+      out.push({ size: sz, stocks: st });
+    }
+  }
+  return out;
 }
 
 function calcTotalStock(p) {
@@ -129,7 +159,7 @@ export async function onRequestGet(context) {
   const authCandidates = buildAuthCandidates(env, domain);
 
   const cache = caches.default;
-  const cacheKey = new Request(new URL("/api/stock-edge-v25", request.url).toString());
+  const cacheKey = new Request(new URL("/api/stock-edge-v27", request.url).toString());
   if (!forceBypass) {
     const cached = await cache.match(cacheKey);
     if (cached) return cached;
@@ -153,7 +183,7 @@ export async function onRequestGet(context) {
         if (saleRules) delete saleRules[ex];
       }
       if (saleRules) {
-        for (const [k, patch] of Object.entries(PRICE_PATCH_V25)) {
+        for (const [k, patch] of Object.entries(PRICE_PATCH_V27)) {
           if (saleRules[k]) Object.assign(saleRules[k], patch);
         }
       }
@@ -262,26 +292,29 @@ export async function onRequestGet(context) {
         for (const item of payload.products) {
           const code = String(item.sku || "").trim().toUpperCase().split("-")[0];
           seen.add(code);
-          item.variants = liveByBase[code] || [];
+          item.variants = filterProductVariantsMinStock(liveByBase[code] || [], MIN_VARIANT_STOCK);
           if (nameByBase[code]) item.name = nameByBase[code];
         }
         if (saleRules) {
           for (const [code, rule] of Object.entries(saleRules)) {
             if (!seen.has(code) && !EXCLUDED_SKUS.has(code) && liveByBase[code]) {
-              payload.products.push({
-                sku: code,
-                name: nameByBase[code] || ("Sản phẩm Havana " + code),
-                subType: rule.subType || "",
-                origPrice: rule.origPrice || 299000,
-                salePrice: rule.salePrice || 159000,
-                discountPct: rule.discountPct || 30,
-                image: "",
-                images: [],
-                sapoImages: sapoImgsByBase[code] || [],
-                video: "",
-                sizeChart: "",
-                variants: liveByBase[code]
-              });
+              const cleanVars = filterProductVariantsMinStock(liveByBase[code], MIN_VARIANT_STOCK);
+              if (cleanVars.length > 0) {
+                payload.products.push({
+                  sku: code,
+                  name: nameByBase[code] || ("Sản phẩm Havana " + code),
+                  subType: rule.subType || "",
+                  origPrice: rule.origPrice || 299000,
+                  salePrice: rule.salePrice || 159000,
+                  discountPct: rule.discountPct || 30,
+                  image: "",
+                  images: [],
+                  sapoImages: sapoImgsByBase[code] || [],
+                  video: "",
+                  sizeChart: "",
+                  variants: cleanVars
+                });
+              }
             }
           }
         }
@@ -299,7 +332,7 @@ export async function onRequestGet(context) {
   if (!syncedLive && Array.isArray(payload.products)) {
     try {
       const ghRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO_SLUG}/releases/tags/live-stock`, {
-        headers: { "Accept": "application/vnd.github+json", "User-Agent": "havana-sale-cf-edge-v25" }
+        headers: { "Accept": "application/vnd.github+json", "User-Agent": "havana-sale-cf-edge-v27" }
       });
       if (ghRes.ok) {
         const relJson = await ghRes.json();
@@ -317,12 +350,16 @@ export async function onRequestGet(context) {
                 seenInBase.add(code);
                 const fEntry = feed.items[code];
                 if (fEntry && Array.isArray(fEntry.v)) {
-                  item.variants = fEntry.v.map(([sz, qArr]) => {
+                  const rawVars = fEntry.v.map(([sz, qArr]) => {
                     const st = {};
                     whIds.forEach((wid, idx) => { st[wid] = Number((qArr && qArr[idx]) || 0); });
                     return { size: sz || "Freesize", stocks: st };
                   });
+                  item.variants = filterProductVariantsMinStock(rawVars, MIN_VARIANT_STOCK);
                   if (fEntry.n) item.name = fEntry.n;
+                  if (Array.isArray(fEntry.si) && fEntry.si.length) {
+                    sapoImgsByBase[code] = fEntry.si;
+                  }
                 } else if (feed.full) {
                   item.variants = [];
                 }
@@ -331,25 +368,28 @@ export async function onRequestGet(context) {
                 for (const [code, fEntry] of Object.entries(feed.items)) {
                   if (!seenInBase.has(code) && saleRules[code] && !EXCLUDED_SKUS.has(code) && Array.isArray(fEntry.v)) {
                     const rule = saleRules[code];
-                    const builtVars = fEntry.v.map(([sz, qArr]) => {
+                    const rawVars = fEntry.v.map(([sz, qArr]) => {
                       const st = {};
                       whIds.forEach((wid, idx) => { st[wid] = Number((qArr && qArr[idx]) || 0); });
                       return { size: sz || "Freesize", stocks: st };
                     });
-                    payload.products.push({
-                      sku: code,
-                      name: fEntry.n || ("Sản phẩm Havana " + code),
-                      subType: rule.subType || "",
-                      origPrice: rule.origPrice || 299000,
-                      salePrice: rule.salePrice || 159000,
-                      discountPct: rule.discountPct || 30,
-                      image: "",
-                      images: [],
-                      sapoImages: fEntry.si || [],
-                      video: "",
-                      sizeChart: "",
-                      variants: builtVars
-                    });
+                    const cleanVars = filterProductVariantsMinStock(rawVars, MIN_VARIANT_STOCK);
+                    if (cleanVars.length > 0) {
+                      payload.products.push({
+                        sku: code,
+                        name: fEntry.n || ("Sản phẩm Havana " + code),
+                        subType: rule.subType || "",
+                        origPrice: rule.origPrice || 299000,
+                        salePrice: rule.salePrice || 159000,
+                        discountPct: rule.discountPct || 30,
+                        image: "",
+                        images: [],
+                        sapoImages: fEntry.si || [],
+                        video: "",
+                        sizeChart: "",
+                        variants: cleanVars
+                      });
+                    }
                   }
                 }
               }
@@ -378,7 +418,8 @@ export async function onRequestGet(context) {
         }
         if (rule.subType && !p.subType) p.subType = rule.subType;
       }
-      return calcTotalStock(p) >= MIN_TOTAL_STOCK;
+      p.variants = filterProductVariantsMinStock(p.variants || [], MIN_VARIANT_STOCK);
+      return p.variants.length > 0 && calcTotalStock(p) >= MIN_TOTAL_STOCK;
     });
 
     const sat533SapoSet = new Set(sapoImgsByBase["SAT533"] || []);
@@ -392,11 +433,12 @@ export async function onRequestGet(context) {
 
     for (const p of payload.products) {
       const code = String(p.sku || "").trim().toUpperCase().split("-")[0];
+      const forceSapoOnly = FORCE_SAPO_MEDIA_SKUS.has(code);
       const rawImgs = Array.isArray(p.images) ? p.images : [];
       let customImgs = [];
       let sapoImgs = [];
-      const seedSapo = (code === "SAT532" && (sapoImgsByBase["SAT532"] || []).length > 0)
-        ? [...sapoImgsByBase["SAT532"]]
+      const seedSapo = (forceSapoOnly && (sapoImgsByBase[code] || []).length > 0)
+        ? [...sapoImgsByBase[code]]
         : [...(sapoImgsByBase[code] || []), ...(Array.isArray(p.sapoImages) ? p.sapoImages : [])];
 
       for (const u of [p.image, ...rawImgs, ...seedSapo]) {
@@ -406,11 +448,14 @@ export async function onRequestGet(context) {
           if (code === "SAT532" && (sat533SapoSet.has(s) || s.toLowerCase().includes("sat533"))) continue;
           if (!sapoImgs.includes(s)) sapoImgs.push(s);
         } else {
-          if (code === "SAT532") continue;
+          if (forceSapoOnly) continue;
           if (!customImgs.includes(s)) customImgs.push(s);
         }
       }
-      if (code === "SAT532") { p.video = ""; p.sizeChart = ""; }
+      if (forceSapoOnly) {
+        p.video = "";
+        p.sizeChart = "";
+      }
       const finalImgs = customImgs.length > 0 ? customImgs : sapoImgs;
       p.sapoImages = sapoImgs;
       p.hasCustomMedia = customImgs.length > 0 || Boolean(p.video && !isExternalSapoUrl(String(p.video)));
@@ -420,6 +465,7 @@ export async function onRequestGet(context) {
   }
 
   payload.min_stock_rule = MIN_TOTAL_STOCK;
+  payload.min_variant_stock_rule = MIN_VARIANT_STOCK;
   payload.sync_source = syncSource;
   const outResp = new Response(JSON.stringify(payload), {
     headers: {
