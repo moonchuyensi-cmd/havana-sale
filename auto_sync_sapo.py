@@ -16,9 +16,9 @@ import urllib.request
 import zipfile as zf_mod
 
 # ==============================================================================
-# AUTO_SYNC_SAPO.PY (v27 - XOA ANH SAI CV538 & BO SUNG ANH GOC SAPO + LOC TON >= 3)
-# Quet xoa triet de anh/thu muc sai cua CV538 tren toan repo & lay anh tu Sapo
-# Khong them ma QR - Tu dong dong bo index.html, functions/api/stock.js & sapo_5_kho.json
+# AUTO_SYNC_SAPO.PY (v28 - FIX EPOCH CLOCK ROLLBACK & CANH BAO SAPO_COOKIE HET HAN)
+# Khong ghi gio gia khi Cookie het han + Sua loi live-stock 21/11 de nguoc gio moi
+# Giu nguyen loc kep bien the >= 3, gia AO1010/AO726/AO1016, anh Sapo CV538 & SAT532
 # ==============================================================================
 
 MIN_TOTAL_STOCK = 3
@@ -27,7 +27,7 @@ DEFAULT_COOKIE = ""
 DOMAIN = os.environ.get("SAPO_DOMAIN", "havanago.mysapogo.com").strip()
 SKU_REGEX = re.compile(r"^([A-Z]{1,5}\d{1,5})", re.I)
 EXCLUDED_SKUS = {"LEN374", "QJ358"}
-PRICE_PATCH_V27 = {
+PRICE_PATCH_V28 = {
     "AO1010": (194000, 79000, 59, 0.5928),
     "AO726":  (225000, 39000, 83, 0.8267),
     "AO1016": (214000, 79000, 63, 0.6308),
@@ -44,18 +44,17 @@ PK_KNOWN_SUBTYPES = {
     "PK997": "Túi xách", "PK999": "Túi xách", "PK1006": "Giày", "PK1027": "Túi xách", "PK1032": "Giày",
 }
 
-# Danh sach ma can xoa sach anh tu up bi nham va bat buoc lay anh goc tu Sapo
 FORCE_RESET_TO_SAPO_SKUS = {"SAT532", "CV538"}
 PURGE_STATE_FILE = ".purged_wrong_media_v27.json"
 
-CF_STOCK_JS_V27 = r'''// Cloudflare Pages Function: /api/stock (v27 Fix CV538 Sapo Image + Variant >= 3 + 45s Edge Sync)
+CF_STOCK_JS_V28 = r'''// Cloudflare Pages Function: /api/stock (v28 Fix Epoch Comparison + Cookie Expiry Flag + Variant >= 3)
 const MIN_TOTAL_STOCK = 3;
 const MIN_VARIANT_STOCK = 3;
 const EXCLUDED_SKUS = new Set(["LEN374", "QJ358"]);
 const FORCE_SAPO_MEDIA_SKUS = new Set(["SAT532", "CV538"]);
 const GITHUB_REPO_SLUG = "moonchuyensi-cmd/havana-sale";
 const SAPO_CDN_RX = /(dktcdn\.net|mysapogo\.com|sapo\.vn|sapogo\.com|sapocdn\.net|amazonaws\.com|cloudfront\.net)/i;
-const PRICE_PATCH_V27 = {
+const PRICE_PATCH_V28 = {
   AO1010: { origPrice: 194000, salePrice: 79000, discountPct: 59 },
   AO726:  { origPrice: 225000, salePrice: 39000, discountPct: 83 },
   AO1016: { origPrice: 214000, salePrice: 79000, discountPct: 63 }
@@ -209,7 +208,7 @@ export async function onRequestGet(context) {
   const authCandidates = buildAuthCandidates(env, domain);
 
   const cache = caches.default;
-  const cacheKey = new Request(new URL("/api/stock-edge-v27", request.url).toString());
+  const cacheKey = new Request(new URL("/api/stock-edge-v28", request.url).toString());
   if (!forceBypass) {
     const cached = await cache.match(cacheKey);
     if (cached) return cached;
@@ -233,7 +232,7 @@ export async function onRequestGet(context) {
         if (saleRules) delete saleRules[ex];
       }
       if (saleRules) {
-        for (const [k, patch] of Object.entries(PRICE_PATCH_V27)) {
+        for (const [k, patch] of Object.entries(PRICE_PATCH_V28)) {
           if (saleRules[k]) Object.assign(saleRules[k], patch);
         }
       }
@@ -372,6 +371,7 @@ export async function onRequestGet(context) {
         const pad = (n) => String(n).padStart(2, "0");
         payload.synced_at = `${pad(nowVN.getUTCHours())}:${pad(nowVN.getUTCMinutes())} ${pad(nowVN.getUTCDate())}/${pad(nowVN.getUTCMonth() + 1)}`;
         payload.synced_epoch = Math.floor(Date.now() / 1000);
+        payload.sapo_cookie_expired = false;
         syncedLive = true;
         syncSource = "cloudflare_edge_sapo_live";
         break;
@@ -382,16 +382,22 @@ export async function onRequestGet(context) {
   if (!syncedLive && Array.isArray(payload.products)) {
     try {
       const ghRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO_SLUG}/releases/tags/live-stock`, {
-        headers: { "Accept": "application/vnd.github+json", "User-Agent": "havana-sale-cf-edge-v27" }
+        headers: { "Accept": "application/vnd.github+json", "User-Agent": "havana-sale-cf-edge-v28" }
       });
       if (ghRes.ok) {
         const relJson = await ghRes.json();
         if (relJson && relJson.body) {
           const feed = JSON.parse(relJson.body);
           if (feed && feed.items && Array.isArray(feed.warehouses)) {
+            const feedEpoch = Number(feed.synced_epoch || 0);
+            const baseEpoch = Number(payload.synced_epoch || 0);
             const feedMins = parseStampToMinutes(feed.synced_at);
             const baseMins = parseStampToMinutes(payload.synced_at);
-            if (feedMins >= baseMins) {
+            const isNewer = (feedEpoch > 0 && baseEpoch > 0)
+              ? (feedEpoch >= baseEpoch)
+              : (feedMins > baseMins);
+
+            if (isNewer) {
               const whIds = feed.warehouses.map((w) => w.id);
               payload.warehouses = feed.warehouses;
               const seenInBase = new Set();
@@ -444,7 +450,8 @@ export async function onRequestGet(context) {
                 }
               }
               payload.synced_at = feed.synced_at;
-              payload.synced_epoch = feed.synced_epoch || Math.floor(Date.now() / 1000);
+              payload.synced_epoch = feedEpoch || payload.synced_epoch || 0;
+              payload.sapo_cookie_expired = Boolean(feed.cookie_expired);
               syncedLive = true;
               syncSource = "github_release_live_feed";
             }
@@ -528,12 +535,12 @@ export async function onRequestGet(context) {
 }
 '''
 
-V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRICT VARIANT >= 3 & TOTAL >= 3 === */
-    const MIN_TOTAL_STOCK_V27 = 3;
-    const MIN_VARIANT_STOCK_V27 = 3;
-    const FORCE_SAPO_MEDIA_V27 = new Set(["SAT532", "CV538"]);
-    let v27SyncInFlight = false;
-    let v27LastReleaseCheckMs = 0;
+V28_INDEX_JS_ADDON = r'''/* === v28: FIX EPOCH ROLLBACK + SAPO COOKIE EXPIRY INDICATOR + STRICT VARIANT >= 3 === */
+    const MIN_TOTAL_STOCK_V28 = 3;
+    const MIN_VARIANT_STOCK_V28 = 3;
+    const FORCE_SAPO_MEDIA_V28 = new Set(["SAT532", "CV538"]);
+    let v28SyncInFlight = false;
+    let v28LastReleaseCheckMs = 0;
 
     if (typeof RESET_TO_SAPO_SKUS_V21 !== "undefined" && RESET_TO_SAPO_SKUS_V21 && typeof RESET_TO_SAPO_SKUS_V21.add === "function") {
       RESET_TO_SAPO_SKUS_V21.add("CV538");
@@ -545,13 +552,13 @@ V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRIC
       sessionStorage.removeItem("havana_live_rel_v22");
       sessionStorage.removeItem("havana_live_rel_v25");
       sessionStorage.removeItem("havana_live_rel_v26");
+      sessionStorage.removeItem("havana_live_rel_v27");
     } catch (_) {}
 
-    if (typeof MEDIA_CACHE_VERSION !== "undefined" && MEDIA_CACHE_VERSION < 27) {
-      MEDIA_CACHE_VERSION = 27;
+    if (typeof MEDIA_CACHE_VERSION !== "undefined" && MEDIA_CACHE_VERSION < 28) {
+      MEDIA_CACHE_VERSION = 28;
     }
 
-    // Xoa sach anh CV538 cu nam trong IndexedDB trinh duyet (neu tung luu tam)
     (async function purgeStaleCv538VaultOnce() {
       try {
         if (!localStorage.getItem("havana_purged_cv538_v27")) {
@@ -575,7 +582,7 @@ V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRIC
                 (req.result || []).forEach((row) => {
                   const rSku = String(row.sku || "").toUpperCase();
                   const rPath = String(row.path || "").toUpperCase();
-                  if (FORCE_SAPO_MEDIA_V27.has(rSku) || rPath.includes("CV538") || rPath.includes("SAT532")) {
+                  if (FORCE_SAPO_MEDIA_V28.has(rSku) || rPath.includes("CV538") || rPath.includes("SAT532")) {
                     store.delete(row.path);
                   }
                 });
@@ -587,18 +594,18 @@ V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRIC
       } catch (_) {}
     })();
 
-    const v27ShouldForceSapoMedia = (code) => {
-      if (!FORCE_SAPO_MEDIA_V27.has(code)) return false;
+    const v28ShouldForceSapoMedia = (code) => {
+      if (!FORCE_SAPO_MEDIA_V28.has(code)) return false;
       if (typeof sessionFreshUploadedSkus !== "undefined" && sessionFreshUploadedSkus && sessionFreshUploadedSkus.has(code)) {
         return false;
       }
       return true;
     };
 
-    const v27CleanForcedSapoItem = (p) => {
+    const v28CleanForcedSapoItem = (p) => {
       if (!p) return;
       const code = normalizeBaseCode(String(p.sku || "").split("-")[0]);
-      if (!v27ShouldForceSapoMedia(code)) return;
+      if (!v28ShouldForceSapoMedia(code)) return;
 
       if (typeof repoLiveMediaBySku === "object" && repoLiveMediaBySku && repoLiveMediaBySku[code]) {
         delete repoLiveMediaBySku[code];
@@ -626,28 +633,28 @@ V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRIC
       p.image = sapoUrls[0] || "";
     };
 
-    const _preV27StripSapo = stripSapoImagesFromProducts;
+    const _preV28StripSapo = stripSapoImagesFromProducts;
     stripSapoImagesFromProducts = function(list) {
-      _preV27StripSapo(list);
+      _preV28StripSapo(list);
       if (Array.isArray(list)) {
-        list.forEach((p) => v27CleanForcedSapoItem(p));
+        list.forEach((p) => v28CleanForcedSapoItem(p));
       }
     };
 
-    const _preV27GetProductSlides = getProductSlides;
+    const _preV28GetProductSlides = getProductSlides;
     getProductSlides = function(p) {
       const code = normalizeBaseCode(String(p?.sku || "").split("-")[0]);
-      if (v27ShouldForceSapoMedia(code)) {
-        v27CleanForcedSapoItem(p);
+      if (v28ShouldForceSapoMedia(code)) {
+        v28CleanForcedSapoItem(p);
         if (Array.isArray(p.sapoImages) && p.sapoImages.length > 0) {
           return p.sapoImages.map((src) => ({ type: "image", src }));
         }
         return [{ type: "image", src: svgPlaceholder(p.sku, p.name, "#d8f1ef", "#eef9f8") }];
       }
-      return _preV27GetProductSlides(p);
+      return _preV28GetProductSlides(p);
     };
 
-    const v27ApplyPriceFixes = (rulesMap) => {
+    const v28ApplyPriceFixes = (rulesMap) => {
       if (!rulesMap || typeof rulesMap !== "object") return;
       const fixed = {
         AO1010: { origPrice: 194000, salePrice: 79000, discountPct: 59 },
@@ -659,7 +666,7 @@ V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRIC
       });
     };
 
-    const v27FilterVariants = (variantsArr) => {
+    const v28FilterVariants = (variantsArr) => {
       if (!Array.isArray(variantsArr)) return [];
       const order = [];
       const map = {};
@@ -679,14 +686,14 @@ V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRIC
       order.forEach((sz) => {
         const st = map[sz];
         const vTot = Object.values(st).reduce((a, b) => a + b, 0);
-        if (vTot >= MIN_VARIANT_STOCK_V27) {
+        if (vTot >= MIN_VARIANT_STOCK_V28) {
           valid.push({ size: sz, stocks: st });
         }
       });
       return valid;
     };
 
-    const v27CalcTotalStock = (p) => {
+    const v28CalcTotalStock = (p) => {
       if (!p || !Array.isArray(p.variants)) return 0;
       return p.variants.reduce((sum, v) => {
         const st = (v && v.stocks && typeof v.stocks === "object") ? v.stocks : {};
@@ -694,7 +701,7 @@ V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRIC
       }, 0);
     };
 
-    const v27SanitizeProductList = (list) => {
+    const v28SanitizeProductList = (list) => {
       if (!Array.isArray(list)) return [];
       const out = [];
       list.forEach((p) => {
@@ -707,9 +714,9 @@ V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRIC
           if (Number(rule.salePrice) > 0) p.salePrice = Number(rule.salePrice);
           p.discountPct = getProductDiscountPct(p);
         }
-        v27CleanForcedSapoItem(p);
-        p.variants = v27FilterVariants(p.variants);
-        if (p.variants.length > 0 && v27CalcTotalStock(p) >= MIN_TOTAL_STOCK_V27) {
+        v28CleanForcedSapoItem(p);
+        p.variants = v28FilterVariants(p.variants);
+        if (p.variants.length > 0 && v28CalcTotalStock(p) >= MIN_TOTAL_STOCK_V28) {
           out.push(p);
         }
       });
@@ -725,27 +732,27 @@ V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRIC
         }
         const curSz = selectedVariantBySku[p.sku];
         const curVar = curSz ? p.variants.find((v) => v.size === curSz) : null;
-        if (!curVar || getVariantTotal(curVar) < MIN_VARIANT_STOCK_V27) {
-          const firstValid = p.variants.find((v) => getVariantTotal(v) >= MIN_VARIANT_STOCK_V27) || p.variants[0];
+        if (!curVar || getVariantTotal(curVar) < MIN_VARIANT_STOCK_V28) {
+          const firstValid = p.variants.find((v) => getVariantTotal(v) >= MIN_VARIANT_STOCK_V28) || p.variants[0];
           if (firstValid) selectedVariantBySku[p.sku] = firstValid.size;
         }
       });
     };
 
-    const v27SyncStockBadgeLabel = () => {
+    const v28SyncStockBadgeLabel = () => {
       const stTxt = document.getElementById("onlyInStockText");
       if (stTxt) {
         stTxt.textContent = currentLang === "VI" ? "Tồn ≥ 3" : "Stock ≥ 3";
       }
     };
 
-    const v27EnforceMinStock = (notifyCartChange = false) => {
-      v27ApplyPriceFixes(SALE_RULES_MASTER);
+    const v28EnforceMinStock = (notifyCartChange = false) => {
+      v28ApplyPriceFixes(SALE_RULES_MASTER);
       if (Array.isArray(BASELINE_PRODUCTS)) {
-        BASELINE_PRODUCTS = v27SanitizeProductList(BASELINE_PRODUCTS);
+        BASELINE_PRODUCTS = v28SanitizeProductList(BASELINE_PRODUCTS);
       }
       if (Array.isArray(PRODUCTS)) {
-        PRODUCTS = v27SanitizeProductList(PRODUCTS);
+        PRODUCTS = v28SanitizeProductList(PRODUCTS);
       }
       ensureDefaultSelectedSizes();
 
@@ -753,18 +760,18 @@ V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRIC
         let adjusted = false;
         cart = cart.filter((c) => {
           const matchedP = (PRODUCTS || []).find((x) => x.sku === c.sku);
-          if (!matchedP || v27CalcTotalStock(matchedP) < MIN_TOTAL_STOCK_V27) {
+          if (!matchedP || v28CalcTotalStock(matchedP) < MIN_TOTAL_STOCK_V28) {
             adjusted = true;
             return false;
           }
           c.origPrice = matchedP.origPrice;
           c.finalPrice = getProductSalePrice(matchedP);
           c.discountPct = getProductDiscountPct(matchedP);
-          if (v27ShouldForceSapoMedia(c.sku)) {
+          if (v28ShouldForceSapoMedia(c.sku)) {
             c.image = matchedP.image || "";
           }
           const maxAvail = getMaxStockForSkuSize(c.sku, c.size);
-          if (maxAvail < MIN_VARIANT_STOCK_V27) {
+          if (maxAvail < MIN_VARIANT_STOCK_V28) {
             adjusted = true;
             return false;
           }
@@ -782,14 +789,14 @@ V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRIC
           }
         }
       }
-      v27SyncStockBadgeLabel();
+      v28SyncStockBadgeLabel();
     };
 
-    const _preV27MergeRules = mergeAndApplySaleRules;
+    const _preV28MergeRules = mergeAndApplySaleRules;
     mergeAndApplySaleRules = function(liveList, rulesObj) {
-      v27ApplyPriceFixes(SALE_RULES_MASTER);
-      v27ApplyPriceFixes(rulesObj);
-      const cleanedInput = v27SanitizeProductList(Array.isArray(liveList) ? liveList : []);
+      v28ApplyPriceFixes(SALE_RULES_MASTER);
+      v28ApplyPriceFixes(rulesObj);
+      const cleanedInput = v28SanitizeProductList(Array.isArray(liveList) ? liveList : []);
       const baseRules = (rulesObj && Object.keys(rulesObj).length > 0) ? rulesObj : SALE_RULES_MASTER;
       const scopedRules = {};
       if (baseRules) {
@@ -798,49 +805,49 @@ V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRIC
           if (liveSet.has(k)) scopedRules[k] = baseRules[k];
         });
       }
-      const merged = _preV27MergeRules(cleanedInput, scopedRules);
-      return v27SanitizeProductList(merged);
+      const merged = _preV28MergeRules(cleanedInput, scopedRules);
+      return v28SanitizeProductList(merged);
     };
 
-    const _preV27RenderCatalog = renderCatalog;
+    const _preV28RenderCatalog = renderCatalog;
     renderCatalog = function() {
-      v27EnforceMinStock(false);
-      _preV27RenderCatalog();
+      v28EnforceMinStock(false);
+      _preV28RenderCatalog();
     };
 
-    const _preV27SetLang = setLang;
+    const _preV28SetLang = setLang;
     setLang = function(lang) {
-      _preV27SetLang(lang);
-      v27SyncStockBadgeLabel();
+      _preV28SetLang(lang);
+      v28SyncStockBadgeLabel();
     };
 
     if (typeof exportCleanIndexHtml === "function") {
-      const _preV27ExportCleanHtml = exportCleanIndexHtml;
+      const _preV28ExportCleanHtml = exportCleanIndexHtml;
       exportCleanIndexHtml = function() {
-        v27EnforceMinStock(false);
-        _preV27ExportCleanHtml();
+        v28EnforceMinStock(false);
+        _preV28ExportCleanHtml();
       };
     }
 
-    const v27ParseStampMins = (stampStr) => {
+    const v28ParseStampMins = (stampStr) => {
       const m = String(stampStr || "").trim().match(/^(\d{1,2}):(\d{2})\s+(\d{1,2})\/(\d{1,2})/);
       if (!m) return 0;
       return (((Number(m[4]) * 32 + Number(m[3])) * 24 + Number(m[1])) * 60) + Number(m[2]);
     };
 
-    const v27FetchLiveRelease = async (forceNow = false) => {
-      const cacheKey = "havana_live_rel_v27";
+    const v28FetchLiveRelease = async (forceNow = false) => {
+      const cacheKey = "havana_live_rel_v28";
       const nowMs = Date.now();
-      if (!forceNow && (nowMs - v27LastReleaseCheckMs < 45000)) {
+      if (!forceNow && (nowMs - v28LastReleaseCheckMs < 45000)) {
         try {
           const cached = JSON.parse(sessionStorage.getItem(cacheKey) || "null");
           if (cached && (nowMs - cached.ts < 45000)) return cached.feed;
         } catch (_) {}
       }
-      v27LastReleaseCheckMs = nowMs;
+      v28LastReleaseCheckMs = nowMs;
       try {
         const repoSlug = typeof GITHUB_REPO_SLUG !== "undefined" ? GITHUB_REPO_SLUG : "moonchuyensi-cmd/havana-sale";
-        const res = await fetch(`https://api.github.com/repos/${repoSlug}/releases/tags/live-stock`, {
+        const res = await fetch(`https://api.github.com/repos/${repoSlug}/releases/tags/live-stock?t=${nowMs}`, {
           headers: { "Accept": "application/vnd.github+json" },
           cache: "no-store"
         });
@@ -856,15 +863,21 @@ V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRIC
       return null;
     };
 
-    const v27ApplyReleaseFeed = (basePayload, feed) => {
+    // SUA TRIET DE LOI SO SANH EPOCH: Khong bao gio lay goi live-stock cu de len du lieu moi
+    const v28ApplyReleaseFeed = (basePayload, feed) => {
       if (!feed || !feed.items || !Array.isArray(feed.warehouses) || !basePayload || !Array.isArray(basePayload.products)) {
         return basePayload;
       }
-      const feedMins = v27ParseStampMins(feed.synced_at);
-      const baseMins = v27ParseStampMins(basePayload.synced_at);
+      const feedMins = v28ParseStampMins(feed.synced_at);
+      const baseMins = v28ParseStampMins(basePayload.synced_at);
       const feedEpoch = Number(feed.synced_epoch || 0);
       const baseEpoch = Number(basePayload.synced_epoch || 0);
-      if ((feedEpoch && baseEpoch && feedEpoch < baseEpoch) || (!feedEpoch && feedMins < baseMins)) {
+
+      const feedIsOlder = (feedEpoch > 0 && baseEpoch > 0)
+        ? (feedEpoch < baseEpoch)
+        : (baseMins > 0 && feedMins < baseMins);
+
+      if (feedIsOlder) {
         return basePayload;
       }
 
@@ -881,7 +894,7 @@ V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRIC
             whIds.forEach((wid, idx) => { st[wid] = Number((qArr && qArr[idx]) || 0); });
             return { size: sz || "Freesize", stocks: st };
           });
-          item.variants = v27FilterVariants(rawVars);
+          item.variants = v28FilterVariants(rawVars);
           if (fEntry.n) item.name = fEntry.n;
           if (Array.isArray(fEntry.si) && fEntry.si.length) {
             item.sapoImages = fEntry.si;
@@ -901,7 +914,7 @@ V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRIC
             whIds.forEach((wid, idx) => { st[wid] = Number((qArr && qArr[idx]) || 0); });
             return { size: sz || "Freesize", stocks: st };
           });
-          const cleanVars = v27FilterVariants(rawVars);
+          const cleanVars = v28FilterVariants(rawVars);
           if (cleanVars.length > 0) {
             basePayload.products.push({
               sku: code,
@@ -921,16 +934,44 @@ V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRIC
         });
       }
 
-      basePayload.products = v27SanitizeProductList(basePayload.products);
+      basePayload.products = v28SanitizeProductList(basePayload.products);
       basePayload.synced_at = feed.synced_at || basePayload.synced_at;
-      basePayload.synced_epoch = feedEpoch || basePayload.synced_epoch;
+      basePayload.synced_epoch = feedEpoch || baseEpoch || 0;
+      if (typeof feed.cookie_expired === "boolean") {
+        basePayload.sapo_cookie_expired = feed.cookie_expired;
+      }
       basePayload.sync_source = "github_release_live_feed";
       return basePayload;
     };
 
-    const v27SilentUpdateDOM = () => {
+    const v28UpdateHeaderSyncStatus = (syncedAt, isExpired) => {
+      const badgeEl = document.getElementById("liveSyncBadge");
+      const dotEl = badgeEl ? badgeEl.querySelector(".live-sync-dot") : null;
+      const timeEl = document.getElementById("liveSyncTimeText");
+      if (!timeEl) return;
+
+      if (isExpired) {
+        timeEl.textContent = currentLang === "VI"
+          ? `⚠️ Cookie Sapo hết hạn (${syncedAt || "Cũ"})`
+          : `⚠️ Sapo Cookie Expired (${syncedAt || "Stale"})`;
+        if (badgeEl) {
+          badgeEl.style.background = "var(--warn-bg)";
+          badgeEl.style.color = "var(--warn-amber)";
+        }
+        if (dotEl) dotEl.style.background = "var(--warn-amber)";
+      } else {
+        timeEl.textContent = (currentLang === "VI" ? "Cập nhật: " : "Synced: ") + (syncedAt || "Live");
+        if (badgeEl) {
+          badgeEl.style.background = "";
+          badgeEl.style.color = "";
+        }
+        if (dotEl) dotEl.style.background = "";
+      }
+    };
+
+    const v28SilentUpdateDOM = () => {
       if (typeof purgeExcludedSkusEverywhere === "function") purgeExcludedSkusEverywhere();
-      v27EnforceMinStock(false);
+      v28EnforceMinStock(false);
       syncMobileGridClass();
       ensureDefaultSelectedSizes();
       renderDynamicCategoryBar();
@@ -947,7 +988,7 @@ V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRIC
       const keepCount = Math.max(RENDER_BATCH_SIZE, renderedCount || RENDER_BATCH_SIZE);
 
       filteredProductsCache = PRODUCTS.filter((p) => {
-        if (!Array.isArray(p.variants) || !p.variants.length || v27CalcTotalStock(p) < MIN_TOTAL_STOCK_V27) return false;
+        if (!Array.isArray(p.variants) || !p.variants.length || v28CalcTotalStock(p) < MIN_TOTAL_STOCK_V28) return false;
         if (document.body.classList.contains("is-admin")) {
           if (adminMediaFilter === "MISSING" && hasCustomProductMedia(p)) return false;
           if (adminMediaFilter === "HAS_MEDIA" && !hasCustomProductMedia(p)) return false;
@@ -963,7 +1004,7 @@ V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRIC
           else if (currentPriceTier === "199_UP" && sPrice < 190000) return false;
         }
         if (q && !p.sku.toLowerCase().includes(q) && !p.name.toLowerCase().includes(q)) return false;
-        if (onlyInStock && getProductTotal(p) < MIN_TOTAL_STOCK_V27) return false;
+        if (onlyInStock && getProductTotal(p) < MIN_TOTAL_STOCK_V28) return false;
         return true;
       });
 
@@ -973,7 +1014,7 @@ V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRIC
       }
 
       if (!filteredProductsCache.length) {
-        _preV27RenderCatalog();
+        _preV28RenderCatalog();
         return;
       }
 
@@ -1007,14 +1048,14 @@ V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRIC
         ensureScrollObserver();
       }
     };
-    window.silentUpdateCatalogInPlace = v27SilentUpdateDOM;
+    window.silentUpdateCatalogInPlace = v28SilentUpdateDOM;
 
     refreshLiveSapoStock = async function(silent = true) {
-      if (v27SyncInFlight) return false;
-      v27SyncInFlight = true;
+      if (v28SyncInFlight) return false;
+      v28SyncInFlight = true;
       const timeEl = document.getElementById("liveSyncTimeText");
       if (!silent && timeEl) {
-        timeEl.textContent = currentLang === "VI" ? "Đang cập nhật tồn..." : "Syncing stock...";
+        timeEl.textContent = currentLang === "VI" ? "Đang kiểm tra Sapo..." : "Checking Sapo...";
       }
       try {
         let data = null;
@@ -1044,8 +1085,8 @@ V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRIC
         }
 
         if (data.sync_source !== "cloudflare_edge_sapo_live") {
-          const liveFeed = await v27FetchLiveRelease(!silent);
-          if (liveFeed) data = v27ApplyReleaseFeed(data, liveFeed);
+          const liveFeed = await v28FetchLiveRelease(!silent);
+          if (liveFeed) data = v28ApplyReleaseFeed(data, liveFeed);
         }
 
         if (data && Array.isArray(data.products)) {
@@ -1057,26 +1098,30 @@ V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRIC
             if (srResp.ok) {
               const remoteRules = await srResp.json();
               if (remoteRules && Object.keys(remoteRules).length >= 10) {
-                v27ApplyPriceFixes(remoteRules);
+                v28ApplyPriceFixes(remoteRules);
                 SALE_RULES_MASTER = remoteRules;
               }
             }
           } catch (_) {}
 
-          const cleanLiveProds = v27SanitizeProductList(data.products);
+          const cleanLiveProds = v28SanitizeProductList(data.products);
           stripSapoImagesFromProducts(cleanLiveProds);
           PRODUCTS = mergeAndApplySaleRules(cleanLiveProds, SALE_RULES_MASTER);
-          v27EnforceMinStock(true);
+          v28EnforceMinStock(true);
 
-          if (timeEl && data.synced_at) {
-            timeEl.textContent = (currentLang === "VI" ? "Cập nhật: " : "Synced: ") + data.synced_at;
-          }
-          if (!silent && data.synced_at) {
-            showToast(`⚡ Đã đồng bộ tồn 5 kho (${data.synced_at}) • Hiện ${PRODUCTS.length} mẫu (mọi size đều ≥ 3)`);
+          const isExpired = Boolean(data.sapo_cookie_expired);
+          v28UpdateHeaderSyncStatus(data.synced_at, isExpired);
+
+          if (!silent) {
+            if (isExpired) {
+              showToast(`⚠️ SAPO_COOKIE trên GitHub đã hết hạn (Tồn đang dừng ở ${data.synced_at || "mốc cũ"}) — Hãy dán lại Cookie mới!`);
+            } else if (data.synced_at) {
+              showToast(`⚡ Đã đồng bộ Sapo mới nhất (${data.synced_at}) • Hiện ${PRODUCTS.length} mẫu (mọi size đều ≥ 3)`);
+            }
           }
           lastSyncedStamp = data.synced_at || "";
 
-          v27SilentUpdateDOM();
+          v28SilentUpdateDOM();
           updateCartBar();
           const billModalEl = document.getElementById("billModal");
           if (billModalEl && billModalEl.classList.contains("open")) {
@@ -1087,13 +1132,13 @@ V27_INDEX_JS_ADDON = r'''/* === v27: FIX CV538 WRONG IMAGE -> SAPO IMAGE + STRIC
         }
       } catch (_) {
       } finally {
-        v27SyncInFlight = false;
+        v28SyncInFlight = false;
       }
       return false;
     };
 
-    v27EnforceMinStock(false);
-    v27SilentUpdateDOM();
+    v28EnforceMinStock(false);
+    v28SilentUpdateDOM();
     updateCartBar();
     setInterval(() => {
       if (document.visibilityState === "visible") refreshLiveSapoStock(true);
@@ -1122,6 +1167,14 @@ def clean_base_code(val) -> str:
     return m.group(1).upper() if m else ""
 
 
+def parse_vn_stamp_minutes(stamp_str: str) -> int:
+    m = re.match(r"^(\d{1,2}):(\d{2})\s+(\d{1,2})/(\d{1,2})", str(stamp_str or "").strip())
+    if not m:
+        return 0
+    hh, mm, dd, mo = (int(x) for x in m.groups())
+    return (((mo * 32 + dd) * 24 + hh) * 60) + mm
+
+
 def filter_variants_min_stock(variants_list: list, min_stock: int = MIN_VARIANT_STOCK) -> list:
     merged_order = []
     merged_stocks = {}
@@ -1144,8 +1197,7 @@ def filter_variants_min_stock(variants_list: list, min_stock: int = MIN_VARIANT_
     valid_variants = []
     for sz in merged_order:
         st_map = merged_stocks[sz]
-        v_total = sum(st_map.values())
-        if v_total >= min_stock:
+        if sum(st_map.values()) >= min_stock:
             valid_variants.append({"size": sz, "stocks": st_map})
     return valid_variants
 
@@ -1281,7 +1333,7 @@ def parse_pct(val) -> float:
         return 0.0
 
 
-def upgrade_repo_files_v27() -> bool:
+def upgrade_repo_files_v28() -> bool:
     changed = False
 
     os.makedirs(os.path.join("functions", "api"), exist_ok=True)
@@ -1290,10 +1342,10 @@ def upgrade_repo_files_v27() -> bool:
     if os.path.exists(stock_js_path):
         with open(stock_js_path, "r", encoding="utf-8") as f:
             old_js = f.read()
-    if old_js.strip() != CF_STOCK_JS_V27.strip():
+    if old_js.strip() != CF_STOCK_JS_V28.strip():
         with open(stock_js_path, "w", encoding="utf-8") as f:
-            f.write(CF_STOCK_JS_V27)
-        print("[+] Da cap nhat functions/api/stock.js -> v27 (Fix CV538 Sapo Image + Variant >= 3)")
+            f.write(CF_STOCK_JS_V28)
+        print("[+] Da cap nhat functions/api/stock.js -> v28")
         changed = True
 
     if os.path.exists("index.html"):
@@ -1315,7 +1367,7 @@ def upgrade_repo_files_v27() -> bool:
                     bp_data = json.loads(m_bp.group(1))
                     for ex in EXCLUDED_SKUS:
                         sr_data.pop(ex, None)
-                    for code, (orig_p, sale_p, disc_p, _) in PRICE_PATCH_V27.items():
+                    for code, (orig_p, sale_p, disc_p, _) in PRICE_PATCH_V28.items():
                         if code in sr_data:
                             sr_data[code]["origPrice"] = orig_p
                             sr_data[code]["salePrice"] = sale_p
@@ -1325,10 +1377,10 @@ def upgrade_repo_files_v27() -> bool:
                         c = clean_base_code(str(item.get("sku") or "").split("-")[0])
                         if not c or c in EXCLUDED_SKUS:
                             continue
-                        if c in PRICE_PATCH_V27:
-                            item["origPrice"] = PRICE_PATCH_V27[c][0]
-                            item["salePrice"] = PRICE_PATCH_V27[c][1]
-                            item["discountPct"] = PRICE_PATCH_V27[c][2]
+                        if c in PRICE_PATCH_V28:
+                            item["origPrice"] = PRICE_PATCH_V28[c][0]
+                            item["salePrice"] = PRICE_PATCH_V28[c][1]
+                            item["discountPct"] = PRICE_PATCH_V28[c][2]
                         if c in FORCE_RESET_TO_SAPO_SKUS:
                             _, s_imgs, _, _ = split_custom_and_sapo_media(item)
                             item["sapoImages"] = s_imgs
@@ -1356,14 +1408,14 @@ def upgrade_repo_files_v27() -> bool:
         if end_logic != -1:
             cuts = [
                 html.find(m, 0, end_logic)
-                for m in ("/* === v22:", "/* === v23:", "/* === v25:", "/* === v26:", "/* === v27:")
+                for m in ("/* === v22:", "/* === v23:", "/* === v25:", "/* === v26:", "/* === v27:", "/* === v28:")
             ]
             valid_cuts = [pos for pos in cuts if pos != -1]
             cut_at = min(valid_cuts) if valid_cuts else end_logic
             html = (
                 html[:cut_at].rstrip()
                 + "\n\n    "
-                + V27_INDEX_JS_ADDON.strip()
+                + V28_INDEX_JS_ADDON.strip()
                 + "\n    /* [BLOCK:APP_LOGIC_END] */"
                 + html[end_logic + len("/* [BLOCK:APP_LOGIC_END] */"):]
             )
@@ -1378,7 +1430,7 @@ def upgrade_repo_files_v27() -> bool:
         if html != html_orig:
             with open("index.html", "w", encoding="utf-8") as f:
                 f.write(html)
-            print("[+] Da nang cap index.html -> v27 (Xoa anh sai CV538 & bat buoc dung anh Sapo)")
+            print("[+] Da nang cap index.html -> v28")
             changed = True
 
     return changed
@@ -1399,8 +1451,6 @@ def build_sku_matcher(codes: list):
 
 
 def purge_wrong_custom_media_once():
-    """Quet TOAN BO thu muc repo (ke ca thu muc ma o goc nhu ./CV538/ va ./images/, ./videos/, ./sizes/)
-    de xoa triet de anh/video sai cua CV538 & SAT532."""
     already_purged = set()
     if os.path.exists(PURGE_STATE_FILE):
         try:
@@ -1436,7 +1486,6 @@ def purge_wrong_custom_media_once():
                         pass
                     break
 
-    # Xoa luon thu muc SKU rong ngoai goc (VD: ./CV538/) sau khi da xoa het anh sai ben trong
     for dpath in sorted(touched_dirs, key=len, reverse=True):
         rel_d = dpath.replace("\\", "/").lstrip("./")
         top_seg = rel_d.split("/")[0] if rel_d else "."
@@ -1446,12 +1495,8 @@ def purge_wrong_custom_media_once():
             rem = [x for x in os.listdir(dpath) if x not in (".DS_Store", "Thumbs.db")]
             if not rem:
                 shutil.rmtree(dpath, ignore_errors=True)
-                print(f"[+] Da xoa thu muc anh cu rong: {rel_d}")
         except Exception:
             pass
-
-    if removed_files:
-        print(f"[+] Da xoa {len(removed_files)} file anh/video sai cua {sorted(pending)}: {removed_files}")
 
     try:
         with open(PURGE_STATE_FILE, "w", encoding="utf-8") as pf:
@@ -1546,6 +1591,27 @@ def write_github_summary(md_text: str):
             pass
 
 
+def fetch_existing_live_release_meta() -> tuple:
+    """Lay moc gio that cuoi cung tu Release live-stock neu sapo_5_kho.json truoc do bi ghi gio gia."""
+    repo_slug = os.environ.get("GITHUB_REPOSITORY", "moonchuyensi-cmd/havana-sale").strip()
+    if not repo_slug:
+        return "", 0
+    headers = {"Accept": "application/vnd.github+json", "User-Agent": "havana-sale-auto-sync-v28"}
+    gh_token = os.environ.get("GITHUB_TOKEN", "").strip()
+    if gh_token:
+        headers["Authorization"] = f"Bearer {gh_token}"
+    try:
+        req = urllib.request.Request(f"https://api.github.com/repos/{repo_slug}/releases/tags/live-stock", headers=headers)
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            rel = json.loads(resp.read().decode("utf-8"))
+            if rel and rel.get("body"):
+                feed = json.loads(rel["body"])
+                return str(feed.get("synced_at") or ""), int(feed.get("synced_epoch") or 0)
+    except Exception:
+        pass
+    return "", 0
+
+
 def load_black_friday_rules() -> dict:
     target_xlsx = "Black Friday.xlsx" if os.path.exists("Black Friday.xlsx") else None
     if not target_xlsx:
@@ -1569,8 +1635,8 @@ def load_black_friday_rules() -> dict:
                 ws_e = wb_edit["Tổng CH"]
                 for r_idx in range(2, ws_e.max_row + 1):
                     c_val = str(ws_e.cell(r_idx, 1).value or "").strip().upper()
-                    if c_val in PRICE_PATCH_V27:
-                        _, target_sale, _, target_pct_dec = PRICE_PATCH_V27[c_val]
+                    if c_val in PRICE_PATCH_V28:
+                        _, target_sale, _, target_pct_dec = PRICE_PATCH_V28[c_val]
                         cur_sale = parse_money(ws_e.cell(r_idx, 3).value)
                         if cur_sale in (99000, 159000) and cur_sale != target_sale:
                             ws_e.cell(r_idx, 3).value = target_sale
@@ -1578,9 +1644,8 @@ def load_black_friday_rules() -> dict:
                             xlsx_patched = True
             if xlsx_patched:
                 wb_edit.save(target_xlsx)
-                print(f"[+] Da cap nhat gia AO1010/AO726/AO1016 trong {target_xlsx}")
-        except Exception as e:
-            print("[*] Bo qua ghi truc tiep xlsx:", e)
+        except Exception:
+            pass
 
         wb = openpyxl.load_workbook(target_xlsx, data_only=True)
         ordered_sheets = sorted(
@@ -1651,7 +1716,7 @@ def load_black_friday_rules() -> dict:
 
     for ex_code in EXCLUDED_SKUS:
         sale_rules.pop(ex_code, None)
-    for code, (orig_p, sale_p, disc_p, _) in PRICE_PATCH_V27.items():
+    for code, (orig_p, sale_p, disc_p, _) in PRICE_PATCH_V28.items():
         if code in sale_rules and sale_rules[code].get("salePrice") in (99000, 159000, sale_p):
             sale_rules[code]["origPrice"] = orig_p
             sale_rules[code]["salePrice"] = sale_p
@@ -1683,8 +1748,8 @@ def unpack_any_zip_archives():
             with zf_mod.ZipFile(zpath, "r") as zf:
                 zf.extractall(extract_dir)
             os.remove(zpath)
-        except Exception as e:
-            print(f"[!] Loi giai nen {zpath}: {e}")
+        except Exception:
+            pass
 
     if os.path.isdir("media"):
         for root, _, files in os.walk("media"):
@@ -1852,7 +1917,14 @@ def extract_base_code_from_sapo_product(p: dict, sale_rules: dict) -> str:
     return candidates[0] if candidates else ""
 
 
-def write_outputs(warehouses_sorted: list, products_out: list, synced_at_str: str, sale_rules: dict = None):
+def write_outputs(
+    warehouses_sorted: list,
+    products_out: list,
+    synced_at_str: str,
+    sale_rules: dict = None,
+    synced_epoch: int = 0,
+    sapo_cookie_expired: bool = False
+):
     filtered_out = []
     for p in products_out:
         clean_vars = filter_variants_min_stock(p.get("variants"), MIN_VARIANT_STOCK)
@@ -1866,6 +1938,8 @@ def write_outputs(warehouses_sorted: list, products_out: list, synced_at_str: st
         "min_stock_rule": MIN_TOTAL_STOCK,
         "min_variant_stock_rule": MIN_VARIANT_STOCK,
         "synced_at": synced_at_str,
+        "synced_epoch": int(synced_epoch or 0),
+        "sapo_cookie_expired": bool(sapo_cookie_expired),
         "warehouses": warehouses_sorted,
         "products": filtered_out,
     }
@@ -1925,7 +1999,6 @@ def apply_priority_media_to_list(products_list: list, preserved_by_sku: dict, pu
         repo_m = repo_media.get(code, {})
 
         if code in purged_skus or code in FORCE_RESET_TO_SAPO_SKUS:
-            # Ma nam trong danh sach reset sang Sapo (CV538, SAT532): bo qua hoan toan cache custom cu
             custom_imgs = [
                 u for u in (repo_m.get("images") or [])
                 if "SAT533" not in u.upper() and local_media_url_exists(u)
@@ -1960,7 +2033,13 @@ def apply_priority_media_to_list(products_list: list, preserved_by_sku: dict, pu
     return products_list
 
 
-def build_compact_stock_feed(warehouses_sorted: list, all_sale_products: list, synced_at_str: str) -> str:
+def build_compact_stock_feed(
+    warehouses_sorted: list,
+    all_sale_products: list,
+    synced_at_str: str,
+    synced_epoch: int,
+    cookie_expired: bool = False
+) -> str:
     wh_ids = [w.get("id") for w in warehouses_sorted]
     items_compact = {}
     for p in all_sale_products:
@@ -1981,25 +2060,34 @@ def build_compact_stock_feed(warehouses_sorted: list, all_sale_products: list, s
         items_compact[code] = entry
 
     feed_obj = {
-        "v": 27,
+        "v": 28,
         "full": 1,
+        "cookie_expired": bool(cookie_expired),
         "min_stock": MIN_TOTAL_STOCK,
         "min_variant_stock": MIN_VARIANT_STOCK,
         "synced_at": synced_at_str,
-        "synced_epoch": int(datetime.datetime.now(datetime.timezone.utc).timestamp()),
+        "synced_epoch": int(synced_epoch or 0),
         "warehouses": warehouses_sorted,
         "items": items_compact,
     }
     return json.dumps(feed_obj, ensure_ascii=False, separators=(",", ":"))
 
 
-def publish_live_release_feed(warehouses_sorted: list, all_sale_products: list, synced_at_str: str) -> bool:
+def publish_live_release_feed(
+    warehouses_sorted: list,
+    all_sale_products: list,
+    synced_at_str: str,
+    synced_epoch: int,
+    cookie_expired: bool = False
+) -> bool:
     gh_token = os.environ.get("GITHUB_TOKEN", "").strip()
     repo_slug = os.environ.get("GITHUB_REPOSITORY", "moonchuyensi-cmd/havana-sale").strip()
     if not gh_token or not repo_slug:
         return False
 
-    compact_body = build_compact_stock_feed(warehouses_sorted, all_sale_products, synced_at_str)
+    compact_body = build_compact_stock_feed(
+        warehouses_sorted, all_sale_products, synced_at_str, synced_epoch, cookie_expired
+    )
     if len(compact_body) > 120000:
         data_tmp = json.loads(compact_body)
         for k in data_tmp.get("items", {}).values():
@@ -2011,7 +2099,7 @@ def publish_live_release_feed(warehouses_sorted: list, all_sale_products: list, 
         "Accept": "application/vnd.github+json",
         "Content-Type": "application/json",
         "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "havana-sale-auto-sync-v27",
+        "User-Agent": "havana-sale-auto-sync-v28",
     }
 
     tag_url = f"https://api.github.com/repos/{repo_slug}/releases/tags/live-stock"
@@ -2026,9 +2114,10 @@ def publish_live_release_feed(warehouses_sorted: list, all_sale_products: list, 
     except Exception:
         pass
 
+    status_tag = "COOKIE EXPIRED" if cookie_expired else "LIVE"
     payload_bytes = json.dumps({
         "tag_name": "live-stock",
-        "name": f"Live Sapo Stock ({synced_at_str}) [v27]",
+        "name": f"Live Sapo Stock ({synced_at_str}) [{status_tag}]",
         "body": compact_body,
         "draft": False,
         "prerelease": True,
@@ -2040,7 +2129,7 @@ def publish_live_release_feed(warehouses_sorted: list, all_sale_products: list, 
         req = urllib.request.Request(url, data=payload_bytes, headers=api_headers, method=method)
         with urllib.request.urlopen(req, timeout=20) as resp:
             _ = resp.read()
-        print(f"[+] Da phat Live Stock Feed v27 ({len(compact_body)} bytes) luc {synced_at_str}!")
+        print(f"[+] Da phat Live Stock Feed v28 [{status_tag}] luc {synced_at_str}!")
         return True
     except Exception as e:
         print(f"[!] Khong cap nhat duoc Release live-stock: {e}")
@@ -2096,17 +2185,24 @@ def last_git_commit_age_seconds() -> int:
 
 def main():
     purged_now, removed_media_files = purge_wrong_custom_media_once()
-    upgraded_files = upgrade_repo_files_v27()
+    upgraded_files = upgrade_repo_files_v28()
     sale_rules = load_black_friday_rules()
     filter_only_bf = len(sale_rules) > 0
 
     existing_warehouses, existing_products, preserved_media_by_sku = [], [], {}
+    old_synced_at = ""
+    old_synced_epoch = 0
+    old_cookie_expired = False
+
     if os.path.exists("sapo_5_kho.json"):
         try:
             with open("sapo_5_kho.json", "r", encoding="utf-8") as f:
                 old_data = json.load(f)
             existing_warehouses = old_data.get("warehouses") or []
             existing_products = old_data.get("products") or []
+            old_synced_at = str(old_data.get("synced_at") or "")
+            old_synced_epoch = int(old_data.get("synced_epoch") or 0)
+            old_cookie_expired = bool(old_data.get("sapo_cookie_expired"))
         except Exception:
             pass
     elif os.path.exists("index.html"):
@@ -2137,8 +2233,8 @@ def main():
     sapo_err_reason = ""
 
     if not candidates:
-        sapo_err_reason = "Chưa có SAPO_COOKIE trong GitHub Secrets (hoặc .sapo_cookie.txt)"
-        print(f"[*] {sapo_err_reason} -> lọc trực tiếp trên dữ liệu hiện có.")
+        sapo_err_reason = "Chưa cấu hình SAPO_COOKIE trong GitHub Secrets"
+        print(f"[!] {sapo_err_reason}")
     else:
         err_list = []
         for auth_label, hdrs in candidates:
@@ -2191,7 +2287,12 @@ def main():
         if not all_products and err_list:
             sapo_err_reason = " | ".join(err_list)
 
+    # TRUONG HOP SAPO_COOKIE HET HAN: Khong ghi gio gia, giu nguyen moc that cuoi cung & bat co canh bao!
     if not all_products:
+        rel_stamp, rel_epoch = fetch_existing_live_release_meta()
+        true_last_stamp = rel_stamp if (rel_epoch > 0 and old_synced_epoch == 0) else (old_synced_at or rel_stamp or "Cũ")
+        true_last_epoch = old_synced_epoch or rel_epoch or 0
+
         updated_existing = []
         for ep in existing_products:
             c = clean_base_code(str(ep.get("sku") or "").split("-")[0])
@@ -2221,8 +2322,26 @@ def main():
             {"id": "wh_auco", "sapo_name": "101 Âu Cơ", "name": "101 Âu Cơ"},
             {"id": "wh_leduan", "sapo_name": "240 Lê Duẩn", "name": "240 Lê Duẩn"},
         ]
-        write_outputs(wh_out, cleaned, vn_now_str(), sale_rules)
-        print(f"[+] Da loc & giu lai {len(cleaned)} ma co bien the ton >= {MIN_VARIANT_STOCK}!")
+
+        publish_live_release_feed(wh_out, cleaned, true_last_stamp, true_last_epoch, cookie_expired=True)
+
+        event_name = os.environ.get("GITHUB_EVENT_NAME", "").strip()
+        need_commit = upgraded_files or bool(purged_now) or bool(removed_media_files) or (not old_cookie_expired) or (event_name != "schedule")
+        if need_commit:
+            if os.path.exists(".skip_git_commit"):
+                os.remove(".skip_git_commit")
+            write_outputs(wh_out, cleaned, true_last_stamp, sale_rules, synced_epoch=true_last_epoch, sapo_cookie_expired=True)
+        else:
+            with open(".skip_git_commit", "w", encoding="utf-8") as sf:
+                sf.write(true_last_stamp)
+
+        print(f"[CANH BAO] SAPO_COOKIE da het han ({sapo_err_reason})! Giu nguyen moc that {true_last_stamp} ({len(cleaned)} ma).")
+        write_github_summary(
+            f"### ⚠️ CẢNH BÁO: `SAPO_COOKIE` ĐÃ HẾT HẠN!\n"
+            f"- **Chi tiết lỗi Sapo:** `{sapo_err_reason}`\n"
+            f"- **Mốc tồn thực tế gần nhất:** `{true_last_stamp}` (`{len(cleaned)}` mã đạt chuẩn tồn từ {MIN_VARIANT_STOCK} trở lên)\n"
+            f"- **Cách xử lý (30 giây):** Mở `havanago.mysapogo.com/admin/products` → `F12` → `Network` → chuột phải `products.json` → `Copy as cURL (bash)` → dán vào `Settings -> Secrets and variables -> Actions -> SAPO_COOKIE` rồi bấm `Run workflow`."
+        )
         return
 
     grouped_by_code = {}
@@ -2248,14 +2367,13 @@ def main():
             disc_pct = max(1, round((1.0 - sale_price / orig_price) * 100))
 
         sapo_imgs_found = extract_sapo_product_images(p)
-        # Neu ma can lay anh Sapo (CV538, SAT532) ma API danh sach an anh -> goi chi tiet san pham Sapo de lay du 100%
         if base_code in FORCE_RESET_TO_SAPO_SKUS and not sapo_imgs_found and active_headers and p.get("id"):
             try:
                 detail_data = fetch_json(f"/admin/products/{p['id']}.json", active_headers)
                 if isinstance(detail_data, dict) and detail_data.get("product"):
                     sapo_imgs_found = extract_sapo_product_images(detail_data["product"])
-            except Exception as e:
-                print(f"[*] Loi nhe khi lay anh chi tiet Sapo cho {base_code}: {e}")
+            except Exception:
+                pass
 
         v_list = []
         for v in variants_raw:
@@ -2327,6 +2445,8 @@ def main():
             removed_skus.append(p.get("sku"))
 
     now_stamp = vn_now_str()
+    now_epoch = int(datetime.datetime.now(datetime.timezone.utc).timestamp())
+
     old_struct_fp = compute_variant_structure_fingerprint(existing_products) if existing_products else ""
     new_struct_fp = compute_variant_structure_fingerprint(products_out)
     structure_changed = (old_struct_fp != new_struct_fp)
@@ -2336,7 +2456,9 @@ def main():
     new_full_fp = compute_products_fingerprint(products_out)
     new_media_fp = compute_media_rules_fingerprint(products_out)
 
-    live_feed_ok = publish_live_release_feed(warehouses_sorted, all_sale_products, now_stamp)
+    live_feed_ok = publish_live_release_feed(
+        warehouses_sorted, all_sale_products, now_stamp, now_epoch, cookie_expired=False
+    )
 
     event_name = os.environ.get("GITHUB_EVENT_NAME", "").strip()
     commit_age = last_git_commit_age_seconds()
@@ -2350,6 +2472,7 @@ def main():
         and not upgraded_files
         and not purged_now
         and not removed_media_files
+        and not old_cookie_expired
         and not media_or_price_changed
         and not structure_changed
     ):
@@ -2359,23 +2482,18 @@ def main():
     if should_commit_main:
         if os.path.exists(".skip_git_commit"):
             os.remove(".skip_git_commit")
-        write_outputs(warehouses_sorted, products_out, now_stamp, sale_rules)
+        write_outputs(
+            warehouses_sorted, products_out, now_stamp, sale_rules, synced_epoch=now_epoch, sapo_cookie_expired=False
+        )
     else:
         with open(".skip_git_commit", "w", encoding="utf-8") as sf:
             sf.write(now_stamp)
 
-    cv538_obj = next((x for x in all_sale_products if x.get("sku") == "CV538"), None)
-    cv538_imgs = (cv538_obj.get("images") if cv538_obj else []) or []
-    cv538_note = f"Đã gắn `{len(cv538_imgs)}` ảnh từ Sapo" if cv538_imgs else "Trên Sapo mã CV538 hiện chưa có ảnh đính kèm"
-
-    print(
-        f"[+] Hoan tat Auto-Sync v27 ({now_stamp}): Giu {len(products_out)} ma, "
-        f"xoa {len(removed_media_files)} file anh cu sai, CV538 -> {cv538_note}."
-    )
+    print(f"[+] Hoan tat Auto-Sync v28 LIVE ({now_stamp}): {len(products_out)} ma dat chuan >= {MIN_VARIANT_STOCK}!")
     write_github_summary(
-        f"### ✅ Đồng bộ Sapo v27 — Xử lý ảnh `CV538` & Lọc tồn từ {MIN_VARIANT_STOCK} trở lên ({now_stamp})\n"
-        f"- **Trạng thái mã `CV538`:** Đã xóa `{len(removed_media_files)}` file ảnh cũ bị nhầm • {cv538_note}\n"
-        f"- **Số mã đủ chuẩn giữ lại:** `{len(products_out)}` mã (đã cắt `{trimmed_variants_count}` nút size lẻ tồn 0–2)"
+        f"### ✅ Đồng bộ Sapo LIVE thành công v28 ({now_stamp})\n"
+        f"- **Số mã đủ chuẩn giữ lại:** `{len(products_out)}` mã\n"
+        f"- **Số nút Size/Màu lẻ (tồn 0–2) đã cắt bỏ:** `{trimmed_variants_count}` biến thể"
     )
 
 
