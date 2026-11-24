@@ -3,7 +3,7 @@
   "min_variant_stock_rule": 3,
   "synced_at": "04:42 24/11",
   "synced_epoch": 1795470144,
-  "sapo_cookie_expired": false,
+  "sapo_cookie_expired": true,
   "warehouses": [
     {
       "id": "wh_havana",
