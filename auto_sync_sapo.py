@@ -1,23 +1,19 @@
 import os
 import re
 import sys
-import glob
 import json
-import time
 import shutil
 import datetime
-import hashlib
 import concurrent.futures
 import subprocess
 import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
-import zipfile as zf_mod
 
 # ==============================================================================
-# AUTO_SYNC_SAPO.PY (v30 COMPACT - GHI CHU BILL + LOC TON >= 3 + SAPO LIVE)
-# Ban rut gon chong cat dong khi copy-paste, giu du 100% tinh nang v28 + v29
+# AUTO_SYNC_SAPO.PY (v31 COMPACT - DOI TIEU DE "PHIEU LEN DON" + FULL V30)
+# Dong bo tieu de tren Popup Web, Anh PNG Bill & Tin nhan Zalo + Loc ton >= 3
 # ==============================================================================
 
 MIN_TOTAL_STOCK = 3
@@ -27,7 +23,7 @@ SKU_REGEX = re.compile(r"^([A-Z]{1,5}\d{1,5})", re.I)
 EXCLUDED_SKUS = {"LEN374", "QJ358"}
 FORCE_RESET_TO_SAPO_SKUS = {"SAT532", "CV538"}
 PURGE_STATE_FILE = ".purged_wrong_media_v27.json"
-PRICE_PATCH_V30 = {
+PRICE_PATCH_V31 = {
     "AO1010": (194000, 79000, 59, 0.5928),
     "AO726":  (225000, 39000, 83, 0.8267),
     "AO1016": (214000, 79000, 63, 0.6308),
@@ -36,53 +32,66 @@ SAPO_IMG_RX = re.compile(r"(dktcdn\.net|mysapogo\.com|sapo\.vn|sapogo\.com|sapoc
 IMG_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".jfif", ".avif", ".gif", ".bmp")
 VID_EXTS = (".mp4", ".mov", ".webm", ".m4v")
 SKIP_DIRS = {".git", ".github", "functions", "__pycache__", "node_modules"}
-PROTECTED_ROOT_DIRS = {"images", "videos", "sizes", "media", "."}
 PK_KNOWN_SUBTYPES = {
     "PK822": "Mũ", "PK887": "Túi xách", "PK893": "Mũ", "PK894": "Mũ",
     "PK897": "Phụ kiện", "PK898": "Túi xách", "PK976": "Túi xách", "PK995": "Túi xách",
     "PK997": "Túi xách", "PK999": "Túi xách", "PK1006": "Giày", "PK1027": "Túi xách", "PK1032": "Giày",
 }
 
-V30_INDEX_JS_ADDON = r'''/* === v30: BILL STOCK DISCLAIMER + EPOCH FIX + COOKIE WARNING + VARIANT >= 3 === */
-    const MIN_STOCK_V30 = 3;
-    const FORCE_SAPO_V30 = new Set(["SAT532", "CV538"]);
-    const BILL_NOTE_VI_V30 = "📌 Lưu ý: Hàng sale số lượng ít nên có thể lệch so với tồn thực tế, mong quý khách hàng thông cảm ạ!";
-    const BILL_NOTE_EN_V30 = "📌 Note: Sale items have limited stock and may slightly differ from actual store inventory. Thank you for your understanding!";
-    let v30SyncBusy = false;
-    let v30LastRelMs = 0;
+V31_INDEX_JS_ADDON = r'''/* === v31: CUSTOM "PHIEU LEN DON" HEADER + BILL DISCLAIMER + VARIANT >= 3 === */
+    const MIN_STOCK_V31 = 3;
+    const FORCE_SAPO_V31 = new Set(["SAT532", "CV538"]);
+    const BILL_BADGE_VI_V31 = "HAVANA BLACK FRIDAY • ĐƠN TẠM TÍNH";
+    const BILL_BADGE_EN_V31 = "HAVANA BLACK FRIDAY • ORDER SLIP";
+    const BILL_TITLE_VI_V31 = "Phiếu Lên Đơn & Gửi Chốt Nhanh";
+    const BILL_TITLE_EN_V31 = "Quick Order & Checkout Slip";
+    const BILL_NOTE_VI_V31 = "📌 Lưu ý: Hàng sale số lượng ít nên có thể lệch so với tồn thực tế, mong quý khách hàng thông cảm ạ!";
+    const BILL_NOTE_EN_V31 = "📌 Note: Sale items have limited stock and may slightly differ from actual store inventory. Thank you for your understanding!";
+    let v31SyncBusy = false;
+    let v31LastRelMs = 0;
 
     if (typeof RESET_TO_SAPO_SKUS_V21 !== "undefined" && RESET_TO_SAPO_SKUS_V21 && RESET_TO_SAPO_SKUS_V21.add) {
       RESET_TO_SAPO_SKUS_V21.add("CV538");
       RESET_TO_SAPO_SKUS_V21.add("SAT532");
     }
     try {
-      ["havana_gh_tree_v13","havana_live_rel_v22","havana_live_rel_v25","havana_live_rel_v26","havana_live_rel_v27","havana_live_rel_v28","havana_live_rel_v29"].forEach((k) => sessionStorage.removeItem(k));
+      ["havana_gh_tree_v13","havana_live_rel_v22","havana_live_rel_v25","havana_live_rel_v26","havana_live_rel_v27","havana_live_rel_v28","havana_live_rel_v29","havana_live_rel_v30"].forEach((k) => sessionStorage.removeItem(k));
     } catch (_) {}
-    if (typeof MEDIA_CACHE_VERSION !== "undefined" && MEDIA_CACHE_VERSION < 30) MEDIA_CACHE_VERSION = 30;
+    if (typeof MEDIA_CACHE_VERSION !== "undefined" && MEDIA_CACHE_VERSION < 31) MEDIA_CACHE_VERSION = 31;
 
-    const v30BillNoteText = () => (currentLang === "EN" ? BILL_NOTE_EN_V30 : BILL_NOTE_VI_V30);
+    const v31ApplyBillHeaderTitles = () => {
+      const badgeEl = document.querySelector("#billModal .bill-head-badge");
+      const titleEl = document.getElementById("billModalTitle");
+      const openBtn = document.getElementById("openBillBtn");
+      if (badgeEl) badgeEl.textContent = currentLang === "EN" ? BILL_BADGE_EN_V31 : BILL_BADGE_VI_V31;
+      if (titleEl) titleEl.textContent = currentLang === "EN" ? BILL_TITLE_EN_V31 : BILL_TITLE_VI_V31;
+      if (openBtn) openBtn.textContent = currentLang === "EN" ? "View Order & Send" : "Lên Đơn & Gửi Zalo";
+    };
 
-    const _preV30RenderBillModal = renderBillModal;
+    const v31BillNoteText = () => (currentLang === "EN" ? BILL_NOTE_EN_V31 : BILL_NOTE_VI_V31);
+
+    const _preV31RenderBillModal = renderBillModal;
     renderBillModal = function() {
-      _preV30RenderBillModal();
+      _preV31RenderBillModal();
+      v31ApplyBillHeaderTitles();
       const sumEl = document.getElementById("billSummaryBox");
       if (sumEl && !sumEl.querySelector(".bill-stock-disclaimer")) {
         const noteDiv = document.createElement("div");
         noteDiv.className = "bill-stock-disclaimer";
         noteDiv.style.cssText = "margin-top:8px;padding:9px 12px;border-radius:11px;background:#fffbeb;border:1px dashed #f59e0b;color:#92400e;font-size:12.5px;line-height:1.45;font-weight:600;";
-        noteDiv.textContent = v30BillNoteText();
+        noteDiv.textContent = v31BillNoteText();
         sumEl.appendChild(noteDiv);
       }
     };
 
-    const _preV30BuildBillText = buildFormattedBillText;
+    const _preV31BuildBillText = buildFormattedBillText;
     buildFormattedBillText = function() {
-      const baseTxt = _preV30BuildBillText();
+      let baseTxt = _preV31BuildBillText().replace("🧾 PHIẾU ĐẶT HÀNG HAVANA — BLACK FRIDAY", "🧾 PHIẾU LÊN ĐƠN HAVANA — BLACK FRIDAY");
       if (baseTxt.includes("lệch so với tồn thực tế") || baseTxt.includes("differ from actual")) return baseTxt;
-      return baseTxt + "\n--------------------------\n" + v30BillNoteText();
+      return baseTxt + "\n--------------------------\n" + v31BillNoteText();
     };
 
-    const v30RoundRect = (ctx, x, y, w, h, radii) => {
+    const v31RoundRect = (ctx, x, y, w, h, radii) => {
       ctx.beginPath();
       if (typeof ctx.roundRect === "function") ctx.roundRect(x, y, w, h, radii);
       else {
@@ -126,14 +135,14 @@ V30_INDEX_JS_ADDON = r'''/* === v30: BILL STOCK DISCLAIMER + EPOCH FIX + COOKIE 
 
       ctx.fillStyle = "#f2f9f8"; ctx.fillRect(0, 0, W, H);
       ctx.fillStyle = "#ffffff"; ctx.strokeStyle = "#91d2ce"; ctx.lineWidth = 3;
-      v30RoundRect(ctx, 24, 24, W - 48, H - 48, 22); ctx.fill(); ctx.stroke();
+      v31RoundRect(ctx, 24, 24, W - 48, H - 48, 22); ctx.fill(); ctx.stroke();
 
       ctx.fillStyle = "#165954";
-      v30RoundRect(ctx, 24, 24, W - 48, 86, [22, 22, 0, 0]); ctx.fill();
+      v31RoundRect(ctx, 24, 24, W - 48, 86, [22, 22, 0, 0]); ctx.fill();
       ctx.fillStyle = "#ffffff"; ctx.font = `bold 24px ${fontStack}`;
-      ctx.fillText("HAVANA — PHIẾU ĐƠN BLACK FRIDAY", 52, 65);
+      ctx.fillText("HAVANA — PHIẾU LÊN ĐƠN BLACK FRIDAY", 52, 65);
       ctx.fillStyle = "#bbf7d0"; ctx.font = `600 14px ${fontStack}`;
-      ctx.fillText("Thời gian xuất bill: " + nowStr + " • Giá gốc tại kho", 52, 92);
+      ctx.fillText("Thời gian lên đơn: " + nowStr + " • Giá gốc tại kho", 52, 92);
 
       let y = 142;
       ctx.fillStyle = "#11302e"; ctx.font = `bold 15px ${fontStack}`;
@@ -170,29 +179,29 @@ V30_INDEX_JS_ADDON = r'''/* === v30: BILL STOCK DISCLAIMER + EPOCH FIX + COOKIE 
 
       const noteY = y + 18;
       ctx.fillStyle = "#fffbeb"; ctx.strokeStyle = "#f59e0b"; ctx.lineWidth = 1.2;
-      v30RoundRect(ctx, 52, noteY, W - 104, noteBoxH, 11); ctx.fill(); ctx.stroke();
+      v31RoundRect(ctx, 52, noteY, W - 104, noteBoxH, 11); ctx.fill(); ctx.stroke();
       ctx.fillStyle = "#92400e"; ctx.font = noteFont;
       noteLines.forEach((ln, idx) => ctx.fillText(ln, 66, noteY + 22 + idx * 20));
 
       const link = document.createElement("a");
-      link.download = "Bill_Havana_BlackFriday_" + Date.now().toString().slice(-5) + ".png";
+      link.download = "Phieu_Len_Don_Havana_" + Date.now().toString().slice(-5) + ".png";
       link.href = canvas.toDataURL("image/png");
       link.click();
-      showToast("🖼️ Đã tải ảnh Phiếu Bill nét cao về máy!");
+      showToast("🖼️ Đã tải ảnh Phiếu Lên Đơn nét cao về máy!");
     };
 
-    const v30ApplyPrices = (rm) => {
+    const v31ApplyPrices = (rm) => {
       if (!rm || typeof rm !== "object") return;
       const fx = { AO1010: { origPrice: 194000, salePrice: 79000, discountPct: 59 }, AO726: { origPrice: 225000, salePrice: 39000, discountPct: 83 }, AO1016: { origPrice: 214000, salePrice: 79000, discountPct: 63 } };
       Object.keys(fx).forEach((k) => { if (rm[k]) Object.assign(rm[k], fx[k]); });
     };
 
-    const v30ForceSapoCheck = (code) => FORCE_SAPO_V30.has(code) && !(typeof sessionFreshUploadedSkus !== "undefined" && sessionFreshUploadedSkus && sessionFreshUploadedSkus.has(code));
+    const v31ForceSapoCheck = (code) => FORCE_SAPO_V31.has(code) && !(typeof sessionFreshUploadedSkus !== "undefined" && sessionFreshUploadedSkus && sessionFreshUploadedSkus.has(code));
 
-    const v30CleanItemMedia = (p) => {
+    const v31CleanItemMedia = (p) => {
       if (!p) return;
       const code = normalizeBaseCode(String(p.sku || "").split("-")[0]);
-      if (!v30ForceSapoCheck(code)) return;
+      if (!v31ForceSapoCheck(code)) return;
       if (typeof repoLiveMediaBySku === "object" && repoLiveMediaBySku) delete repoLiveMediaBySku[code];
       const s533 = (code === "SAT532" && typeof getSat533ImageSet === "function") ? getSat533ImageSet() : new Set();
       const urls = [];
@@ -203,20 +212,20 @@ V30_INDEX_JS_ADDON = r'''/* === v30: BILL STOCK DISCLAIMER + EPOCH FIX + COOKIE 
       p.sapoImages = urls; p.hasCustomMedia = false; p.video = ""; p.sizeChart = ""; p.images = [...urls]; p.image = urls[0] || "";
     };
 
-    const _preV30Strip = stripSapoImagesFromProducts;
-    stripSapoImagesFromProducts = function(list) { _preV30Strip(list); if (Array.isArray(list)) list.forEach(v30CleanItemMedia); };
+    const _preV31Strip = stripSapoImagesFromProducts;
+    stripSapoImagesFromProducts = function(list) { _preV31Strip(list); if (Array.isArray(list)) list.forEach(v31CleanItemMedia); };
 
-    const _preV30Slides = getProductSlides;
+    const _preV31Slides = getProductSlides;
     getProductSlides = function(p) {
       const code = normalizeBaseCode(String(p?.sku || "").split("-")[0]);
-      if (v30ForceSapoCheck(code)) {
-        v30CleanItemMedia(p);
+      if (v31ForceSapoCheck(code)) {
+        v31CleanItemMedia(p);
         return (p.sapoImages && p.sapoImages.length) ? p.sapoImages.map((src) => ({ type: "image", src })) : [{ type: "image", src: svgPlaceholder(p.sku, p.name, "#d8f1ef", "#eef9f8") }];
       }
-      return _preV30Slides(p);
+      return _preV31Slides(p);
     };
 
-    const v30FilterVars = (arr) => {
+    const v31FilterVars = (arr) => {
       if (!Array.isArray(arr)) return [];
       const ord = [], mp = {};
       arr.forEach((v) => {
@@ -225,12 +234,12 @@ V30_INDEX_JS_ADDON = r'''/* === v30: BILL STOCK DISCLAIMER + EPOCH FIX + COOKIE 
         if (!mp[sz]) { ord.push(sz); mp[sz] = {}; }
         Object.entries(v.stocks || {}).forEach(([w, q]) => { mp[sz][w] = (mp[sz][w] || 0) + Math.max(0, Number(q) || 0); });
       });
-      return ord.filter((sz) => Object.values(mp[sz]).reduce((a, b) => a + b, 0) >= MIN_STOCK_V30).map((sz) => ({ size: sz, stocks: mp[sz] }));
+      return ord.filter((sz) => Object.values(mp[sz]).reduce((a, b) => a + b, 0) >= MIN_STOCK_V31).map((sz) => ({ size: sz, stocks: mp[sz] }));
     };
 
-    const v30CalcTot = (p) => (p && Array.isArray(p.variants)) ? p.variants.reduce((s, v) => s + Object.values(v?.stocks || {}).reduce((a, b) => a + Math.max(0, Number(b) || 0), 0), 0) : 0;
+    const v31CalcTot = (p) => (p && Array.isArray(p.variants)) ? p.variants.reduce((s, v) => s + Object.values(v?.stocks || {}).reduce((a, b) => a + Math.max(0, Number(b) || 0), 0), 0) : 0;
 
-    const v30Sanitize = (list) => {
+    const v31Sanitize = (list) => {
       if (!Array.isArray(list)) return [];
       const out = [];
       list.forEach((p) => {
@@ -239,9 +248,9 @@ V30_INDEX_JS_ADDON = r'''/* === v30: BILL STOCK DISCLAIMER + EPOCH FIX + COOKIE 
         if (!code) return;
         const r = SALE_RULES_MASTER && SALE_RULES_MASTER[code];
         if (r) { if (r.origPrice > 0) p.origPrice = Number(r.origPrice); if (r.salePrice > 0) p.salePrice = Number(r.salePrice); p.discountPct = getProductDiscountPct(p); }
-        v30CleanItemMedia(p);
-        p.variants = v30FilterVars(p.variants);
-        if (p.variants.length > 0 && v30CalcTot(p) >= MIN_STOCK_V30) out.push(p);
+        v31CleanItemMedia(p);
+        p.variants = v31FilterVars(p.variants);
+        if (p.variants.length > 0 && v31CalcTot(p) >= MIN_STOCK_V31) out.push(p);
       });
       return out;
     };
@@ -251,15 +260,16 @@ V30_INDEX_JS_ADDON = r'''/* === v30: BILL STOCK DISCLAIMER + EPOCH FIX + COOKIE 
       PRODUCTS.forEach((p) => {
         if (!p.variants || !p.variants.length) { delete selectedVariantBySku[p.sku]; return; }
         const cur = p.variants.find((v) => v.size === selectedVariantBySku[p.sku]);
-        if (!cur || getVariantTotal(cur) < MIN_STOCK_V30) selectedVariantBySku[p.sku] = p.variants[0].size;
+        if (!cur || getVariantTotal(cur) < MIN_STOCK_V31) selectedVariantBySku[p.sku] = p.variants[0].size;
       });
     };
 
-    const v30Enforce = () => {
-      v30ApplyPrices(SALE_RULES_MASTER);
-      if (Array.isArray(BASELINE_PRODUCTS)) BASELINE_PRODUCTS = v30Sanitize(BASELINE_PRODUCTS);
-      if (Array.isArray(PRODUCTS)) PRODUCTS = v30Sanitize(PRODUCTS);
+    const v31Enforce = () => {
+      v31ApplyPrices(SALE_RULES_MASTER);
+      if (Array.isArray(BASELINE_PRODUCTS)) BASELINE_PRODUCTS = v31Sanitize(BASELINE_PRODUCTS);
+      if (Array.isArray(PRODUCTS)) PRODUCTS = v31Sanitize(PRODUCTS);
       ensureDefaultSelectedSizes();
+      v31ApplyBillHeaderTitles();
       const stTxt = document.getElementById("onlyInStockText");
       if (stTxt) stTxt.textContent = currentLang === "VI" ? "Tồn ≥ 3" : "Stock ≥ 3";
       if (Array.isArray(cart) && cart.length) {
@@ -269,7 +279,7 @@ V30_INDEX_JS_ADDON = r'''/* === v30: BILL STOCK DISCLAIMER + EPOCH FIX + COOKIE 
           if (!mp) { adj = true; return false; }
           c.origPrice = mp.origPrice; c.finalPrice = getProductSalePrice(mp); c.discountPct = getProductDiscountPct(mp);
           const mx = getMaxStockForSkuSize(c.sku, c.size);
-          if (mx < MIN_STOCK_V30) { adj = true; return false; }
+          if (mx < MIN_STOCK_V31) { adj = true; return false; }
           if (c.qty > mx) { c.qty = mx; adj = true; }
           return true;
         });
@@ -277,37 +287,37 @@ V30_INDEX_JS_ADDON = r'''/* === v30: BILL STOCK DISCLAIMER + EPOCH FIX + COOKIE 
       }
     };
 
-    const _preV30Merge = mergeAndApplySaleRules;
+    const _preV31Merge = mergeAndApplySaleRules;
     mergeAndApplySaleRules = function(liveList, rulesObj) {
-      v30ApplyPrices(SALE_RULES_MASTER); v30ApplyPrices(rulesObj);
-      const cleaned = v30Sanitize(Array.isArray(liveList) ? liveList : []);
+      v31ApplyPrices(SALE_RULES_MASTER); v31ApplyPrices(rulesObj);
+      const cleaned = v31Sanitize(Array.isArray(liveList) ? liveList : []);
       const baseR = (rulesObj && Object.keys(rulesObj).length) ? rulesObj : SALE_RULES_MASTER;
       const scoped = {};
       if (baseR) {
         const setK = new Set(cleaned.map((x) => normalizeBaseCode(String(x?.sku || "").split("-")[0])));
         Object.keys(baseR).forEach((k) => { if (setK.has(k)) scoped[k] = baseR[k]; });
       }
-      return v30Sanitize(_preV30Merge(cleaned, scoped));
+      return v31Sanitize(_preV31Merge(cleaned, scoped));
     };
 
-    const _preV30Render = renderCatalog;
-    renderCatalog = function() { v30Enforce(); _preV30Render(); };
+    const _preV31Render = renderCatalog;
+    renderCatalog = function() { v31Enforce(); _preV31Render(); };
 
-    const _preV30Lang = setLang;
+    const _preV31Lang = setLang;
     setLang = function(l) {
-      _preV30Lang(l);
-      v30Enforce();
+      _preV31Lang(l);
+      v31Enforce();
       if (document.getElementById("billModal")?.classList.contains("open")) renderBillModal();
     };
 
-    const v30StampMins = (s) => {
+    const v31StampMins = (s) => {
       const m = String(s || "").trim().match(/^(\d{1,2}):(\d{2})\s+(\d{1,2})\/(\d{1,2})/);
       return m ? ((((Number(m[4]) * 32 + Number(m[3])) * 24 + Number(m[1])) * 60) + Number(m[2])) : 0;
     };
 
     refreshLiveSapoStock = async function(silent = true) {
-      if (v30SyncBusy) return false;
-      v30SyncBusy = true;
+      if (v31SyncBusy) return false;
+      v31SyncBusy = true;
       const timeEl = document.getElementById("liveSyncTimeText");
       const badgeEl = document.getElementById("liveSyncBadge");
       const dotEl = badgeEl ? badgeEl.querySelector(".live-sync-dot") : null;
@@ -326,8 +336,8 @@ V30_INDEX_JS_ADDON = r'''/* === v30: BILL STOCK DISCLAIMER + EPOCH FIX + COOKIE 
             if (r.ok) data = await r.json();
           } catch (_) {}
         }
-        if (data && data.sync_source !== "cloudflare_edge_sapo_live" && ( !silent || Date.now() - v30LastRelMs > 45000 )) {
-          v30LastRelMs = Date.now();
+        if (data && data.sync_source !== "cloudflare_edge_sapo_live" && (!silent || Date.now() - v31LastRelMs > 45000)) {
+          v31LastRelMs = Date.now();
           try {
             const repoSlug = typeof GITHUB_REPO_SLUG !== "undefined" ? GITHUB_REPO_SLUG : "moonchuyensi-cmd/havana-sale";
             const gr = await fetch(`https://api.github.com/repos/${repoSlug}/releases/tags/live-stock?t=${Date.now()}`, { headers: { "Accept": "application/vnd.github+json" }, cache: "no-store" });
@@ -336,14 +346,12 @@ V30_INDEX_JS_ADDON = r'''/* === v30: BILL STOCK DISCLAIMER + EPOCH FIX + COOKIE 
               const feed = rel && rel.body ? JSON.parse(rel.body) : null;
               if (feed && feed.items && Array.isArray(feed.warehouses)) {
                 const fEp = Number(feed.synced_epoch || 0), bEp = Number(data.synced_epoch || 0);
-                const isNewer = (fEp > 0 && bEp > 0) ? (fEp >= bEp) : (v30StampMins(feed.synced_at) >= v30StampMins(data.synced_at));
+                const isNewer = (fEp > 0 && bEp > 0) ? (fEp >= bEp) : (v31StampMins(feed.synced_at) >= v31StampMins(data.synced_at));
                 if (isNewer) {
                   const whIds = feed.warehouses.map((w) => w.id);
                   data.warehouses = feed.warehouses;
-                  const seen = new Set();
                   (data.products || []).forEach((it) => {
                     const c = normalizeBaseCode(String(it.sku || "").split("-")[0]);
-                    seen.add(c);
                     const fe = feed.items[c];
                     if (fe && Array.isArray(fe.v)) {
                       it.variants = fe.v.map(([sz, qa]) => { const st = {}; whIds.forEach((w, i) => { st[w] = Number((qa && qa[i]) || 0); }); return { size: sz || "Freesize", stocks: st }; });
@@ -363,12 +371,12 @@ V30_INDEX_JS_ADDON = r'''/* === v30: BILL STOCK DISCLAIMER + EPOCH FIX + COOKIE 
           if (Array.isArray(data.warehouses) && data.warehouses.length) WAREHOUSE_CONFIG = data.warehouses;
           try {
             const sr = await fetch("./sale_rules.json?t=" + Date.now(), { cache: "no-store" });
-            if (sr.ok) { const rr = await sr.json(); if (rr && Object.keys(rr).length >= 10) { v30ApplyPrices(rr); SALE_RULES_MASTER = rr; } }
+            if (sr.ok) { const rr = await sr.json(); if (rr && Object.keys(rr).length >= 10) { v31ApplyPrices(rr); SALE_RULES_MASTER = rr; } }
           } catch (_) {}
-          const cleanLive = v30Sanitize(data.products);
+          const cleanLive = v31Sanitize(data.products);
           stripSapoImagesFromProducts(cleanLive);
           PRODUCTS = mergeAndApplySaleRules(cleanLive, SALE_RULES_MASTER);
-          v30Enforce();
+          v31Enforce();
           const exp = Boolean(data.sapo_cookie_expired);
           if (timeEl) {
             timeEl.textContent = exp
@@ -384,11 +392,11 @@ V30_INDEX_JS_ADDON = r'''/* === v30: BILL STOCK DISCLAIMER + EPOCH FIX + COOKIE 
           if (document.getElementById("billModal")?.classList.contains("open")) { if (!cart.length) closeBillModal(); else renderBillModal(); }
           return true;
         }
-      } catch (_) {} finally { v30SyncBusy = false; }
+      } catch (_) {} finally { v31SyncBusy = false; }
       return false;
     };
 
-    v30Enforce();
+    v31Enforce();
     renderCatalog();
     updateCartBar();
     setInterval(() => { if (document.visibilityState === "visible") refreshLiveSapoStock(true); }, 45000);
@@ -466,8 +474,7 @@ def extract_sapo_product_images(sapo_prod: dict) -> list:
 
 def split_custom_and_sapo_media(prod: dict) -> tuple:
     custom_imgs, sapo_imgs = [], []
-    raw_list = [prod.get("image")] + list(prod.get("images") or []) + list(prod.get("sapoImages") or [])
-    for u in raw_list:
+    for u in ([prod.get("image")] + list(prod.get("images") or []) + list(prod.get("sapoImages") or [])):
         s = str(u or "").strip()
         if not s or s.startswith("data:image/svg+xml"):
             continue
@@ -492,15 +499,6 @@ def parse_money(val) -> int:
     if not d: return 0
     n = int(d)
     return n * 1000 if 0 < n < 1000 else n
-
-
-def parse_pct(val) -> float:
-    if val is None: return 0.0
-    try:
-        v = float(str(val).strip().replace("%", "").replace(",", ".")) if not isinstance(val, (int, float)) else float(val)
-        return v * 100.0 if 0 < v <= 1.0 else v
-    except ValueError:
-        return 0.0
 
 
 def build_sku_matcher(codes: list):
@@ -545,18 +543,31 @@ def purge_wrong_custom_media_once():
     return pending, removed
 
 
-def upgrade_repo_files_v30() -> bool:
+def upgrade_repo_files_v31() -> bool:
     changed = False
     if os.path.exists("index.html"):
         with open("index.html", "r", encoding="utf-8") as f:
             orig = f.read()
         html = orig
+        html = re.sub(
+            r'(<span class="bill-head-badge">)[^<]*(</span>)',
+            r'\1HAVANA BLACK FRIDAY • ĐƠN TẠM TÍNH\2',
+            html,
+            count=1
+        )
+        html = re.sub(
+            r'(<h2 id="billModalTitle"[^>]*>)[^<]*(</h2>)',
+            r'\1Phiếu Lên Đơn &amp; Gửi Chốt Nhanh\2',
+            html,
+            count=1
+        )
+        html = html.replace('title="Bấm để mở Phiếu Xuất Bill chi tiết"', 'title="Bấm để mở Phiếu Lên Đơn chi tiết"')
         end_m = html.rfind("/* [BLOCK:APP_LOGIC_END] */")
         if end_m != -1:
-            cuts = [html.find(k, 0, end_m) for k in ("/* === v22:", "/* === v23:", "/* === v25:", "/* === v26:", "/* === v27:", "/* === v28:", "/* === v29:", "/* === v30:")]
+            cuts = [html.find(k, 0, end_m) for k in ("/* === v22:", "/* === v23:", "/* === v25:", "/* === v26:", "/* === v27:", "/* === v28:", "/* === v29:", "/* === v30:", "/* === v31:")]
             valid = [p for p in cuts if p != -1]
             cut_at = min(valid) if valid else end_m
-            html = html[:cut_at].rstrip() + "\n\n    " + V30_INDEX_JS_ADDON.strip() + "\n    /* [BLOCK:APP_LOGIC_END] */" + html[end_m + len("/* [BLOCK:APP_LOGIC_END] */"):]
+            html = html[:cut_at].rstrip() + "\n\n    " + V31_INDEX_JS_ADDON.strip() + "\n    /* [BLOCK:APP_LOGIC_END] */" + html[end_m + len("/* [BLOCK:APP_LOGIC_END] */"):]
         html = re.sub(r'(<span id="onlyInStockText">)(?:Còn tồn|In Stock)(</span>)', r'\1Tồn ≥ 3\2', html, count=1)
         if html != orig:
             with open("index.html", "w", encoding="utf-8") as f:
@@ -624,7 +635,7 @@ def load_black_friday_rules() -> dict:
                     sale_rules[c] = {"origPrice": op, "salePrice": sp, "discountPct": round((1 - sp / op) * 100) if op > sp else 30, "subType": norm_nfc(r[4]) if len(r) > 4 and r[4] else PK_KNOWN_SUBTYPES.get(c, "")}
     for ex in EXCLUDED_SKUS:
         sale_rules.pop(ex, None)
-    for code, (op, sp, dp, _) in PRICE_PATCH_V30.items():
+    for code, (op, sp, dp, _) in PRICE_PATCH_V31.items():
         if code in sale_rules:
             sale_rules[code].update({"origPrice": op, "salePrice": sp, "discountPct": dp})
     if sale_rules:
@@ -733,8 +744,8 @@ def publish_live_release(wh_list: list, prods: list, synced_at: str, epoch: int,
         if c in FORCE_RESET_TO_SAPO_SKUS and p.get("sapoImages"):
             ent["si"] = list(p["sapoImages"])[:5]
         items[c] = ent
-    body = json.dumps({"v": 30, "full": 1, "cookie_expired": bool(expired), "synced_at": synced_at, "synced_epoch": int(epoch or 0), "warehouses": wh_list, "items": items}, ensure_ascii=False, separators=(",", ":"))
-    hdrs = {"Authorization": f"Bearer {gh_token}", "Accept": "application/vnd.github+json", "Content-Type": "application/json", "User-Agent": "havana-v30"}
+    body = json.dumps({"v": 31, "full": 1, "cookie_expired": bool(expired), "synced_at": synced_at, "synced_epoch": int(epoch or 0), "warehouses": wh_list, "items": items}, ensure_ascii=False, separators=(",", ":"))
+    hdrs = {"Authorization": f"Bearer {gh_token}", "Accept": "application/vnd.github+json", "Content-Type": "application/json", "User-Agent": "havana-v31"}
     rel_id = None
     try:
         with urllib.request.urlopen(urllib.request.Request(f"https://api.github.com/repos/{repo}/releases/tags/live-stock", headers=hdrs), timeout=15) as r:
@@ -753,7 +764,7 @@ def publish_live_release(wh_list: list, prods: list, synced_at: str, epoch: int,
 
 def main():
     purged_now, removed_files = purge_wrong_custom_media_once()
-    upgraded_html = upgrade_repo_files_v30()
+    upgraded_html = upgrade_repo_files_v31()
     sale_rules = load_black_friday_rules()
 
     old_wh, old_prods, old_stamp, old_epoch = [], [], "21:18 21/11", 0
@@ -824,7 +835,7 @@ def main():
             write_outputs(wh_out, old_prods, old_stamp, sale_rules, old_epoch, expired=True)
         else:
             with open(".skip_git_commit", "w", encoding="utf-8") as sf: sf.write(old_stamp)
-        print("[!] Cookie Sapo dang het han — da cap nhat giao dien Bill v30 thanh cong!")
+        print("[!] Cookie Sapo dang het han — da cap nhat tieu de Phieu Len Don v31 thanh cong!")
         return
 
     grouped = {}
@@ -876,9 +887,9 @@ def main():
     publish_live_release(wh_sorted, prods_all, now_st, now_ep, expired=False)
     if os.path.exists(".skip_git_commit"): os.remove(".skip_git_commit")
     write_outputs(wh_sorted, prods_all, now_st, sale_rules, now_ep, expired=False)
-    print(f"[+] Hoan tat Auto-Sync v30 LIVE ({now_st})!")
+    print(f"[+] Hoan tat Auto-Sync v31 LIVE ({now_st})!")
 
 
 if __name__ == "__main__":
     main()
-# === HET FILE V30 - DA COPY DU 100% ===
+# === HET FILE V31 - DA COPY DU 100% ===
