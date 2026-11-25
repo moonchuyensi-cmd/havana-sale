@@ -1,8 +1,8 @@
 {
   "min_stock_rule": 3,
   "min_variant_stock_rule": 3,
-  "synced_at": "08:03 25/11",
-  "synced_epoch": 1795568630,
+  "synced_at": "08:27 25/11",
+  "synced_epoch": 1795570027,
   "sapo_cookie_expired": false,
   "warehouses": [
     {
@@ -66,8 +66,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV589",
@@ -99,8 +98,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "LEN389",
@@ -131,8 +129,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "LEN385",
@@ -166,8 +163,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "LEN381",
@@ -223,8 +219,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "LEN380",
@@ -249,7 +244,7 @@
           "size": "Be",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 1,
+            "wh_pct": 0,
             "wh_auco": 4,
             "wh_leduan": 0,
             "wh_online": 0,
@@ -262,13 +257,12 @@
             "wh_havana": 0,
             "wh_pct": 1,
             "wh_auco": 3,
-            "wh_leduan": 6,
+            "wh_leduan": 5,
             "wh_online": 0,
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QTA39",
@@ -323,8 +317,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV581",
@@ -435,8 +428,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "SAT547",
@@ -480,8 +472,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "LEN378",
@@ -552,8 +543,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "SAT546",
@@ -599,8 +589,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "ATH941",
@@ -674,14 +663,13 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "PK1067",
       "name": "Boost cao gót da lộn",
       "subType": "",
-      "category": "PK_GIAY_DEP",
+      "category": "PK_PHU_KIEN",
       "origPrice": 359000,
       "salePrice": 159000,
       "discountPct": 56,
@@ -728,8 +716,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "PK1064",
@@ -782,8 +769,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "LEN377",
@@ -833,8 +819,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "PK1062",
@@ -887,8 +872,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "PK1061",
@@ -1007,8 +991,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "LEN376",
@@ -1057,8 +1040,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "LEN375",
@@ -1150,8 +1132,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "PK1056",
@@ -1259,8 +1240,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "PK1055",
@@ -1302,8 +1282,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "SAT542",
@@ -1335,8 +1314,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "LEN372",
@@ -1394,8 +1372,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "ATH940",
@@ -1463,8 +1440,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "SAT540",
@@ -1497,8 +1473,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "LEN368",
@@ -1568,8 +1543,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ487",
@@ -1668,8 +1642,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "ATH938",
@@ -1749,8 +1722,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AK196",
@@ -1829,8 +1801,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "PK1045",
@@ -1861,8 +1832,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "PK1041",
@@ -1904,8 +1874,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "ATH928",
@@ -1942,8 +1911,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "LEN365",
@@ -2000,8 +1968,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "ATH925",
@@ -2071,8 +2038,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "QJ483",
@@ -2138,8 +2104,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "PK1038",
@@ -2170,8 +2135,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "SAT533",
@@ -2217,8 +2181,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "SAT532",
@@ -2228,9 +2191,10 @@
       "origPrice": 259000,
       "salePrice": 159000,
       "discountPct": 39,
-      "image": "./images/Sat532.jpg",
+      "image": "https://sapo.dktcdn.net/100/618/480/variants/b5c96cde-6261-484a-9488-8430557a22d2.jpg",
       "images": [
-        "./images/Sat532.jpg"
+        "https://sapo.dktcdn.net/100/618/480/variants/b5c96cde-6261-484a-9488-8430557a22d2.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/d6be6ac5-ecf9-4643-9d74-1a6ed49c7324.jpg"
       ],
       "sapoImages": [
         "https://sapo.dktcdn.net/100/618/480/variants/b5c96cde-6261-484a-9488-8430557a22d2.jpg",
@@ -2261,8 +2225,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "PK1036",
@@ -2326,8 +2289,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "LEN362",
@@ -2370,8 +2332,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "LEN361",
@@ -2450,8 +2411,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "LEN360",
@@ -2523,15 +2483,14 @@
           "size": "Nâu Sọc Be",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 3,
+            "wh_pct": 2,
             "wh_auco": 6,
             "wh_leduan": 3,
             "wh_online": 0,
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "LEN358",
@@ -2564,8 +2523,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ477",
@@ -2637,13 +2595,12 @@
             "wh_havana": 0,
             "wh_pct": 1,
             "wh_auco": 3,
-            "wh_leduan": 1,
+            "wh_leduan": 0,
             "wh_online": 0,
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "ATH923",
@@ -2734,8 +2691,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "LEN356",
@@ -2814,8 +2770,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "LEN354",
@@ -2857,13 +2812,12 @@
             "wh_havana": 19,
             "wh_pct": 2,
             "wh_auco": 4,
-            "wh_leduan": 5,
+            "wh_leduan": 4,
             "wh_online": 0,
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "PK1032",
@@ -2938,8 +2892,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "CV574",
@@ -2971,8 +2924,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV572",
@@ -3039,8 +2991,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "LEN353",
@@ -3084,8 +3035,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "LEN352",
@@ -3143,8 +3093,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AK185",
@@ -3261,8 +3210,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ476",
@@ -3329,8 +3277,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ475",
@@ -3356,7 +3303,7 @@
           "size": "Xanh đậm - S",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 2,
+            "wh_pct": 1,
             "wh_auco": 0,
             "wh_leduan": 4,
             "wh_online": 0,
@@ -3385,8 +3332,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO1042",
@@ -3432,8 +3378,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "AO1040",
@@ -3489,8 +3434,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AK184",
@@ -3533,8 +3477,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "PK1030",
@@ -3576,8 +3519,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "PK1027",
@@ -3619,8 +3561,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "AO1039",
@@ -3654,8 +3595,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ472",
@@ -3698,8 +3638,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "LEN351",
@@ -3745,8 +3684,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "SAT523",
@@ -3780,8 +3718,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "SAT522",
@@ -3816,8 +3753,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "SAT521",
@@ -3854,8 +3790,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "LEN350",
@@ -3927,8 +3862,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO1037",
@@ -3974,8 +3908,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "LEN349",
@@ -3998,17 +3931,6 @@
       "sizeChart": "",
       "variants": [
         {
-          "size": "Xám",
-          "stocks": {
-            "wh_havana": 0,
-            "wh_pct": 0,
-            "wh_auco": 1,
-            "wh_leduan": 2,
-            "wh_online": 0,
-            "wh_790054": 0
-          }
-        },
-        {
           "size": "Đỏ",
           "stocks": {
             "wh_havana": 0,
@@ -4030,8 +3952,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "LEN348",
@@ -4071,8 +3992,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV571",
@@ -4138,8 +4058,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ468",
@@ -4216,8 +4135,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "CV570",
@@ -4260,8 +4178,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ467",
@@ -4292,8 +4209,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "CV569",
@@ -4336,8 +4252,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QTA37",
@@ -4391,8 +4306,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO1036",
@@ -4448,8 +4362,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AK181",
@@ -4483,8 +4396,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV568",
@@ -4527,8 +4439,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "ATH911",
@@ -4561,8 +4472,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "LEN347",
@@ -4619,8 +4529,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "PK1006",
@@ -4662,8 +4571,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "ATH909",
@@ -4708,8 +4616,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "ATH908",
@@ -4772,8 +4679,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ464",
@@ -4884,8 +4790,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO1033",
@@ -4955,8 +4860,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "ATH900",
@@ -4988,8 +4892,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "ATH897",
@@ -5032,8 +4935,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "SAT513",
@@ -5078,8 +4980,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "SAT512",
@@ -5113,8 +5014,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "SAT510",
@@ -5158,8 +5058,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "LEN342",
@@ -5193,8 +5092,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV565",
@@ -5250,8 +5148,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV564",
@@ -5299,8 +5196,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "DA303",
@@ -5346,8 +5242,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "SAT504",
@@ -5382,8 +5277,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV563",
@@ -5449,8 +5343,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "CV562",
@@ -5527,8 +5420,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV561",
@@ -5629,8 +5521,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "AO1025",
@@ -5673,8 +5564,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV560",
@@ -5707,8 +5597,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "ATH877",
@@ -5757,8 +5646,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV559",
@@ -5804,8 +5692,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "LEN337",
@@ -5851,8 +5738,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "AO1023",
@@ -5886,8 +5772,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV555",
@@ -5920,8 +5805,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "PK976",
@@ -5954,8 +5838,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "DA299",
@@ -5990,8 +5873,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "SAT495",
@@ -6023,8 +5905,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV554",
@@ -6080,8 +5961,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "SAT493",
@@ -6117,8 +5997,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "ATH861",
@@ -6166,8 +6045,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV552",
@@ -6198,8 +6076,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "ATH860",
@@ -6233,8 +6110,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "SAT492",
@@ -6270,8 +6146,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO1016",
@@ -6319,8 +6194,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO1015",
@@ -6352,15 +6226,14 @@
           "size": "Trắng",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 2,
+            "wh_pct": 1,
             "wh_auco": 3,
             "wh_leduan": 0,
             "wh_online": 0,
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO1012",
@@ -6394,8 +6267,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV551",
@@ -6442,8 +6314,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO1010",
@@ -6477,8 +6348,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "ATH851",
@@ -6524,8 +6394,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QTH24",
@@ -6595,8 +6464,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "LEN334",
@@ -6640,8 +6508,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO1005",
@@ -6689,8 +6556,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "QJ456",
@@ -6736,17 +6602,6 @@
           }
         },
         {
-          "size": "Xám - S",
-          "stocks": {
-            "wh_havana": 0,
-            "wh_pct": 2,
-            "wh_auco": 0,
-            "wh_leduan": 0,
-            "wh_online": 1,
-            "wh_790054": 0
-          }
-        },
-        {
           "size": "Xám - M",
           "stocks": {
             "wh_havana": 0,
@@ -6757,8 +6612,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "ATH848",
@@ -6803,8 +6657,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "ATH847",
@@ -6841,8 +6694,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "ATH844",
@@ -6879,8 +6731,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "LEN332",
@@ -6952,8 +6803,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "LEN331",
@@ -7025,8 +6875,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "CV548",
@@ -7063,8 +6912,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "CV547",
@@ -7119,8 +6967,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV546",
@@ -7154,8 +7001,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "ATH835",
@@ -7212,8 +7058,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "LEN329",
@@ -7248,8 +7093,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "AO993",
@@ -7281,8 +7125,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO992",
@@ -7315,8 +7158,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV544",
@@ -7372,8 +7214,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "CV543",
@@ -7455,8 +7296,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "ATH827",
@@ -7490,8 +7330,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO988",
@@ -7536,8 +7375,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO987",
@@ -7577,8 +7415,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ454",
@@ -7650,8 +7487,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "QJ450",
@@ -7683,8 +7519,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO980",
@@ -7730,8 +7565,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "QJ449",
@@ -7774,8 +7608,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO979",
@@ -7854,8 +7687,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO978",
@@ -7890,8 +7722,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AK170",
@@ -7925,8 +7756,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO976",
@@ -7960,8 +7790,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AK169",
@@ -8022,8 +7851,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "AK167",
@@ -8126,8 +7954,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV542",
@@ -8195,8 +8022,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ447",
@@ -8228,8 +8054,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ446",
@@ -8284,8 +8109,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ444",
@@ -8344,8 +8168,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "AO967",
@@ -8403,8 +8226,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO966",
@@ -8440,8 +8262,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QTA33",
@@ -8478,8 +8299,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "CV541",
@@ -8512,8 +8332,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV539",
@@ -8558,8 +8377,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO955",
@@ -8594,8 +8412,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV538",
@@ -8628,8 +8445,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "AO954",
@@ -8672,8 +8488,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ435",
@@ -8740,8 +8555,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV535",
@@ -8799,8 +8613,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO953",
@@ -8845,8 +8658,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "SAT471",
@@ -8883,8 +8695,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ433",
@@ -8962,8 +8773,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV532",
@@ -9007,8 +8817,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO947",
@@ -9042,8 +8851,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "SAT465",
@@ -9076,8 +8884,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV531",
@@ -9121,8 +8928,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "AO944",
@@ -9177,8 +8983,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO939",
@@ -9212,8 +9017,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AK161",
@@ -9244,8 +9048,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "QJ432",
@@ -9300,8 +9103,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO934",
@@ -9336,8 +9138,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "DA292",
@@ -9372,8 +9173,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO932",
@@ -9406,8 +9206,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "AO928",
@@ -9441,8 +9240,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV526",
@@ -9479,8 +9277,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO917",
@@ -9513,8 +9310,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "AO911",
@@ -9557,8 +9353,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV524",
@@ -9604,8 +9399,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "AO902",
@@ -9636,8 +9430,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV523",
@@ -9682,8 +9475,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "SAT450",
@@ -9716,8 +9508,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "SAT447",
@@ -9765,8 +9556,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO887",
@@ -9812,8 +9602,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "CV519",
@@ -9850,8 +9639,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "PK898",
@@ -9884,8 +9672,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "SAT441",
@@ -9918,8 +9705,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "SAT436",
@@ -9950,8 +9736,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV517",
@@ -10034,8 +9819,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV509",
@@ -10102,8 +9886,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "DA271",
@@ -10135,8 +9918,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV505",
@@ -10192,8 +9974,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO822",
@@ -10230,8 +10011,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO809",
@@ -10266,8 +10046,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO802",
@@ -10298,8 +10077,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV501",
@@ -10330,8 +10108,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AO799",
@@ -10365,8 +10142,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "CV499",
@@ -10399,8 +10175,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "CV496",
@@ -10431,8 +10206,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "CV492",
@@ -10486,8 +10260,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ410",
@@ -10540,8 +10313,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "CV490",
@@ -10610,8 +10382,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ403",
@@ -10668,8 +10439,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "AO773",
@@ -10704,8 +10474,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QTA30",
@@ -10788,8 +10557,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "QJ396",
@@ -10842,8 +10610,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "QJ395",
@@ -10944,8 +10711,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "CV464",
@@ -10992,8 +10758,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ389",
@@ -11024,8 +10789,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "QJ387",
@@ -11099,13 +10863,12 @@
             "wh_havana": 0,
             "wh_pct": 0,
             "wh_auco": 0,
-            "wh_leduan": 2,
+            "wh_leduan": 1,
             "wh_online": 3,
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ385",
@@ -11138,8 +10901,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ378",
@@ -11207,8 +10969,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "QJ375",
@@ -11245,8 +11006,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "QTA29",
@@ -11279,8 +11039,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "QTA28",
@@ -11330,8 +11089,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "QJ373",
@@ -11377,8 +11135,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ371",
@@ -11431,8 +11188,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ369",
@@ -11464,8 +11220,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ360",
@@ -11521,8 +11276,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ347",
@@ -11576,8 +11330,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AD206",
@@ -11656,8 +11409,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AD200",
@@ -11692,8 +11444,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AD192",
@@ -11727,8 +11478,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AD190",
@@ -11759,8 +11509,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ343",
@@ -11819,8 +11568,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ337",
@@ -11888,8 +11636,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ331",
@@ -11978,8 +11725,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ330",
@@ -12013,8 +11759,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ316",
@@ -12045,8 +11790,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "AO595",
@@ -12083,8 +11827,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "AO499",
@@ -12122,8 +11865,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "QJ283",
@@ -12156,8 +11898,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "SAT323",
@@ -12207,8 +11948,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AD176",
@@ -12259,8 +11999,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "PK822",
@@ -12291,8 +12030,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": false
+      ]
     },
     {
       "sku": "AD163",
@@ -12328,8 +12066,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AD162",
@@ -12362,8 +12099,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AD153",
@@ -12398,8 +12134,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "DA186",
@@ -12441,8 +12176,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AD126",
@@ -12478,8 +12212,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AD94",
@@ -12518,8 +12251,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AD06",
@@ -12551,8 +12283,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AD45",
@@ -12588,8 +12319,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AE366",
@@ -12623,8 +12353,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     },
     {
       "sku": "AD26",
@@ -12657,8 +12386,7 @@
             "wh_790054": 0
           }
         }
-      ],
-      "hasCustomMedia": true
+      ]
     }
   ]
 }
