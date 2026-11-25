@@ -16,23 +16,23 @@ import urllib.request
 import zipfile as zf_mod
 
 # ==============================================================================
-# AUTO_SYNC_SAPO.PY (v29 - BO SUNG GHI CHU TON THUC TE TREN BILL + LOC TON >= 3)
-# Cap nhat dong bo Popup Bill, Anh PNG Bill & Tin nhan Zalo + Giu nguyen v28
+# AUTO_SYNC_SAPO.PY (v30 COMPACT - GHI CHU BILL + LOC TON >= 3 + SAPO LIVE)
+# Ban rut gon chong cat dong khi copy-paste, giu du 100% tinh nang v28 + v29
 # ==============================================================================
 
 MIN_TOTAL_STOCK = 3
 MIN_VARIANT_STOCK = 3
-DEFAULT_COOKIE = ""
 DOMAIN = os.environ.get("SAPO_DOMAIN", "havanago.mysapogo.com").strip()
 SKU_REGEX = re.compile(r"^([A-Z]{1,5}\d{1,5})", re.I)
 EXCLUDED_SKUS = {"LEN374", "QJ358"}
-PRICE_PATCH_V29 = {
+FORCE_RESET_TO_SAPO_SKUS = {"SAT532", "CV538"}
+PURGE_STATE_FILE = ".purged_wrong_media_v27.json"
+PRICE_PATCH_V30 = {
     "AO1010": (194000, 79000, 59, 0.5928),
     "AO726":  (225000, 39000, 83, 0.8267),
     "AO1016": (214000, 79000, 63, 0.6308),
 }
 SAPO_IMG_RX = re.compile(r"(dktcdn\.net|mysapogo\.com|sapo\.vn|sapogo\.com|sapocdn\.net|amazonaws\.com|cloudfront\.net)", re.I)
-
 IMG_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".jfif", ".avif", ".gif", ".bmp")
 VID_EXTS = (".mp4", ".mov", ".webm", ".m4v")
 SKIP_DIRS = {".git", ".github", "functions", "__pycache__", "node_modules"}
@@ -43,597 +43,52 @@ PK_KNOWN_SUBTYPES = {
     "PK997": "Túi xách", "PK999": "Túi xách", "PK1006": "Giày", "PK1027": "Túi xách", "PK1032": "Giày",
 }
 
-FORCE_RESET_TO_SAPO_SKUS = {"SAT532", "CV538"}
-PURGE_STATE_FILE = ".purged_wrong_media_v27.json"
+V30_INDEX_JS_ADDON = r'''/* === v30: BILL STOCK DISCLAIMER + EPOCH FIX + COOKIE WARNING + VARIANT >= 3 === */
+    const MIN_STOCK_V30 = 3;
+    const FORCE_SAPO_V30 = new Set(["SAT532", "CV538"]);
+    const BILL_NOTE_VI_V30 = "📌 Lưu ý: Hàng sale số lượng ít nên có thể lệch so với tồn thực tế, mong quý khách hàng thông cảm ạ!";
+    const BILL_NOTE_EN_V30 = "📌 Note: Sale items have limited stock and may slightly differ from actual store inventory. Thank you for your understanding!";
+    let v30SyncBusy = false;
+    let v30LastRelMs = 0;
 
-CF_STOCK_JS_V29 = r'''// Cloudflare Pages Function: /api/stock (v29 Sync + Epoch Guard + Cookie Expiry Flag + Variant >= 3)
-const MIN_TOTAL_STOCK = 3;
-const MIN_VARIANT_STOCK = 3;
-const EXCLUDED_SKUS = new Set(["LEN374", "QJ358"]);
-const FORCE_SAPO_MEDIA_SKUS = new Set(["SAT532", "CV538"]);
-const GITHUB_REPO_SLUG = "moonchuyensi-cmd/havana-sale";
-const SAPO_CDN_RX = /(dktcdn\.net|mysapogo\.com|sapo\.vn|sapogo\.com|sapocdn\.net|amazonaws\.com|cloudfront\.net)/i;
-const PRICE_PATCH_V29 = {
-  AO1010: { origPrice: 194000, salePrice: 79000, discountPct: 59 },
-  AO726:  { origPrice: 225000, salePrice: 39000, discountPct: 83 },
-  AO1016: { origPrice: 214000, salePrice: 79000, discountPct: 63 }
-};
-
-function isExternalSapoUrl(u) {
-  const s = String(u || "").trim();
-  if (!s || s.startsWith("./") || s.startsWith("images/") || s.startsWith("videos/") || s.startsWith("sizes/") || s.startsWith("data:") || s.startsWith("blob:")) return false;
-  if (s.includes("raw.githubusercontent.com/" + GITHUB_REPO_SLUG)) return false;
-  return SAPO_CDN_RX.test(s) || /^https?:\/\//i.test(s);
-}
-
-function filterProductVariantsMinStock(variantsArr, minVarStock = MIN_VARIANT_STOCK) {
-  if (!Array.isArray(variantsArr)) return [];
-  const order = [];
-  const map = {};
-  for (const v of variantsArr) {
-    if (!v) continue;
-    const sz = String(v.size || "Freesize").trim() || "Freesize";
-    if (!map[sz]) {
-      order.push(sz);
-      map[sz] = {};
-    }
-    const st = (v.stocks && typeof v.stocks === "object") ? v.stocks : {};
-    for (const [wid, q] of Object.entries(st)) {
-      map[sz][wid] = (map[sz][wid] || 0) + Math.max(0, Number(q) || 0);
-    }
-  }
-  const out = [];
-  for (const sz of order) {
-    const st = map[sz];
-    let vTot = 0;
-    for (const q of Object.values(st)) vTot += q;
-    if (vTot >= minVarStock) {
-      out.push({ size: sz, stocks: st });
-    }
-  }
-  return out;
-}
-
-function calcTotalStock(p) {
-  if (!p || !Array.isArray(p.variants)) return 0;
-  let total = 0;
-  for (const v of p.variants) {
-    const st = (v && v.stocks) || {};
-    for (const q of Object.values(st)) total += Math.max(0, Number(q) || 0);
-  }
-  return total;
-}
-
-function extractSmartSecret(rawVal) {
-  let raw = String(rawVal || "").trim();
-  if (!raw) return "";
-  const mb = raw.match(/(?:-b|--cookie)\s+(['"])([\s\S]+?)\1/);
-  if (mb) raw = mb[2];
-  else {
-    const mh = raw.match(/(?:-H|--header)\s+(['"])cookie\s*:\s*([\s\S]+?)\1/i);
-    if (mh) raw = mh[2];
-    else {
-      const ml = raw.match(/(?:^|[\r\n])cookie\s*:\s*([^\r\n]+)/i);
-      if (ml) raw = ml[1];
-    }
-  }
-  if (raw.includes("^") && (raw.includes("sapo-admin") || raw.includes("AspNetCore"))) {
-    raw = raw.replace(/\^(["%&|<>^])/g, "$1");
-  }
-  let s = raw.trim().replace(/^["']+|["']+$/g, "").replace(/[\r\n]+/g, " ").trim();
-  for (const pfx of ["cookie:", "x-sapo-access-token:"]) {
-    if (s.toLowerCase().startsWith(pfx)) s = s.slice(pfx.length).trim();
-  }
-  return s.replace(/[^\x20-\x7E]/g, "");
-}
-
-function buildAuthCandidates(env, domain) {
-  const candidates = [];
-  const cookie = extractSmartSecret(env.SAPO_COOKIE);
-  const token = extractSmartSecret(env.SAPO_ACCESS_TOKEN);
-  const baseHdr = {
-    "accept": "application/json, text/plain, */*",
-    "accept-language": "vi",
-    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-  };
-  const makeCookieHdr = (c) => ({
-    ...baseHdr,
-    "cookie": c,
-    "referer": `https://${domain}/admin/products`,
-    "x-sapo-client": "sapo-frontend-v3",
-    "x-sapo-serviceid": "sapo-frontend-v3"
-  });
-  if (cookie) candidates.push(makeCookieHdr(cookie));
-  if (token) {
-    if (token.includes("sapo-admin=") || token.includes(".AspNetCore") || token.includes(";")) {
-      candidates.push(makeCookieHdr(token));
-    } else {
-      candidates.push({ ...baseHdr, "X-Sapo-Access-Token": token });
-      candidates.push(makeCookieHdr(token));
-    }
-  }
-  return candidates;
-}
-
-function stripAccents(str) {
-  return String(str || "").replace(/đ/g, "d").replace(/Đ/g, "D").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
-}
-
-function mapWarehouseId(rawName, locId) {
-  const norm = stripAccents(rawName);
-  if (norm === "HAVANA" || norm.includes("HO PHI TICH") || norm.includes("93-95") || norm.includes("93 - 95")) return "wh_havana";
-  if (norm.includes("ONLINE")) return "wh_online";
-  if (norm.includes("261") || norm.includes("PHAN CHU TRINH") || norm.includes("PHAN CHAU TRINH")) return "wh_pct";
-  if (norm.includes("101") || norm.includes("AU CO")) return "wh_auco";
-  if (norm.includes("240") || norm.includes("LE DUAN")) return "wh_leduan";
-  return "wh_" + locId;
-}
-
-function normalizeSapoImg(rawUrl, domain) {
-  let u = String(rawUrl || "").trim();
-  if (!u || u.startsWith("data:")) return "";
-  if (u.startsWith("//")) u = "https:" + u;
-  else if (u.startsWith("/")) u = `https://${domain}${u}`;
-  return /^https?:\/\//i.test(u) ? u : "";
-}
-
-function extractSapoImagesFromProd(prod, domain) {
-  const urls = [];
-  const addU = (val) => {
-    const nu = normalizeSapoImg(val, domain);
-    if (nu && !urls.includes(nu)) urls.push(nu);
-  };
-  if (prod.image) addU(typeof prod.image === "object" ? (prod.image.full_path || prod.image.src || prod.image.path) : prod.image);
-  for (const im of (prod.images || [])) addU(typeof im === "object" ? (im.full_path || im.src || im.path) : im);
-  for (const v of (prod.variants || [])) {
-    for (const vim of (v.images || [])) addU(typeof vim === "object" ? (vim.full_path || vim.src || vim.path) : vim);
-    if (v.image) addU(typeof v.image === "object" ? (v.image.full_path || v.image.src || v.image.path) : v.image);
-  }
-  return urls;
-}
-
-function parseStampToMinutes(stampStr) {
-  const m = String(stampStr || "").trim().match(/^(\d{1,2}):(\d{2})\s+(\d{1,2})\/(\d{1,2})/);
-  if (!m) return 0;
-  const [, hh, mm, dd, mo] = m.map(Number);
-  return (((mo * 32 + dd) * 24 + hh) * 60) + mm;
-}
-
-export async function onRequestGet(context) {
-  const { request, env } = context;
-  const reqUrl = new URL(request.url);
-  const forceBypass = reqUrl.searchParams.get("force") === "1";
-  const domain = (env.SAPO_DOMAIN || "havanago.mysapogo.com").trim();
-  const authCandidates = buildAuthCandidates(env, domain);
-
-  const cache = caches.default;
-  const cacheKey = new Request(new URL("/api/stock-edge-v29", request.url).toString());
-  if (!forceBypass) {
-    const cached = await cache.match(cacheKey);
-    if (cached) return cached;
-  }
-
-  const baseAsset = await env.ASSETS.fetch(new URL("/sapo_5_kho.json", request.url));
-  if (!baseAsset.ok) {
-    return new Response(JSON.stringify({ error: "Missing sapo_5_kho.json" }), {
-      status: 404,
-      headers: { "content-type": "application/json; charset=utf-8" }
-    });
-  }
-
-  const payload = await baseAsset.json();
-  let saleRules = null;
-  try {
-    const rulesAsset = await env.ASSETS.fetch(new URL("/sale_rules.json", request.url));
-    if (rulesAsset.ok) {
-      saleRules = await rulesAsset.json();
-      for (const ex of EXCLUDED_SKUS) {
-        if (saleRules) delete saleRules[ex];
-      }
-      if (saleRules) {
-        for (const [k, patch] of Object.entries(PRICE_PATCH_V29)) {
-          if (saleRules[k]) Object.assign(saleRules[k], patch);
-        }
-      }
-    }
-  } catch (_) {}
-
-  let syncedLive = false;
-  let syncSource = "static_json";
-  const sapoImgsByBase = {};
-
-  for (const headers of authCandidates) {
-    try {
-      const p1Res = await fetch(`https://${domain}/admin/products.json?page=1&limit=250`, { headers });
-      if (!p1Res.ok) continue;
-      const p1Text = await p1Res.text();
-      if (p1Text.trimStart().startsWith("<")) continue;
-      const p1Data = JSON.parse(p1Text);
-      const firstBatch = p1Data.products || [];
-      if (!firstBatch.length) continue;
-
-      const allProds = [...firstBatch];
-      const locMap = {};
-      const locPromise = fetch(`https://${domain}/admin/locations.json`, { headers })
-        .then((r) => (r.ok ? r.json() : null))
-        .catch(() => null);
-
-      if (firstBatch.length === 250) {
-        const total = Number((p1Data.metadata && p1Data.metadata.total) || 0);
-        const maxPage = total > 250 ? Math.min(25, Math.ceil(total / 250)) : 12;
-        for (let startP = 2; startP <= maxPage; startP += 5) {
-          const batchPages = [];
-          for (let pg = startP; pg < startP + 5 && pg <= maxPage; pg++) {
-            batchPages.push(
-              fetch(`https://${domain}/admin/products.json?page=${pg}&limit=250`, { headers })
-                .then((r) => (r.ok ? r.json() : { products: [] }))
-                .catch(() => ({ products: [] }))
-            );
-          }
-          const results = await Promise.all(batchPages);
-          let gotEmpty = false;
-          for (const rData of results) {
-            const b = rData.products || [];
-            if (!b.length) gotEmpty = true;
-            else allProds.push(...b);
-          }
-          if (gotEmpty) break;
-        }
-      }
-
-      const locData = await locPromise;
-      if (locData && Array.isArray(locData.locations)) {
-        for (const l of locData.locations) {
-          locMap[String(l.id)] = mapWarehouseId(l.label || l.name || l.location_name, l.id);
-        }
-      }
-
-      const liveByBase = {};
-      const nameByBase = {};
-      for (const prod of allProds) {
-        const variants = prod.variants || [];
-        if (!variants.length) continue;
-        let baseCode = "";
-        const nameTokens = String(prod.name || "").toUpperCase().match(/\b([A-Z]{1,5}\d{1,5})\b/g) || [];
-        for (let ti = nameTokens.length - 1; ti >= 0; ti--) {
-          const tok = nameTokens[ti];
-          if (saleRules && saleRules[tok]) { baseCode = tok; break; }
-        }
-        if (!baseCode) {
-          for (const v of variants) {
-            const rawSku = String(v.sku || "").trim().toUpperCase().split("-")[0];
-            const m = rawSku.match(/^([A-Z]{1,5}\d{1,5})/);
-            if (m) {
-              if (saleRules && saleRules[m[1]]) { baseCode = m[1]; break; }
-              if (!m[1].startsWith("PVN") && !baseCode) baseCode = m[1];
-            }
-          }
-        }
-        if (!baseCode || EXCLUDED_SKUS.has(baseCode)) continue;
-        if (!nameByBase[baseCode] && prod.name) nameByBase[baseCode] = String(prod.name).trim();
-        liveByBase[baseCode] = liveByBase[baseCode] || [];
-
-        const pImgs = extractSapoImagesFromProd(prod, domain);
-        if (pImgs.length) {
-          sapoImgsByBase[baseCode] = sapoImgsByBase[baseCode] || [];
-          for (const u of pImgs) {
-            if (!sapoImgsByBase[baseCode].includes(u)) sapoImgsByBase[baseCode].push(u);
-          }
-        }
-
-        for (const v of variants) {
-          const opts = [v.opt1, v.opt2, v.opt3].filter(Boolean).map((s) => String(s).trim());
-          let sz = opts.length ? opts.join(" - ") : String(v.title || "Freesize").trim();
-          if (sz.toLowerCase() === "default title") sz = "Freesize";
-          const stocks = {};
-          for (const inv of (v.inventories || [])) {
-            const wid = locMap[String(inv.location_id)] || mapWarehouseId(inv.location_label || inv.location_name, inv.location_id);
-            const avail = inv.available !== undefined && inv.available !== null ? inv.available : (inv.on_hand || 0);
-            stocks[wid] = (stocks[wid] || 0) + Math.max(0, Number(avail) || 0);
-          }
-          liveByBase[baseCode].push({ size: sz, stocks });
-        }
-      }
-
-      if (Object.keys(liveByBase).length > 0 && Array.isArray(payload.products)) {
-        const seen = new Set();
-        for (const item of payload.products) {
-          const code = String(item.sku || "").trim().toUpperCase().split("-")[0];
-          seen.add(code);
-          item.variants = filterProductVariantsMinStock(liveByBase[code] || [], MIN_VARIANT_STOCK);
-          if (nameByBase[code]) item.name = nameByBase[code];
-        }
-        if (saleRules) {
-          for (const [code, rule] of Object.entries(saleRules)) {
-            if (!seen.has(code) && !EXCLUDED_SKUS.has(code) && liveByBase[code]) {
-              const cleanVars = filterProductVariantsMinStock(liveByBase[code], MIN_VARIANT_STOCK);
-              if (cleanVars.length > 0) {
-                payload.products.push({
-                  sku: code,
-                  name: nameByBase[code] || ("Sản phẩm Havana " + code),
-                  subType: rule.subType || "",
-                  origPrice: rule.origPrice || 299000,
-                  salePrice: rule.salePrice || 159000,
-                  discountPct: rule.discountPct || 30,
-                  image: "",
-                  images: [],
-                  sapoImages: sapoImgsByBase[code] || [],
-                  video: "",
-                  sizeChart: "",
-                  variants: cleanVars
-                });
-              }
-            }
-          }
-        }
-        const nowVN = new Date(Date.now() + 7 * 3600 * 1000);
-        const pad = (n) => String(n).padStart(2, "0");
-        payload.synced_at = `${pad(nowVN.getUTCHours())}:${pad(nowVN.getUTCMinutes())} ${pad(nowVN.getUTCDate())}/${pad(nowVN.getUTCMonth() + 1)}`;
-        payload.synced_epoch = Math.floor(Date.now() / 1000);
-        payload.sapo_cookie_expired = false;
-        syncedLive = true;
-        syncSource = "cloudflare_edge_sapo_live";
-        break;
-      }
-    } catch (_) {}
-  }
-
-  if (!syncedLive && Array.isArray(payload.products)) {
-    try {
-      const ghRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO_SLUG}/releases/tags/live-stock`, {
-        headers: { "Accept": "application/vnd.github+json", "User-Agent": "havana-sale-cf-edge-v29" }
-      });
-      if (ghRes.ok) {
-        const relJson = await ghRes.json();
-        if (relJson && relJson.body) {
-          const feed = JSON.parse(relJson.body);
-          if (feed && feed.items && Array.isArray(feed.warehouses)) {
-            const feedEpoch = Number(feed.synced_epoch || 0);
-            const baseEpoch = Number(payload.synced_epoch || 0);
-            const feedMins = parseStampToMinutes(feed.synced_at);
-            const baseMins = parseStampToMinutes(payload.synced_at);
-            const isNewer = (feedEpoch > 0 && baseEpoch > 0)
-              ? (feedEpoch >= baseEpoch)
-              : (feedMins > baseMins);
-
-            if (isNewer) {
-              const whIds = feed.warehouses.map((w) => w.id);
-              payload.warehouses = feed.warehouses;
-              const seenInBase = new Set();
-              for (const item of payload.products) {
-                const code = String(item.sku || "").trim().toUpperCase().split("-")[0];
-                seenInBase.add(code);
-                const fEntry = feed.items[code];
-                if (fEntry && Array.isArray(fEntry.v)) {
-                  const rawVars = fEntry.v.map(([sz, qArr]) => {
-                    const st = {};
-                    whIds.forEach((wid, idx) => { st[wid] = Number((qArr && qArr[idx]) || 0); });
-                    return { size: sz || "Freesize", stocks: st };
-                  });
-                  item.variants = filterProductVariantsMinStock(rawVars, MIN_VARIANT_STOCK);
-                  if (fEntry.n) item.name = fEntry.n;
-                  if (Array.isArray(fEntry.si) && fEntry.si.length) {
-                    sapoImgsByBase[code] = fEntry.si;
-                  }
-                } else if (feed.full) {
-                  item.variants = [];
-                }
-              }
-              if (saleRules) {
-                for (const [code, fEntry] of Object.entries(feed.items)) {
-                  if (!seenInBase.has(code) && saleRules[code] && !EXCLUDED_SKUS.has(code) && Array.isArray(fEntry.v)) {
-                    const rule = saleRules[code];
-                    const rawVars = fEntry.v.map(([sz, qArr]) => {
-                      const st = {};
-                      whIds.forEach((wid, idx) => { st[wid] = Number((qArr && qArr[idx]) || 0); });
-                      return { size: sz || "Freesize", stocks: st };
-                    });
-                    const cleanVars = filterProductVariantsMinStock(rawVars, MIN_VARIANT_STOCK);
-                    if (cleanVars.length > 0) {
-                      payload.products.push({
-                        sku: code,
-                        name: fEntry.n || ("Sản phẩm Havana " + code),
-                        subType: rule.subType || "",
-                        origPrice: rule.origPrice || 299000,
-                        salePrice: rule.salePrice || 159000,
-                        discountPct: rule.discountPct || 30,
-                        image: "",
-                        images: [],
-                        sapoImages: fEntry.si || [],
-                        video: "",
-                        sizeChart: "",
-                        variants: cleanVars
-                      });
-                    }
-                  }
-                }
-              }
-              payload.synced_at = feed.synced_at;
-              payload.synced_epoch = feedEpoch || payload.synced_epoch || 0;
-              payload.sapo_cookie_expired = Boolean(feed.cookie_expired);
-              syncedLive = true;
-              syncSource = "github_release_live_feed";
-            }
-          }
-        }
-      }
-    } catch (_) {}
-  }
-
-  if (Array.isArray(payload.products)) {
-    payload.products = payload.products.filter((p) => {
-      const baseSku = String(p.sku || "").trim().toUpperCase().split("-")[0];
-      if (EXCLUDED_SKUS.has(baseSku)) return false;
-      if (saleRules && Object.keys(saleRules).length > 0) {
-        const rule = saleRules[baseSku];
-        if (!rule) return false;
-        if (rule.origPrice > 0) p.origPrice = rule.origPrice;
-        if (rule.salePrice > 0) p.salePrice = rule.salePrice;
-        if (p.origPrice > p.salePrice && p.salePrice > 0) {
-          p.discountPct = Math.max(1, Math.round((1 - p.salePrice / p.origPrice) * 100));
-        }
-        if (rule.subType && !p.subType) p.subType = rule.subType;
-      }
-      p.variants = filterProductVariantsMinStock(p.variants || [], MIN_VARIANT_STOCK);
-      return p.variants.length > 0 && calcTotalStock(p) >= MIN_TOTAL_STOCK;
-    });
-
-    const sat533SapoSet = new Set(sapoImgsByBase["SAT533"] || []);
-    for (const p of payload.products) {
-      if (String(p.sku || "").trim().toUpperCase().split("-")[0] === "SAT533") {
-        for (const u of [p.image, ...(p.images || []), ...(p.sapoImages || [])]) {
-          if (isExternalSapoUrl(u)) sat533SapoSet.add(String(u).trim());
-        }
-      }
-    }
-
-    for (const p of payload.products) {
-      const code = String(p.sku || "").trim().toUpperCase().split("-")[0];
-      const forceSapoOnly = FORCE_SAPO_MEDIA_SKUS.has(code);
-      const rawImgs = Array.isArray(p.images) ? p.images : [];
-      let customImgs = [];
-      let sapoImgs = [];
-      const seedSapo = (forceSapoOnly && (sapoImgsByBase[code] || []).length > 0)
-        ? [...sapoImgsByBase[code]]
-        : [...(sapoImgsByBase[code] || []), ...(Array.isArray(p.sapoImages) ? p.sapoImages : [])];
-
-      for (const u of [p.image, ...rawImgs, ...seedSapo]) {
-        const s = String(u || "").trim();
-        if (!s || s.startsWith("data:image/svg+xml")) continue;
-        if (isExternalSapoUrl(s)) {
-          if (code === "SAT532" && (sat533SapoSet.has(s) || s.toLowerCase().includes("sat533"))) continue;
-          if (!sapoImgs.includes(s)) sapoImgs.push(s);
-        } else {
-          if (forceSapoOnly) continue;
-          if (!customImgs.includes(s)) customImgs.push(s);
-        }
-      }
-      if (forceSapoOnly) {
-        p.video = "";
-        p.sizeChart = "";
-      }
-      const finalImgs = customImgs.length > 0 ? customImgs : sapoImgs;
-      p.sapoImages = sapoImgs;
-      p.hasCustomMedia = customImgs.length > 0 || Boolean(p.video && !isExternalSapoUrl(String(p.video)));
-      p.images = finalImgs;
-      p.image = finalImgs[0] || "";
-    }
-  }
-
-  payload.min_stock_rule = MIN_TOTAL_STOCK;
-  payload.min_variant_stock_rule = MIN_VARIANT_STOCK;
-  payload.sync_source = syncSource;
-  const outResp = new Response(JSON.stringify(payload), {
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      "cache-control": syncedLive ? "public, s-maxage=45, stale-while-revalidate=45" : "no-store, max-age=0"
-    }
-  });
-  if (syncedLive && !forceBypass) context.waitUntil(cache.put(cacheKey, outResp.clone()));
-  return outResp;
-}
-'''
-
-V29_INDEX_JS_ADDON = r'''/* === v29: BILL STOCK DISCLAIMER (MODAL + ZALO TEXT + PNG IMAGE) + v28 FULL ENGINE === */
-    const MIN_TOTAL_STOCK_V29 = 3;
-    const MIN_VARIANT_STOCK_V29 = 3;
-    const FORCE_SAPO_MEDIA_V29 = new Set(["SAT532", "CV538"]);
-    const BILL_NOTE_VI_V29 = "📌 Lưu ý: Hàng sale số lượng ít nên có thể lệch so với tồn thực tế, mong quý khách hàng thông cảm ạ!";
-    const BILL_NOTE_EN_V29 = "📌 Note: Sale items have limited stock and may slightly differ from actual store inventory. Thank you for your understanding!";
-    let v29SyncInFlight = false;
-    let v29LastReleaseCheckMs = 0;
-
-    if (typeof RESET_TO_SAPO_SKUS_V21 !== "undefined" && RESET_TO_SAPO_SKUS_V21 && typeof RESET_TO_SAPO_SKUS_V21.add === "function") {
+    if (typeof RESET_TO_SAPO_SKUS_V21 !== "undefined" && RESET_TO_SAPO_SKUS_V21 && RESET_TO_SAPO_SKUS_V21.add) {
       RESET_TO_SAPO_SKUS_V21.add("CV538");
       RESET_TO_SAPO_SKUS_V21.add("SAT532");
     }
-
     try {
-      sessionStorage.removeItem("havana_gh_tree_v13");
-      sessionStorage.removeItem("havana_live_rel_v22");
-      sessionStorage.removeItem("havana_live_rel_v25");
-      sessionStorage.removeItem("havana_live_rel_v26");
-      sessionStorage.removeItem("havana_live_rel_v27");
-      sessionStorage.removeItem("havana_live_rel_v28");
+      ["havana_gh_tree_v13","havana_live_rel_v22","havana_live_rel_v25","havana_live_rel_v26","havana_live_rel_v27","havana_live_rel_v28","havana_live_rel_v29"].forEach((k) => sessionStorage.removeItem(k));
     } catch (_) {}
+    if (typeof MEDIA_CACHE_VERSION !== "undefined" && MEDIA_CACHE_VERSION < 30) MEDIA_CACHE_VERSION = 30;
 
-    if (typeof MEDIA_CACHE_VERSION !== "undefined" && MEDIA_CACHE_VERSION < 29) {
-      MEDIA_CACHE_VERSION = 29;
-    }
+    const v30BillNoteText = () => (currentLang === "EN" ? BILL_NOTE_EN_V30 : BILL_NOTE_VI_V30);
 
-    (async function purgeStaleCv538VaultOnce() {
-      try {
-        if (!localStorage.getItem("havana_purged_cv538_v27")) {
-          ["CV538", "SAT532"].forEach((targetCode) => {
-            if (typeof vaultObjectUrlsBySku === "object" && vaultObjectUrlsBySku) {
-              delete vaultObjectUrlsBySku[targetCode];
-            }
-            if (typeof vaultBlobsMap === "object" && vaultBlobsMap) {
-              Object.keys(vaultBlobsMap).forEach((k) => {
-                if (k.toUpperCase().includes(targetCode)) delete vaultBlobsMap[k];
-              });
-            }
-          });
-          if (typeof openVaultDB === "function") {
-            const db = await openVaultDB();
-            if (db) {
-              const tx = db.transaction("files", "readwrite");
-              const store = tx.objectStore("files");
-              const req = store.getAll();
-              req.onsuccess = () => {
-                (req.result || []).forEach((row) => {
-                  const rSku = String(row.sku || "").toUpperCase();
-                  const rPath = String(row.path || "").toUpperCase();
-                  if (FORCE_SAPO_MEDIA_V29.has(rSku) || rPath.includes("CV538") || rPath.includes("SAT532")) {
-                    store.delete(row.path);
-                  }
-                });
-              };
-            }
-          }
-          localStorage.setItem("havana_purged_cv538_v27", "1");
-        }
-      } catch (_) {}
-    })();
-
-    // 1. CAP NHAT NOI DUNG GHI CHU TON KHO TREN CA 3 KENH BILL (POPUP + TEXT ZALO + ANH PNG)
-    const v29GetBillDisclaimer = () => (currentLang === "EN" ? BILL_NOTE_EN_V29 : BILL_NOTE_VI_V29);
-
-    const _preV29RenderBillModal = renderBillModal;
+    const _preV30RenderBillModal = renderBillModal;
     renderBillModal = function() {
-      _preV29RenderBillModal();
+      _preV30RenderBillModal();
       const sumEl = document.getElementById("billSummaryBox");
       if (sumEl && !sumEl.querySelector(".bill-stock-disclaimer")) {
         const noteDiv = document.createElement("div");
         noteDiv.className = "bill-stock-disclaimer";
         noteDiv.style.cssText = "margin-top:8px;padding:9px 12px;border-radius:11px;background:#fffbeb;border:1px dashed #f59e0b;color:#92400e;font-size:12.5px;line-height:1.45;font-weight:600;";
-        noteDiv.textContent = v29GetBillDisclaimer();
+        noteDiv.textContent = v30BillNoteText();
         sumEl.appendChild(noteDiv);
       }
     };
 
-    const _preV29BuildFormattedBillText = buildFormattedBillText;
+    const _preV30BuildBillText = buildFormattedBillText;
     buildFormattedBillText = function() {
-      const baseTxt = _preV29BuildFormattedBillText();
-      const noteLine = v29GetBillDisclaimer();
-      if (baseTxt.includes("lệch so với tồn thực tế") || baseTxt.includes("differ from actual store inventory")) {
-        return baseTxt;
-      }
-      return baseTxt + "\n--------------------------\n" + noteLine;
+      const baseTxt = _preV30BuildBillText();
+      if (baseTxt.includes("lệch so với tồn thực tế") || baseTxt.includes("differ from actual")) return baseTxt;
+      return baseTxt + "\n--------------------------\n" + v30BillNoteText();
     };
 
-    const v29RoundRectPath = (ctx, x, y, w, h, radii) => {
+    const v30RoundRect = (ctx, x, y, w, h, radii) => {
       ctx.beginPath();
-      if (typeof ctx.roundRect === "function") {
-        ctx.roundRect(x, y, w, h, radii);
-      } else {
+      if (typeof ctx.roundRect === "function") ctx.roundRect(x, y, w, h, radii);
+      else {
         const r = Array.isArray(radii) ? (radii[0] || 12) : (radii || 12);
-        ctx.moveTo(x + r, y);
-        ctx.arcTo(x + w, y, x + w, y + h, r);
-        ctx.arcTo(x + w, y + h, x, y + h, r);
-        ctx.arcTo(x, y + h, x, y, r);
-        ctx.arcTo(x, y, x + w, y, r);
-        ctx.closePath();
+        ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
       }
     };
 
@@ -646,142 +101,78 @@ V29_INDEX_JS_ADDON = r'''/* === v29: BILL STOCK DISCLAIMER (MODAL + ZALO TEXT + 
       const nowStr = new Date().toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric" });
       const { totalQty, totalOrig, totalSale, totalSaved } = getCartTotals();
 
-      const W = 760;
-      const rowH = 62;
-      const fontStack = "'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
-      const rawCanvasNote = currentLang === "EN"
+      const W = 760, rowH = 62, fontStack = "'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+      const rawNote = currentLang === "EN"
         ? "* Note: Sale items have limited stock and may slightly differ from actual store inventory. Thank you for your understanding!"
         : "* Lưu ý: Hàng sale số lượng ít nên có thể lệch so với tồn thực tế, mong quý khách hàng thông cảm ạ!";
 
-      // Tu dong ngat dong vua khit khung hoa don de khong bao gio bi tran chu
-      const tmpCv = document.createElement("canvas");
-      const tmpCtx = tmpCv.getContext("2d");
+      const tmpCtx = document.createElement("canvas").getContext("2d");
       const noteFont = `600 13.5px ${fontStack}`;
       tmpCtx.font = noteFont;
-      const maxNoteW = W - 132;
-      const words = rawCanvasNote.split(/\s+/);
       const noteLines = [];
-      let curLine = "";
-      words.forEach((w) => {
-        const candidate = curLine ? (curLine + " " + w) : w;
-        if (tmpCtx.measureText(candidate).width > maxNoteW && curLine) {
-          noteLines.push(curLine);
-          curLine = w;
-        } else {
-          curLine = candidate;
-        }
+      let curLn = "";
+      rawNote.split(/\s+/).forEach((w) => {
+        const cand = curLn ? (curLn + " " + w) : w;
+        if (tmpCtx.measureText(cand).width > (W - 132) && curLn) { noteLines.push(curLn); curLn = w; }
+        else curLn = cand;
       });
-      if (curLine) noteLines.push(curLine);
+      if (curLn) noteLines.push(curLn);
 
-      const noteLineH = 20;
-      const noteBoxH = 16 + noteLines.length * noteLineH;
+      const noteBoxH = 16 + noteLines.length * 20;
       const H = 314 + cart.length * rowH + (custNote ? 26 : 0) + noteBoxH;
-
       const canvas = document.createElement("canvas");
-      canvas.width = W;
-      canvas.height = H;
+      canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext("2d");
 
-      // Nen ngoai xanh mint nhat
-      ctx.fillStyle = "#f2f9f8";
-      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = "#f2f9f8"; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = "#ffffff"; ctx.strokeStyle = "#91d2ce"; ctx.lineWidth = 3;
+      v30RoundRect(ctx, 24, 24, W - 48, H - 48, 22); ctx.fill(); ctx.stroke();
 
-      // Khung phieu trang
-      ctx.fillStyle = "#ffffff";
-      ctx.strokeStyle = "#91d2ce";
-      ctx.lineWidth = 3;
-      v29RoundRectPath(ctx, 24, 24, W - 48, H - 48, 22);
-      ctx.fill();
-      ctx.stroke();
-
-      // Dai tieu de xanh co vit dam
       ctx.fillStyle = "#165954";
-      v29RoundRectPath(ctx, 24, 24, W - 48, 86, [22, 22, 0, 0]);
-      ctx.fill();
-
-      ctx.fillStyle = "#ffffff";
-      ctx.font = `bold 24px ${fontStack}`;
+      v30RoundRect(ctx, 24, 24, W - 48, 86, [22, 22, 0, 0]); ctx.fill();
+      ctx.fillStyle = "#ffffff"; ctx.font = `bold 24px ${fontStack}`;
       ctx.fillText("HAVANA — PHIẾU ĐƠN BLACK FRIDAY", 52, 65);
-      ctx.fillStyle = "#bbf7d0";
-      ctx.font = `600 14px ${fontStack}`;
+      ctx.fillStyle = "#bbf7d0"; ctx.font = `600 14px ${fontStack}`;
       ctx.fillText("Thời gian xuất bill: " + nowStr + " • Giá gốc tại kho", 52, 92);
 
       let y = 142;
-      ctx.fillStyle = "#11302e";
-      ctx.font = `bold 15px ${fontStack}`;
+      ctx.fillStyle = "#11302e"; ctx.font = `bold 15px ${fontStack}`;
       ctx.fillText("Khách hàng: " + custName + (custPhone ? "   |   SĐT: " + custPhone : ""), 52, y);
       if (custNote) {
-        y += 26;
-        ctx.fillStyle = "#52706e";
-        ctx.font = `500 14px ${fontStack}`;
+        y += 26; ctx.fillStyle = "#52706e"; ctx.font = `500 14px ${fontStack}`;
         ctx.fillText("Ghi chú / Nhận hàng: " + custNote.slice(0, 68), 52, y);
       }
-
-      y += 22;
-      ctx.strokeStyle = "#cdebe8";
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(52, y);
-      ctx.lineTo(W - 52, y);
-      ctx.stroke();
+      y += 22; ctx.strokeStyle = "#cdebe8"; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(52, y); ctx.lineTo(W - 52, y); ctx.stroke();
 
       y += 30;
       cart.forEach((item, i) => {
-        const q = Number(item.qty || 1);
-        const lineSum = Number(item.finalPrice || 0) * q;
-        ctx.fillStyle = "#11302e";
-        ctx.font = `bold 15px ${fontStack}`;
-        const shortName = (`${i + 1}. [${item.sku}] ` + item.name).slice(0, 48);
-        ctx.fillText(shortName, 52, y);
-
-        ctx.fillStyle = "#52706e";
-        ctx.font = `600 13.5px ${fontStack}`;
+        const q = Number(item.qty || 1), lineSum = Number(item.finalPrice || 0) * q;
+        ctx.fillStyle = "#11302e"; ctx.font = `bold 15px ${fontStack}`;
+        ctx.fillText((`${i + 1}. [${item.sku}] ` + item.name).slice(0, 48), 52, y);
+        ctx.fillStyle = "#52706e"; ctx.font = `600 13.5px ${fontStack}`;
         ctx.fillText(`Size: ${item.size}   •   SL: ${q} x ${formatVND(item.finalPrice)}`, 52, y + 22);
-
-        ctx.fillStyle = "#be123c";
-        ctx.font = `bold 16px ${fontStack}`;
-        const priceTxt = formatVND(lineSum);
-        ctx.fillText(priceTxt, W - 52 - ctx.measureText(priceTxt).width, y + 10);
-
+        ctx.fillStyle = "#be123c"; ctx.font = `bold 16px ${fontStack}`;
+        const pTxt = formatVND(lineSum);
+        ctx.fillText(pTxt, W - 52 - ctx.measureText(pTxt).width, y + 10);
         y += rowH;
       });
 
-      ctx.strokeStyle = "#91d2ce";
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(52, y - 10);
-      ctx.lineTo(W - 52, y - 10);
-      ctx.stroke();
-
-      y += 18;
-      ctx.fillStyle = "#52706e";
-      ctx.font = `600 14.5px ${fontStack}`;
+      ctx.strokeStyle = "#91d2ce"; ctx.beginPath(); ctx.moveTo(52, y - 10); ctx.lineTo(W - 52, y - 10); ctx.stroke();
+      y += 18; ctx.fillStyle = "#52706e"; ctx.font = `600 14.5px ${fontStack}`;
       ctx.fillText(`Tổng SL: ${totalQty} sp   |   Giá gốc: ${formatVND(totalOrig)}   |   Tiết kiệm: -${formatVND(totalSaved)}`, 52, y);
 
-      y += 36;
-      ctx.fillStyle = "#165954";
-      ctx.font = `bold 20px ${fontStack}`;
+      y += 36; ctx.fillStyle = "#165954"; ctx.font = `bold 20px ${fontStack}`;
       ctx.fillText("TỔNG THANH TOÁN:", 52, y);
-
-      ctx.fillStyle = "#be123c";
-      ctx.font = `bold 24px ${fontStack}`;
+      ctx.fillStyle = "#be123c"; ctx.font = `bold 24px ${fontStack}`;
       const totStr = formatVND(totalSale);
       ctx.fillText(totStr, W - 52 - ctx.measureText(totStr).width, y);
 
-      // Khung luu y ton kho hang Sale o day phieu
-      const noteBoxY = y + 18;
-      ctx.fillStyle = "#fffbeb";
-      ctx.strokeStyle = "#f59e0b";
-      ctx.lineWidth = 1.2;
-      v29RoundRectPath(ctx, 52, noteBoxY, W - 104, noteBoxH, 11);
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = "#92400e";
-      ctx.font = noteFont;
-      noteLines.forEach((ln, idx) => {
-        ctx.fillText(ln, 66, noteBoxY + 22 + idx * noteLineH);
-      });
+      const noteY = y + 18;
+      ctx.fillStyle = "#fffbeb"; ctx.strokeStyle = "#f59e0b"; ctx.lineWidth = 1.2;
+      v30RoundRect(ctx, 52, noteY, W - 104, noteBoxH, 11); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#92400e"; ctx.font = noteFont;
+      noteLines.forEach((ln, idx) => ctx.fillText(ln, 66, noteY + 22 + idx * 20));
 
       const link = document.createElement("a");
       link.download = "Bill_Havana_BlackFriday_" + Date.now().toString().slice(-5) + ".png";
@@ -790,132 +181,67 @@ V29_INDEX_JS_ADDON = r'''/* === v29: BILL STOCK DISCLAIMER (MODAL + ZALO TEXT + 
       showToast("🖼️ Đã tải ảnh Phiếu Bill nét cao về máy!");
     };
 
-    // 2. GIU NGUYEN HE THONG DONG BO V28 (LOC KEP TON >= 3, ANH SAPO CV538/SAT532, CANH BAO COOKIE)
-    const v29ShouldForceSapoMedia = (code) => {
-      if (!FORCE_SAPO_MEDIA_V29.has(code)) return false;
-      if (typeof sessionFreshUploadedSkus !== "undefined" && sessionFreshUploadedSkus && sessionFreshUploadedSkus.has(code)) {
-        return false;
-      }
-      return true;
+    const v30ApplyPrices = (rm) => {
+      if (!rm || typeof rm !== "object") return;
+      const fx = { AO1010: { origPrice: 194000, salePrice: 79000, discountPct: 59 }, AO726: { origPrice: 225000, salePrice: 39000, discountPct: 83 }, AO1016: { origPrice: 214000, salePrice: 79000, discountPct: 63 } };
+      Object.keys(fx).forEach((k) => { if (rm[k]) Object.assign(rm[k], fx[k]); });
     };
 
-    const v29CleanForcedSapoItem = (p) => {
+    const v30ForceSapoCheck = (code) => FORCE_SAPO_V30.has(code) && !(typeof sessionFreshUploadedSkus !== "undefined" && sessionFreshUploadedSkus && sessionFreshUploadedSkus.has(code));
+
+    const v30CleanItemMedia = (p) => {
       if (!p) return;
       const code = normalizeBaseCode(String(p.sku || "").split("-")[0]);
-      if (!v29ShouldForceSapoMedia(code)) return;
-
-      if (typeof repoLiveMediaBySku === "object" && repoLiveMediaBySku && repoLiveMediaBySku[code]) {
-        delete repoLiveMediaBySku[code];
-      }
-
-      const s533Set = (code === "SAT532" && typeof getSat533ImageSet === "function") ? getSat533ImageSet() : new Set();
-      const sapoUrls = [];
-      const candidates = [
-        ...(Array.isArray(p.sapoImages) ? p.sapoImages : []),
-        ...(Array.isArray(p.images) ? p.images : []),
-        p.image
-      ];
-      candidates.forEach((u) => {
+      if (!v30ForceSapoCheck(code)) return;
+      if (typeof repoLiveMediaBySku === "object" && repoLiveMediaBySku) delete repoLiveMediaBySku[code];
+      const s533 = (code === "SAT532" && typeof getSat533ImageSet === "function") ? getSat533ImageSet() : new Set();
+      const urls = [];
+      [...(p.sapoImages || []), ...(p.images || []), p.image].forEach((u) => {
         const s = String(u || "").trim();
-        if (!s || !isSapoImageUrl(s)) return;
-        if (code === "SAT532" && (s533Set.has(s) || s.toLowerCase().includes("sat533"))) return;
-        if (!sapoUrls.includes(s)) sapoUrls.push(s);
+        if (s && isSapoImageUrl(s) && !(code === "SAT532" && (s533.has(s) || s.toLowerCase().includes("sat533"))) && !urls.includes(s)) urls.push(s);
       });
-
-      p.sapoImages = sapoUrls;
-      p.hasCustomMedia = false;
-      p.video = "";
-      p.sizeChart = "";
-      p.images = [...sapoUrls];
-      p.image = sapoUrls[0] || "";
+      p.sapoImages = urls; p.hasCustomMedia = false; p.video = ""; p.sizeChart = ""; p.images = [...urls]; p.image = urls[0] || "";
     };
 
-    const _preV29StripSapo = stripSapoImagesFromProducts;
-    stripSapoImagesFromProducts = function(list) {
-      _preV29StripSapo(list);
-      if (Array.isArray(list)) {
-        list.forEach((p) => v29CleanForcedSapoItem(p));
-      }
-    };
+    const _preV30Strip = stripSapoImagesFromProducts;
+    stripSapoImagesFromProducts = function(list) { _preV30Strip(list); if (Array.isArray(list)) list.forEach(v30CleanItemMedia); };
 
-    const _preV29GetProductSlides = getProductSlides;
+    const _preV30Slides = getProductSlides;
     getProductSlides = function(p) {
       const code = normalizeBaseCode(String(p?.sku || "").split("-")[0]);
-      if (v29ShouldForceSapoMedia(code)) {
-        v29CleanForcedSapoItem(p);
-        if (Array.isArray(p.sapoImages) && p.sapoImages.length > 0) {
-          return p.sapoImages.map((src) => ({ type: "image", src }));
-        }
-        return [{ type: "image", src: svgPlaceholder(p.sku, p.name, "#d8f1ef", "#eef9f8") }];
+      if (v30ForceSapoCheck(code)) {
+        v30CleanItemMedia(p);
+        return (p.sapoImages && p.sapoImages.length) ? p.sapoImages.map((src) => ({ type: "image", src })) : [{ type: "image", src: svgPlaceholder(p.sku, p.name, "#d8f1ef", "#eef9f8") }];
       }
-      return _preV29GetProductSlides(p);
+      return _preV30Slides(p);
     };
 
-    const v29ApplyPriceFixes = (rulesMap) => {
-      if (!rulesMap || typeof rulesMap !== "object") return;
-      const fixed = {
-        AO1010: { origPrice: 194000, salePrice: 79000, discountPct: 59 },
-        AO726:  { origPrice: 225000, salePrice: 39000, discountPct: 83 },
-        AO1016: { origPrice: 214000, salePrice: 79000, discountPct: 63 }
-      };
-      Object.keys(fixed).forEach((k) => {
-        if (rulesMap[k]) Object.assign(rulesMap[k], fixed[k]);
-      });
-    };
-
-    const v29FilterVariants = (variantsArr) => {
-      if (!Array.isArray(variantsArr)) return [];
-      const order = [];
-      const map = {};
-      variantsArr.forEach((v) => {
+    const v30FilterVars = (arr) => {
+      if (!Array.isArray(arr)) return [];
+      const ord = [], mp = {};
+      arr.forEach((v) => {
         if (!v) return;
         const sz = String(v.size || "Freesize").trim() || "Freesize";
-        if (!map[sz]) {
-          order.push(sz);
-          map[sz] = {};
-        }
-        const st = (v.stocks && typeof v.stocks === "object") ? v.stocks : {};
-        Object.keys(st).forEach((wid) => {
-          map[sz][wid] = (map[sz][wid] || 0) + Math.max(0, Number(st[wid]) || 0);
-        });
+        if (!mp[sz]) { ord.push(sz); mp[sz] = {}; }
+        Object.entries(v.stocks || {}).forEach(([w, q]) => { mp[sz][w] = (mp[sz][w] || 0) + Math.max(0, Number(q) || 0); });
       });
-      const valid = [];
-      order.forEach((sz) => {
-        const st = map[sz];
-        const vTot = Object.values(st).reduce((a, b) => a + b, 0);
-        if (vTot >= MIN_VARIANT_STOCK_V29) {
-          valid.push({ size: sz, stocks: st });
-        }
-      });
-      return valid;
+      return ord.filter((sz) => Object.values(mp[sz]).reduce((a, b) => a + b, 0) >= MIN_STOCK_V30).map((sz) => ({ size: sz, stocks: mp[sz] }));
     };
 
-    const v29CalcTotalStock = (p) => {
-      if (!p || !Array.isArray(p.variants)) return 0;
-      return p.variants.reduce((sum, v) => {
-        const st = (v && v.stocks && typeof v.stocks === "object") ? v.stocks : {};
-        return sum + Object.values(st).reduce((a, b) => a + Math.max(0, Number(b) || 0), 0);
-      }, 0);
-    };
+    const v30CalcTot = (p) => (p && Array.isArray(p.variants)) ? p.variants.reduce((s, v) => s + Object.values(v?.stocks || {}).reduce((a, b) => a + Math.max(0, Number(b) || 0), 0), 0) : 0;
 
-    const v29SanitizeProductList = (list) => {
+    const v30Sanitize = (list) => {
       if (!Array.isArray(list)) return [];
       const out = [];
       list.forEach((p) => {
         if (!p) return;
         const code = normalizeBaseCode(String(p.sku || "").split("-")[0]);
         if (!code) return;
-        const rule = SALE_RULES_MASTER && SALE_RULES_MASTER[code];
-        if (rule) {
-          if (Number(rule.origPrice) > 0) p.origPrice = Number(rule.origPrice);
-          if (Number(rule.salePrice) > 0) p.salePrice = Number(rule.salePrice);
-          p.discountPct = getProductDiscountPct(p);
-        }
-        v29CleanForcedSapoItem(p);
-        p.variants = v29FilterVariants(p.variants);
-        if (p.variants.length > 0 && v29CalcTotalStock(p) >= MIN_TOTAL_STOCK_V29) {
-          out.push(p);
-        }
+        const r = SALE_RULES_MASTER && SALE_RULES_MASTER[code];
+        if (r) { if (r.origPrice > 0) p.origPrice = Number(r.origPrice); if (r.salePrice > 0) p.salePrice = Number(r.salePrice); p.discountPct = getProductDiscountPct(p); }
+        v30CleanItemMedia(p);
+        p.variants = v30FilterVars(p.variants);
+        if (p.variants.length > 0 && v30CalcTot(p) >= MIN_STOCK_V30) out.push(p);
       });
       return out;
     };
@@ -923,435 +249,155 @@ V29_INDEX_JS_ADDON = r'''/* === v29: BILL STOCK DISCLAIMER (MODAL + ZALO TEXT + 
     ensureDefaultSelectedSizes = function() {
       if (!Array.isArray(PRODUCTS)) return;
       PRODUCTS.forEach((p) => {
-        if (!Array.isArray(p.variants) || !p.variants.length) {
-          delete selectedVariantBySku[p.sku];
-          return;
-        }
-        const curSz = selectedVariantBySku[p.sku];
-        const curVar = curSz ? p.variants.find((v) => v.size === curSz) : null;
-        if (!curVar || getVariantTotal(curVar) < MIN_VARIANT_STOCK_V29) {
-          const firstValid = p.variants.find((v) => getVariantTotal(v) >= MIN_VARIANT_STOCK_V29) || p.variants[0];
-          if (firstValid) selectedVariantBySku[p.sku] = firstValid.size;
-        }
+        if (!p.variants || !p.variants.length) { delete selectedVariantBySku[p.sku]; return; }
+        const cur = p.variants.find((v) => v.size === selectedVariantBySku[p.sku]);
+        if (!cur || getVariantTotal(cur) < MIN_STOCK_V30) selectedVariantBySku[p.sku] = p.variants[0].size;
       });
     };
 
-    const v29SyncStockBadgeLabel = () => {
-      const stTxt = document.getElementById("onlyInStockText");
-      if (stTxt) {
-        stTxt.textContent = currentLang === "VI" ? "Tồn ≥ 3" : "Stock ≥ 3";
-      }
-    };
-
-    const v29EnforceMinStock = (notifyCartChange = false) => {
-      v29ApplyPriceFixes(SALE_RULES_MASTER);
-      if (Array.isArray(BASELINE_PRODUCTS)) {
-        BASELINE_PRODUCTS = v29SanitizeProductList(BASELINE_PRODUCTS);
-      }
-      if (Array.isArray(PRODUCTS)) {
-        PRODUCTS = v29SanitizeProductList(PRODUCTS);
-      }
+    const v30Enforce = () => {
+      v30ApplyPrices(SALE_RULES_MASTER);
+      if (Array.isArray(BASELINE_PRODUCTS)) BASELINE_PRODUCTS = v30Sanitize(BASELINE_PRODUCTS);
+      if (Array.isArray(PRODUCTS)) PRODUCTS = v30Sanitize(PRODUCTS);
       ensureDefaultSelectedSizes();
-
+      const stTxt = document.getElementById("onlyInStockText");
+      if (stTxt) stTxt.textContent = currentLang === "VI" ? "Tồn ≥ 3" : "Stock ≥ 3";
       if (Array.isArray(cart) && cart.length) {
-        let adjusted = false;
+        let adj = false;
         cart = cart.filter((c) => {
-          const matchedP = (PRODUCTS || []).find((x) => x.sku === c.sku);
-          if (!matchedP || v29CalcTotalStock(matchedP) < MIN_TOTAL_STOCK_V29) {
-            adjusted = true;
-            return false;
-          }
-          c.origPrice = matchedP.origPrice;
-          c.finalPrice = getProductSalePrice(matchedP);
-          c.discountPct = getProductDiscountPct(matchedP);
-          if (v29ShouldForceSapoMedia(c.sku)) {
-            c.image = matchedP.image || "";
-          }
-          const maxAvail = getMaxStockForSkuSize(c.sku, c.size);
-          if (maxAvail < MIN_VARIANT_STOCK_V29) {
-            adjusted = true;
-            return false;
-          }
-          if (c.qty > maxAvail) {
-            c.qty = maxAvail;
-            adjusted = true;
-          }
+          const mp = (PRODUCTS || []).find((x) => x.sku === c.sku);
+          if (!mp) { adj = true; return false; }
+          c.origPrice = mp.origPrice; c.finalPrice = getProductSalePrice(mp); c.discountPct = getProductDiscountPct(mp);
+          const mx = getMaxStockForSkuSize(c.sku, c.size);
+          if (mx < MIN_STOCK_V30) { adj = true; return false; }
+          if (c.qty > mx) { c.qty = mx; adj = true; }
           return true;
         });
-        if (adjusted) {
-          persistCart();
-          updateCartBar();
-          if (notifyCartChange) {
-            showToast("Tồn kho Sapo vừa thay đổi — các mẫu/size tồn dưới 3 đã tự động rút khỏi danh sách & Phiếu Bill!");
-          }
-        }
+        if (adj) { persistCart(); updateCartBar(); }
       }
-      v29SyncStockBadgeLabel();
     };
 
-    const _preV29MergeRules = mergeAndApplySaleRules;
+    const _preV30Merge = mergeAndApplySaleRules;
     mergeAndApplySaleRules = function(liveList, rulesObj) {
-      v29ApplyPriceFixes(SALE_RULES_MASTER);
-      v29ApplyPriceFixes(rulesObj);
-      const cleanedInput = v29SanitizeProductList(Array.isArray(liveList) ? liveList : []);
-      const baseRules = (rulesObj && Object.keys(rulesObj).length > 0) ? rulesObj : SALE_RULES_MASTER;
-      const scopedRules = {};
-      if (baseRules) {
-        const liveSet = new Set(cleanedInput.map((it) => normalizeBaseCode(String(it?.sku || "").split("-")[0])).filter(Boolean));
-        Object.keys(baseRules).forEach((k) => {
-          if (liveSet.has(k)) scopedRules[k] = baseRules[k];
-        });
+      v30ApplyPrices(SALE_RULES_MASTER); v30ApplyPrices(rulesObj);
+      const cleaned = v30Sanitize(Array.isArray(liveList) ? liveList : []);
+      const baseR = (rulesObj && Object.keys(rulesObj).length) ? rulesObj : SALE_RULES_MASTER;
+      const scoped = {};
+      if (baseR) {
+        const setK = new Set(cleaned.map((x) => normalizeBaseCode(String(x?.sku || "").split("-")[0])));
+        Object.keys(baseR).forEach((k) => { if (setK.has(k)) scoped[k] = baseR[k]; });
       }
-      const merged = _preV29MergeRules(cleanedInput, scopedRules);
-      return v29SanitizeProductList(merged);
+      return v30Sanitize(_preV30Merge(cleaned, scoped));
     };
 
-    const _preV29RenderCatalog = renderCatalog;
-    renderCatalog = function() {
-      v29EnforceMinStock(false);
-      _preV29RenderCatalog();
+    const _preV30Render = renderCatalog;
+    renderCatalog = function() { v30Enforce(); _preV30Render(); };
+
+    const _preV30Lang = setLang;
+    setLang = function(l) {
+      _preV30Lang(l);
+      v30Enforce();
+      if (document.getElementById("billModal")?.classList.contains("open")) renderBillModal();
     };
 
-    const _preV29SetLang = setLang;
-    setLang = function(lang) {
-      _preV29SetLang(lang);
-      v29SyncStockBadgeLabel();
-      if (document.getElementById("billModal")?.classList.contains("open")) {
-        renderBillModal();
-      }
+    const v30StampMins = (s) => {
+      const m = String(s || "").trim().match(/^(\d{1,2}):(\d{2})\s+(\d{1,2})\/(\d{1,2})/);
+      return m ? ((((Number(m[4]) * 32 + Number(m[3])) * 24 + Number(m[1])) * 60) + Number(m[2])) : 0;
     };
-
-    if (typeof exportCleanIndexHtml === "function") {
-      const _preV29ExportCleanHtml = exportCleanIndexHtml;
-      exportCleanIndexHtml = function() {
-        v29EnforceMinStock(false);
-        _preV29ExportCleanHtml();
-      };
-    }
-
-    const v29ParseStampMins = (stampStr) => {
-      const m = String(stampStr || "").trim().match(/^(\d{1,2}):(\d{2})\s+(\d{1,2})\/(\d{1,2})/);
-      if (!m) return 0;
-      return (((Number(m[4]) * 32 + Number(m[3])) * 24 + Number(m[1])) * 60) + Number(m[2]);
-    };
-
-    const v29FetchLiveRelease = async (forceNow = false) => {
-      const cacheKey = "havana_live_rel_v29";
-      const nowMs = Date.now();
-      if (!forceNow && (nowMs - v29LastReleaseCheckMs < 45000)) {
-        try {
-          const cached = JSON.parse(sessionStorage.getItem(cacheKey) || "null");
-          if (cached && (nowMs - cached.ts < 45000)) return cached.feed;
-        } catch (_) {}
-      }
-      v29LastReleaseCheckMs = nowMs;
-      try {
-        const repoSlug = typeof GITHUB_REPO_SLUG !== "undefined" ? GITHUB_REPO_SLUG : "moonchuyensi-cmd/havana-sale";
-        const res = await fetch(`https://api.github.com/repos/${repoSlug}/releases/tags/live-stock?t=${nowMs}`, {
-          headers: { "Accept": "application/vnd.github+json" },
-          cache: "no-store"
-        });
-        if (!res.ok) return null;
-        const rel = await res.json();
-        if (!rel || !rel.body) return null;
-        const feed = JSON.parse(rel.body);
-        if (feed && feed.items && Array.isArray(feed.warehouses)) {
-          try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: nowMs, feed })); } catch (_) {}
-          return feed;
-        }
-      } catch (_) {}
-      return null;
-    };
-
-    const v29ApplyReleaseFeed = (basePayload, feed) => {
-      if (!feed || !feed.items || !Array.isArray(feed.warehouses) || !basePayload || !Array.isArray(basePayload.products)) {
-        return basePayload;
-      }
-      const feedMins = v29ParseStampMins(feed.synced_at);
-      const baseMins = v29ParseStampMins(basePayload.synced_at);
-      const feedEpoch = Number(feed.synced_epoch || 0);
-      const baseEpoch = Number(basePayload.synced_epoch || 0);
-
-      const feedIsOlder = (feedEpoch > 0 && baseEpoch > 0)
-        ? (feedEpoch < baseEpoch)
-        : (baseMins > 0 && feedMins < baseMins);
-
-      if (feedIsOlder) {
-        return basePayload;
-      }
-
-      const whIds = feed.warehouses.map((w) => w.id);
-      basePayload.warehouses = feed.warehouses;
-      const seen = new Set();
-      basePayload.products.forEach((item) => {
-        const code = normalizeBaseCode(String(item.sku || "").split("-")[0]);
-        seen.add(code);
-        const fEntry = feed.items[code];
-        if (fEntry && Array.isArray(fEntry.v)) {
-          const rawVars = fEntry.v.map(([sz, qArr]) => {
-            const st = {};
-            whIds.forEach((wid, idx) => { st[wid] = Number((qArr && qArr[idx]) || 0); });
-            return { size: sz || "Freesize", stocks: st };
-          });
-          item.variants = v29FilterVariants(rawVars);
-          if (fEntry.n) item.name = fEntry.n;
-          if (Array.isArray(fEntry.si) && fEntry.si.length) {
-            item.sapoImages = fEntry.si;
-          }
-        } else if (feed.full) {
-          item.variants = [];
-        }
-      });
-
-      if (SALE_RULES_MASTER) {
-        Object.keys(feed.items).forEach((code) => {
-          if (seen.has(code) || !SALE_RULES_MASTER[code]) return;
-          const fEntry = feed.items[code];
-          if (!fEntry || !Array.isArray(fEntry.v)) return;
-          const rawVars = fEntry.v.map(([sz, qArr]) => {
-            const st = {};
-            whIds.forEach((wid, idx) => { st[wid] = Number((qArr && qArr[idx]) || 0); });
-            return { size: sz || "Freesize", stocks: st };
-          });
-          const cleanVars = v29FilterVariants(rawVars);
-          if (cleanVars.length > 0) {
-            basePayload.products.push({
-              sku: code,
-              name: fEntry.n || ("Sản phẩm Havana " + code),
-              subType: SALE_RULES_MASTER[code].subType || "",
-              origPrice: SALE_RULES_MASTER[code].origPrice || 299000,
-              salePrice: SALE_RULES_MASTER[code].salePrice || 159000,
-              discountPct: SALE_RULES_MASTER[code].discountPct || 30,
-              image: "",
-              images: [],
-              sapoImages: fEntry.si || [],
-              video: "",
-              sizeChart: "",
-              variants: cleanVars
-            });
-          }
-        });
-      }
-
-      basePayload.products = v29SanitizeProductList(basePayload.products);
-      basePayload.synced_at = feed.synced_at || basePayload.synced_at;
-      basePayload.synced_epoch = feedEpoch || baseEpoch || 0;
-      if (typeof feed.cookie_expired === "boolean") {
-        basePayload.sapo_cookie_expired = feed.cookie_expired;
-      }
-      basePayload.sync_source = "github_release_live_feed";
-      return basePayload;
-    };
-
-    const v29UpdateHeaderSyncStatus = (syncedAt, isExpired) => {
-      const badgeEl = document.getElementById("liveSyncBadge");
-      const dotEl = badgeEl ? badgeEl.querySelector(".live-sync-dot") : null;
-      const timeEl = document.getElementById("liveSyncTimeText");
-      if (!timeEl) return;
-
-      if (isExpired) {
-        timeEl.textContent = currentLang === "VI"
-          ? `⚠️ Cookie Sapo hết hạn (${syncedAt || "Cũ"})`
-          : `⚠️ Sapo Cookie Expired (${syncedAt || "Stale"})`;
-        if (badgeEl) {
-          badgeEl.style.background = "var(--warn-bg)";
-          badgeEl.style.color = "var(--warn-amber)";
-        }
-        if (dotEl) dotEl.style.background = "var(--warn-amber)";
-      } else {
-        timeEl.textContent = (currentLang === "VI" ? "Cập nhật: " : "Synced: ") + (syncedAt || "Live");
-        if (badgeEl) {
-          badgeEl.style.background = "";
-          badgeEl.style.color = "";
-        }
-        if (dotEl) dotEl.style.background = "";
-      }
-    };
-
-    const v29SilentUpdateDOM = () => {
-      if (typeof purgeExcludedSkusEverywhere === "function") purgeExcludedSkusEverywhere();
-      v29EnforceMinStock(false);
-      syncMobileGridClass();
-      ensureDefaultSelectedSizes();
-      renderDynamicCategoryBar();
-      renderDynamicPriceTierBar();
-      stripSapoImagesFromProducts(PRODUCTS);
-      updateAdminMediaStats();
-
-      const q = (document.getElementById("searchInput")?.value || "").trim().toLowerCase();
-      const grid = document.getElementById("productGrid");
-      const sentinel = document.getElementById("scrollSentinel");
-      if (!grid) return;
-
-      const prevSkusRendered = Array.from(grid.querySelectorAll(".card")).map((el) => el.id.replace(/^card-/, ""));
-      const keepCount = Math.max(RENDER_BATCH_SIZE, renderedCount || RENDER_BATCH_SIZE);
-
-      filteredProductsCache = PRODUCTS.filter((p) => {
-        if (!Array.isArray(p.variants) || !p.variants.length || v29CalcTotalStock(p) < MIN_TOTAL_STOCK_V29) return false;
-        if (document.body.classList.contains("is-admin")) {
-          if (adminMediaFilter === "MISSING" && hasCustomProductMedia(p)) return false;
-          if (adminMediaFilter === "HAS_MEDIA" && !hasCustomProductMedia(p)) return false;
-        }
-        const cat = classifyProduct(p);
-        if (currentCategory !== "ALL" && cat !== currentCategory) return false;
-        const sPrice = getProductSalePrice(p);
-        if (currentPriceTier !== "ALL") {
-          if (String(currentPriceTier).startsWith("EXACT_")) {
-            if (sPrice !== Number(String(currentPriceTier).slice(6))) return false;
-          } else if (currentPriceTier === "UNDER_99" && sPrice > 99000) return false;
-          else if (currentPriceTier === "159" && (sPrice < 149000 || sPrice > 169000)) return false;
-          else if (currentPriceTier === "199_UP" && sPrice < 190000) return false;
-        }
-        if (q && !p.sku.toLowerCase().includes(q) && !p.name.toLowerCase().includes(q)) return false;
-        if (onlyInStock && getProductTotal(p) < MIN_TOTAL_STOCK_V29) return false;
-        return true;
-      });
-
-      const badgeCnt = document.getElementById("countResultBadge");
-      if (badgeCnt) {
-        badgeCnt.textContent = currentLang === "VI" ? `${filteredProductsCache.length} mẫu` : `${filteredProductsCache.length} items`;
-      }
-
-      if (!filteredProductsCache.length) {
-        _preV29RenderCatalog();
-        return;
-      }
-
-      const targetSlice = filteredProductsCache.slice(0, Math.min(keepCount, filteredProductsCache.length));
-      const nextSkus = targetSlice.map((p) => p.sku);
-      const sameOrder = prevSkusRendered.length === nextSkus.length && prevSkusRendered.every((s, idx) => s === nextSkus[idx]);
-
-      if (sameOrder && prevSkusRendered.length > 0) {
-        targetSlice.forEach((p, idx) => {
-          const cardEl = document.getElementById("card-" + p.sku);
-          if (!cardEl) return;
-          if (cardEl.querySelector("video")) {
-            const tmp = document.createElement("div");
-            tmp.innerHTML = buildCardInnerHtml(p, idx);
-            const newBody = tmp.querySelector(".card-body");
-            const curBody = cardEl.querySelector(".card-body");
-            if (newBody && curBody && curBody.innerHTML !== newBody.innerHTML) curBody.innerHTML = newBody.innerHTML;
-          } else {
-            const nextHtml = buildCardInnerHtml(p, idx);
-            if (cardEl.innerHTML !== nextHtml) cardEl.innerHTML = nextHtml;
-          }
-        });
-      } else {
-        grid.innerHTML = targetSlice.map((p, idx) => `<article class="card" id="card-${p.sku}">${buildCardInnerHtml(p, idx)}</article>`).join("");
-        renderedCount = targetSlice.length;
-        if (sentinel) {
-          sentinel.textContent = renderedCount < filteredProductsCache.length
-            ? `Đang hiển thị ${renderedCount}/${filteredProductsCache.length} mẫu — Cuộn xuống để xem tiếp...`
-            : "";
-        }
-        ensureScrollObserver();
-      }
-    };
-    window.silentUpdateCatalogInPlace = v29SilentUpdateDOM;
 
     refreshLiveSapoStock = async function(silent = true) {
-      if (v29SyncInFlight) return false;
-      v29SyncInFlight = true;
+      if (v30SyncBusy) return false;
+      v30SyncBusy = true;
       const timeEl = document.getElementById("liveSyncTimeText");
-      if (!silent && timeEl) {
-        timeEl.textContent = currentLang === "VI" ? "Đang kiểm tra Sapo..." : "Checking Sapo...";
-      }
+      const badgeEl = document.getElementById("liveSyncBadge");
+      const dotEl = badgeEl ? badgeEl.querySelector(".live-sync-dot") : null;
+      if (!silent && timeEl) timeEl.textContent = currentLang === "VI" ? "Đang kiểm tra Sapo..." : "Checking Sapo...";
       try {
         let data = null;
         if (location.protocol.startsWith("http")) {
           try {
-            const qs = (!silent ? "force=1&" : "") + "t=" + Date.now();
-            const apiResp = await fetch("./api/stock?" + qs, { cache: "no-store" });
-            if (apiResp.ok && (apiResp.headers.get("content-type") || "").includes("application/json")) {
-              data = await apiResp.json();
-            }
+            const r = await fetch("./api/stock?" + (!silent ? "force=1&" : "") + "t=" + Date.now(), { cache: "no-store" });
+            if (r.ok && (r.headers.get("content-type") || "").includes("application/json")) data = await r.json();
           } catch (_) {}
         }
-
         if (!data || !Array.isArray(data.products)) {
           try {
-            const jsonResp = await fetch("./sapo_5_kho.json?t=" + Date.now(), { cache: "no-store" });
-            if (jsonResp.ok) data = await jsonResp.json();
+            const r = await fetch("./sapo_5_kho.json?t=" + Date.now(), { cache: "no-store" });
+            if (r.ok) data = await r.json();
           } catch (_) {}
         }
-
-        if (!data || !Array.isArray(data.products)) {
-          data = {
-            synced_at: lastSyncedStamp || "",
-            warehouses: WAREHOUSE_CONFIG,
-            products: JSON.parse(JSON.stringify(PRODUCTS))
-          };
-        }
-
-        if (data.sync_source !== "cloudflare_edge_sapo_live") {
-          const liveFeed = await v29FetchLiveRelease(!silent);
-          if (liveFeed) data = v29ApplyReleaseFeed(data, liveFeed);
-        }
-
-        if (data && Array.isArray(data.products)) {
-          if (Array.isArray(data.warehouses) && data.warehouses.length) {
-            WAREHOUSE_CONFIG = data.warehouses;
-          }
+        if (data && data.sync_source !== "cloudflare_edge_sapo_live" && ( !silent || Date.now() - v30LastRelMs > 45000 )) {
+          v30LastRelMs = Date.now();
           try {
-            const srResp = await fetch("./sale_rules.json?t=" + Date.now(), { cache: "no-store" });
-            if (srResp.ok) {
-              const remoteRules = await srResp.json();
-              if (remoteRules && Object.keys(remoteRules).length >= 10) {
-                v29ApplyPriceFixes(remoteRules);
-                SALE_RULES_MASTER = remoteRules;
+            const repoSlug = typeof GITHUB_REPO_SLUG !== "undefined" ? GITHUB_REPO_SLUG : "moonchuyensi-cmd/havana-sale";
+            const gr = await fetch(`https://api.github.com/repos/${repoSlug}/releases/tags/live-stock?t=${Date.now()}`, { headers: { "Accept": "application/vnd.github+json" }, cache: "no-store" });
+            if (gr.ok) {
+              const rel = await gr.json();
+              const feed = rel && rel.body ? JSON.parse(rel.body) : null;
+              if (feed && feed.items && Array.isArray(feed.warehouses)) {
+                const fEp = Number(feed.synced_epoch || 0), bEp = Number(data.synced_epoch || 0);
+                const isNewer = (fEp > 0 && bEp > 0) ? (fEp >= bEp) : (v30StampMins(feed.synced_at) >= v30StampMins(data.synced_at));
+                if (isNewer) {
+                  const whIds = feed.warehouses.map((w) => w.id);
+                  data.warehouses = feed.warehouses;
+                  const seen = new Set();
+                  (data.products || []).forEach((it) => {
+                    const c = normalizeBaseCode(String(it.sku || "").split("-")[0]);
+                    seen.add(c);
+                    const fe = feed.items[c];
+                    if (fe && Array.isArray(fe.v)) {
+                      it.variants = fe.v.map(([sz, qa]) => { const st = {}; whIds.forEach((w, i) => { st[w] = Number((qa && qa[i]) || 0); }); return { size: sz || "Freesize", stocks: st }; });
+                      if (fe.n) it.name = fe.n;
+                      if (Array.isArray(fe.si) && fe.si.length) it.sapoImages = fe.si;
+                    } else if (feed.full) it.variants = [];
+                  });
+                  data.synced_at = feed.synced_at || data.synced_at;
+                  data.synced_epoch = fEp || bEp || 0;
+                  if (typeof feed.cookie_expired === "boolean") data.sapo_cookie_expired = feed.cookie_expired;
+                }
               }
             }
           } catch (_) {}
-
-          const cleanLiveProds = v29SanitizeProductList(data.products);
-          stripSapoImagesFromProducts(cleanLiveProds);
-          PRODUCTS = mergeAndApplySaleRules(cleanLiveProds, SALE_RULES_MASTER);
-          v29EnforceMinStock(true);
-
-          const isExpired = Boolean(data.sapo_cookie_expired);
-          v29UpdateHeaderSyncStatus(data.synced_at, isExpired);
-
-          if (!silent) {
-            if (isExpired) {
-              showToast(`⚠️ SAPO_COOKIE trên GitHub đã hết hạn (Tồn đang dừng ở ${data.synced_at || "mốc cũ"}) — Hãy dán lại Cookie mới!`);
-            } else if (data.synced_at) {
-              showToast(`⚡ Đã đồng bộ Sapo mới nhất (${data.synced_at}) • Hiện ${PRODUCTS.length} mẫu (mọi size đều ≥ 3)`);
-            }
+        }
+        if (data && Array.isArray(data.products)) {
+          if (Array.isArray(data.warehouses) && data.warehouses.length) WAREHOUSE_CONFIG = data.warehouses;
+          try {
+            const sr = await fetch("./sale_rules.json?t=" + Date.now(), { cache: "no-store" });
+            if (sr.ok) { const rr = await sr.json(); if (rr && Object.keys(rr).length >= 10) { v30ApplyPrices(rr); SALE_RULES_MASTER = rr; } }
+          } catch (_) {}
+          const cleanLive = v30Sanitize(data.products);
+          stripSapoImagesFromProducts(cleanLive);
+          PRODUCTS = mergeAndApplySaleRules(cleanLive, SALE_RULES_MASTER);
+          v30Enforce();
+          const exp = Boolean(data.sapo_cookie_expired);
+          if (timeEl) {
+            timeEl.textContent = exp
+              ? (currentLang === "VI" ? `⚠️ Cookie Sapo hết hạn (${data.synced_at || "Cũ"})` : `⚠️ Cookie Expired (${data.synced_at || "Stale"})`)
+              : ((currentLang === "VI" ? "Cập nhật: " : "Synced: ") + (data.synced_at || "Live"));
           }
+          if (badgeEl) { badgeEl.style.background = exp ? "var(--warn-bg)" : ""; badgeEl.style.color = exp ? "var(--warn-amber)" : ""; }
+          if (dotEl) dotEl.style.background = exp ? "var(--warn-amber)" : "";
+          if (!silent) showToast(exp ? `⚠️ SAPO_COOKIE hết hạn (dừng ở ${data.synced_at || "cũ"})` : `⚡ Đã đồng bộ (${data.synced_at}) • ${PRODUCTS.length} mẫu tồn ≥ 3`);
           lastSyncedStamp = data.synced_at || "";
-
-          v29SilentUpdateDOM();
+          renderCatalog();
           updateCartBar();
-          const billModalEl = document.getElementById("billModal");
-          if (billModalEl && billModalEl.classList.contains("open")) {
-            if (!cart.length) closeBillModal();
-            else renderBillModal();
-          }
+          if (document.getElementById("billModal")?.classList.contains("open")) { if (!cart.length) closeBillModal(); else renderBillModal(); }
           return true;
         }
-      } catch (_) {
-      } finally {
-        v29SyncInFlight = false;
-      }
+      } catch (_) {} finally { v30SyncBusy = false; }
       return false;
     };
 
-    v29EnforceMinStock(false);
-    v29SilentUpdateDOM();
+    v30Enforce();
+    renderCatalog();
     updateCartBar();
-    if (document.getElementById("billModal")?.classList.contains("open")) {
-      renderBillModal();
-    }
-    setInterval(() => {
-      if (document.visibilityState === "visible") refreshLiveSapoStock(true);
-    }, 45 * 1000);
+    setInterval(() => { if (document.visibilityState === "visible") refreshLiveSapoStock(true); }, 45000);
     window.addEventListener("focus", () => refreshLiveSapoStock(true), { passive: true });
     refreshLiveSapoStock(true);'''
 
 
 def vn_now_str() -> str:
-    tz_vn = datetime.timezone(datetime.timedelta(hours=7))
-    return datetime.datetime.now(tz_vn).strftime("%H:%M %d/%m")
+    return datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=7))).strftime("%H:%M %d/%m")
 
 
 def norm_nfc(s: str) -> str:
@@ -1364,49 +410,29 @@ def strip_accents(s: str) -> str:
 
 
 def clean_base_code(val) -> str:
-    raw = str(val or "").strip().upper().rstrip("-")
-    m = SKU_REGEX.match(raw)
+    m = SKU_REGEX.match(str(val or "").strip().upper().rstrip("-"))
     return m.group(1).upper() if m else ""
 
 
 def filter_variants_min_stock(variants_list: list, min_stock: int = MIN_VARIANT_STOCK) -> list:
-    merged_order = []
-    merged_stocks = {}
+    order, stocks_map = [], {}
     for v in (variants_list or []):
         if not isinstance(v, dict):
             continue
         sz = norm_nfc(v.get("size") or "Freesize") or "Freesize"
-        st = v.get("stocks") or {}
-        if sz not in merged_stocks:
-            merged_order.append(sz)
-            merged_stocks[sz] = {}
-        if isinstance(st, dict):
-            for wid, qty in st.items():
-                try:
-                    q_val = max(0, int(qty or 0))
-                except (ValueError, TypeError):
-                    q_val = 0
-                merged_stocks[sz][wid] = merged_stocks[sz].get(wid, 0) + q_val
-
-    valid_variants = []
-    for sz in merged_order:
-        st_map = merged_stocks[sz]
-        if sum(st_map.values()) >= min_stock:
-            valid_variants.append({"size": sz, "stocks": st_map})
-    return valid_variants
+        if sz not in stocks_map:
+            order.append(sz)
+            stocks_map[sz] = {}
+        for wid, qty in (v.get("stocks") or {}).items():
+            try:
+                stocks_map[sz][wid] = stocks_map[sz].get(wid, 0) + max(0, int(qty or 0))
+            except (ValueError, TypeError):
+                pass
+    return [{"size": sz, "stocks": stocks_map[sz]} for sz in order if sum(stocks_map[sz].values()) >= min_stock]
 
 
 def calc_product_total_stock(prod: dict) -> int:
-    total = 0
-    for v in (prod.get("variants") or []):
-        stocks = v.get("stocks") or {}
-        if isinstance(stocks, dict):
-            for qty in stocks.values():
-                try:
-                    total += max(0, int(qty or 0))
-                except (ValueError, TypeError):
-                    pass
-    return total
+    return sum(max(0, int(q or 0)) for v in (prod.get("variants") or []) for q in (v.get("stocks") or {}).values())
 
 
 def is_sapo_cdn_url(url: str) -> bool:
@@ -1418,649 +444,242 @@ def is_sapo_cdn_url(url: str) -> bool:
     return bool(SAPO_IMG_RX.search(u) or u.startswith(("http://", "https://")))
 
 
-def normalize_sapo_img_url(raw_url) -> str:
-    u = str(raw_url or "").strip()
-    if not u or u.startswith("data:"):
-        return ""
-    if u.startswith("//"):
-        u = "https:" + u
-    elif u.startswith("/"):
-        u = f"https://{DOMAIN}{u}"
-    return u if u.startswith(("http://", "https://")) else ""
-
-
 def extract_sapo_product_images(sapo_prod: dict) -> list:
     urls = []
-
     def add_u(val):
-        nu = normalize_sapo_img_url(val)
-        if nu and nu not in urls:
-            urls.append(nu)
-
-    img_main = sapo_prod.get("image")
-    if isinstance(img_main, dict):
-        add_u(img_main.get("full_path") or img_main.get("src") or img_main.get("path"))
-    elif isinstance(img_main, str):
-        add_u(img_main)
-
+        u = str(val or "").strip()
+        if u.startswith("//"): u = "https:" + u
+        elif u.startswith("/"): u = f"https://{DOMAIN}{u}"
+        if u.startswith(("http://", "https://")) and u not in urls:
+            urls.append(u)
+    im0 = sapo_prod.get("image")
+    add_u(im0.get("full_path") or im0.get("src") or im0.get("path") if isinstance(im0, dict) else im0)
     for im in (sapo_prod.get("images") or []):
-        if isinstance(im, dict):
-            add_u(im.get("full_path") or im.get("src") or im.get("path"))
-        elif isinstance(im, str):
-            add_u(im)
-
+        add_u(im.get("full_path") or im.get("src") or im.get("path") if isinstance(im, dict) else im)
     for v in (sapo_prod.get("variants") or []):
         for vim in (v.get("images") or []):
-            if isinstance(vim, dict):
-                add_u(vim.get("full_path") or vim.get("src") or vim.get("path"))
-            elif isinstance(vim, str):
-                add_u(vim)
-        v_single = v.get("image")
-        if isinstance(v_single, dict):
-            add_u(v_single.get("full_path") or v_single.get("src") or v_single.get("path"))
-        elif isinstance(v_single, str):
-            add_u(v_single)
-
+            add_u(vim.get("full_path") or vim.get("src") or vim.get("path") if isinstance(vim, dict) else vim)
+        vs = v.get("image")
+        add_u(vs.get("full_path") or vs.get("src") or vs.get("path") if isinstance(vs, dict) else vs)
     return urls
 
 
-def encode_rel_url(rel_path: str) -> str:
-    clean = rel_path.replace("\\", "/").lstrip("./")
-    parts = [urllib.parse.quote(p) for p in clean.split("/")]
-    return "./" + "/".join(parts)
-
-
 def split_custom_and_sapo_media(prod: dict) -> tuple:
-    raw_imgs = prod.get("images") if isinstance(prod.get("images"), list) else []
-    main_img = str(prod.get("image") or "").strip()
-    raw_sapo = prod.get("sapoImages") if isinstance(prod.get("sapoImages"), list) else []
     custom_imgs, sapo_imgs = [], []
-
-    for u in ([main_img] + list(raw_imgs) + list(raw_sapo)):
+    raw_list = [prod.get("image")] + list(prod.get("images") or []) + list(prod.get("sapoImages") or [])
+    for u in raw_list:
         s = str(u or "").strip()
         if not s or s.startswith("data:image/svg+xml"):
             continue
         if is_sapo_cdn_url(s):
-            if s not in sapo_imgs:
-                sapo_imgs.append(s)
-        else:
-            if s not in custom_imgs:
-                custom_imgs.append(s)
-
-    vid = str(prod.get("video") or "").strip()
-    if is_sapo_cdn_url(vid):
-        vid = ""
-    sz_chart = str(prod.get("sizeChart") or "").strip()
-    if is_sapo_cdn_url(sz_chart):
-        sz_chart = ""
-
-    return custom_imgs, sapo_imgs, vid, sz_chart
+            if s not in sapo_imgs: sapo_imgs.append(s)
+        elif s not in custom_imgs:
+            custom_imgs.append(s)
+    vid = "" if is_sapo_cdn_url(prod.get("video")) else str(prod.get("video") or "").strip()
+    szc = "" if is_sapo_cdn_url(prod.get("sizeChart")) else str(prod.get("sizeChart") or "").strip()
+    return custom_imgs, sapo_imgs, vid, szc
 
 
 def parse_money(val) -> int:
-    if val is None:
-        return 0
+    if val is None: return 0
     if isinstance(val, (int, float)):
         v = float(val)
         return int(round(v * 1000)) if 0 < v < 1000 else int(round(v))
     s = str(val).strip().lower()
-    if not s or "quà" in s or "qua tang" in strip_accents(s).lower() or "#n/a" in s:
+    if not s or "quà" in s or "#n/a" in s:
         return -1 if "quà" in s else 0
-    s_digits = re.sub(r"[^0-9]", "", s)
-    if not s_digits:
-        return 0
-    num = int(s_digits)
-    return num * 1000 if 0 < num < 1000 else num
+    d = re.sub(r"[^0-9]", "", s)
+    if not d: return 0
+    n = int(d)
+    return n * 1000 if 0 < n < 1000 else n
 
 
 def parse_pct(val) -> float:
-    if val is None:
-        return 0.0
-    if isinstance(val, (int, float)):
-        v = float(val)
-        return v * 100.0 if 0 < v <= 1.0 else v
-    s = str(val).strip().replace("%", "").replace(",", ".")
+    if val is None: return 0.0
     try:
-        v = float(s)
+        v = float(str(val).strip().replace("%", "").replace(",", ".")) if not isinstance(val, (int, float)) else float(val)
         return v * 100.0 if 0 < v <= 1.0 else v
     except ValueError:
         return 0.0
 
 
-def upgrade_repo_files_v29() -> bool:
-    changed = False
-
-    os.makedirs(os.path.join("functions", "api"), exist_ok=True)
-    stock_js_path = os.path.join("functions", "api", "stock.js")
-    old_js = ""
-    if os.path.exists(stock_js_path):
-        with open(stock_js_path, "r", encoding="utf-8") as f:
-            old_js = f.read()
-    if old_js.strip() != CF_STOCK_JS_V29.strip():
-        with open(stock_js_path, "w", encoding="utf-8") as f:
-            f.write(CF_STOCK_JS_V29)
-        print("[+] Da cap nhat functions/api/stock.js -> v29")
-        changed = True
-
-    if os.path.exists("index.html"):
-        with open("index.html", "r", encoding="utf-8") as f:
-            html_orig = f.read()
-        html = html_orig
-
-        try:
-            s_i = html.find("/* [BLOCK:DATA_PAYLOAD_START] */")
-            e_i = html.find("/* [BLOCK:DATA_PAYLOAD_END] */")
-            if s_i != -1 and e_i > s_i:
-                seg = html[s_i:e_i]
-                m_wh = re.search(r"let WAREHOUSE_CONFIG = (\[[^\n]*\]);", seg) or re.search(r"let WAREHOUSE_CONFIG = (\[.*?\]);", seg, re.S)
-                m_sr = re.search(r"let SALE_RULES_MASTER = (\{[^\n]*\});", seg) or re.search(r"let SALE_RULES_MASTER = (\{.*?\});", seg, re.S)
-                m_bp = re.search(r"let BASELINE_PRODUCTS = (\[[^\n]*\]);", seg) or re.search(r"let BASELINE_PRODUCTS = (\[.*?\]);", seg, re.S)
-                if m_wh and m_sr and m_bp:
-                    wh_data = json.loads(m_wh.group(1))
-                    sr_data = json.loads(m_sr.group(1))
-                    bp_data = json.loads(m_bp.group(1))
-                    for ex in EXCLUDED_SKUS:
-                        sr_data.pop(ex, None)
-                    for code, (orig_p, sale_p, disc_p, _) in PRICE_PATCH_V29.items():
-                        if code in sr_data:
-                            sr_data[code]["origPrice"] = orig_p
-                            sr_data[code]["salePrice"] = sale_p
-                            sr_data[code]["discountPct"] = disc_p
-                    filtered_bp = []
-                    for item in bp_data:
-                        c = clean_base_code(str(item.get("sku") or "").split("-")[0])
-                        if not c or c in EXCLUDED_SKUS:
-                            continue
-                        if c in PRICE_PATCH_V29:
-                            item["origPrice"] = PRICE_PATCH_V29[c][0]
-                            item["salePrice"] = PRICE_PATCH_V29[c][1]
-                            item["discountPct"] = PRICE_PATCH_V29[c][2]
-                        if c in FORCE_RESET_TO_SAPO_SKUS:
-                            _, s_imgs, _, _ = split_custom_and_sapo_media(item)
-                            item["sapoImages"] = s_imgs
-                            item["images"] = s_imgs
-                            item["image"] = s_imgs[0] if s_imgs else ""
-                            item["video"] = ""
-                            item["sizeChart"] = ""
-                            item["hasCustomMedia"] = False
-                        item["variants"] = filter_variants_min_stock(item.get("variants"), MIN_VARIANT_STOCK)
-                        if len(item["variants"]) > 0 and calc_product_total_stock(item) >= MIN_TOTAL_STOCK:
-                            filtered_bp.append(item)
-                    new_seg = (
-                        "/* [BLOCK:DATA_PAYLOAD_START] */\n"
-                        f"    let WAREHOUSE_CONFIG = {json.dumps(wh_data, ensure_ascii=False)};\n"
-                        f"    let SALE_RULES_MASTER = {json.dumps(sr_data, ensure_ascii=False)};\n"
-                        f"    let BASELINE_PRODUCTS = {json.dumps(filtered_bp, ensure_ascii=False)};\n"
-                        "    let PRODUCTS = BASELINE_PRODUCTS.map((p) => Object.assign({}, p));\n"
-                        "    "
-                    )
-                    html = html[:s_i] + new_seg + html[e_i:]
-        except Exception as e:
-            print("[*] Bo qua buoc loc khoi tao DATA_PAYLOAD:", e)
-
-        end_logic = html.rfind("/* [BLOCK:APP_LOGIC_END] */")
-        if end_logic != -1:
-            cuts = [
-                html.find(m, 0, end_logic)
-                for m in ("/* === v22:", "/* === v23:", "/* === v25:", "/* === v26:", "/* === v27:", "/* === v28:", "/* === v29:")
-            ]
-            valid_cuts = [pos for pos in cuts if pos != -1]
-            cut_at = min(valid_cuts) if valid_cuts else end_logic
-            html = (
-                html[:cut_at].rstrip()
-                + "\n\n    "
-                + V29_INDEX_JS_ADDON.strip()
-                + "\n    /* [BLOCK:APP_LOGIC_END] */"
-                + html[end_logic + len("/* [BLOCK:APP_LOGIC_END] */"):]
-            )
-
-        html = re.sub(
-            r'(<span id="onlyInStockText">)(?:Còn tồn|In Stock)(</span>)',
-            r'\1Tồn ≥ 3\2',
-            html,
-            count=1
-        )
-
-        if html != html_orig:
-            with open("index.html", "w", encoding="utf-8") as f:
-                f.write(html)
-            print("[+] Da nang cap index.html -> v29 (Cap nhat ghi chu Bill tren Popup, Zalo Text & Anh PNG)")
-            changed = True
-
-    return changed
-
-
 def build_sku_matcher(codes: list):
-    sorted_codes = sorted(set(c.upper() for c in codes if c), key=len, reverse=True)
-    compiled = []
-    for c in sorted_codes:
+    out = []
+    for c in sorted(set(x.upper() for x in codes if x), key=len, reverse=True):
         m = re.match(r"^([A-Z]+)(\d+)$", c)
-        if m:
-            pfx, num = re.escape(m.group(1)), re.escape(m.group(2))
-            rx = re.compile(rf"(^|[^A-Z0-9]){pfx}[\s_\-]*{num}([^0-9]|$)", re.I)
-        else:
-            rx = re.compile(rf"(^|[^A-Z0-9]){re.escape(c)}([^A-Z0-9]|$)", re.I)
-        compiled.append((c, rx))
-    return compiled
+        rx = re.compile(rf"(^|[^A-Z0-9]){re.escape(m.group(1))}[\s_\-]*{re.escape(m.group(2))}([^0-9]|$)", re.I) if m else re.compile(rf"(^|[^A-Z0-9]){re.escape(c)}([^A-Z0-9]|$)", re.I)
+        out.append((c, rx))
+    return out
 
 
 def purge_wrong_custom_media_once():
-    already_purged = set()
+    already = set()
     if os.path.exists(PURGE_STATE_FILE):
         try:
-            with open(PURGE_STATE_FILE, "r", encoding="utf-8") as pf:
-                already_purged = set(json.load(pf) or [])
-        except Exception:
-            already_purged = set()
-
-    pending = FORCE_RESET_TO_SAPO_SKUS - already_purged
-    if not pending:
-        return set(), []
-
-    compiled = build_sku_matcher(list(pending))
-    removed_files = []
-    touched_dirs = set()
-
-    for root, dirs, files in os.walk("."):
-        dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith(".")]
-        rel_root = root.replace("\\", "/").lstrip("./")
-        for fname in files:
-            low = fname.lower()
-            if low == "keep.txt" or not (low.endswith(IMG_EXTS) or low.endswith(VID_EXTS)):
-                continue
-            fpath = os.path.join(root, fname)
-            for _, rx in compiled:
-                if rx.search(fname) or (rel_root and rx.search(rel_root)):
-                    try:
-                        os.remove(fpath)
-                        removed_files.append(fpath.replace("\\", "/"))
-                        if rel_root:
-                            touched_dirs.add(root)
-                    except Exception:
-                        pass
-                    break
-
-    for dpath in sorted(touched_dirs, key=len, reverse=True):
-        rel_d = dpath.replace("\\", "/").lstrip("./")
-        top_seg = rel_d.split("/")[0] if rel_d else "."
-        if top_seg in PROTECTED_ROOT_DIRS or not os.path.isdir(dpath):
-            continue
-        try:
-            rem = [x for x in os.listdir(dpath) if x not in (".DS_Store", "Thumbs.db")]
-            if not rem:
-                shutil.rmtree(dpath, ignore_errors=True)
+            with open(PURGE_STATE_FILE, "r", encoding="utf-8") as f:
+                already = set(json.load(f) or [])
         except Exception:
             pass
-
+    pending = FORCE_RESET_TO_SAPO_SKUS - already
+    if not pending:
+        return set(), []
+    compiled = build_sku_matcher(list(pending))
+    removed = []
+    for root, dirs, files in os.walk("."):
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith(".")]
+        rel_r = root.replace("\\", "/").lstrip("./")
+        for fn in files:
+            if fn.lower() != "keep.txt" and fn.lower().endswith(IMG_EXTS + VID_EXTS):
+                if any(rx.search(fn) or (rel_r and rx.search(rel_r)) for _, rx in compiled):
+                    fp = os.path.join(root, fn)
+                    try:
+                        os.remove(fp)
+                        removed.append(fp)
+                    except Exception:
+                        pass
     try:
-        with open(PURGE_STATE_FILE, "w", encoding="utf-8") as pf:
-            json.dump(sorted(already_purged | pending), pf, ensure_ascii=False, indent=2)
+        with open(PURGE_STATE_FILE, "w", encoding="utf-8") as f:
+            json.dump(sorted(already | pending), f)
     except Exception:
         pass
-    return pending, removed_files
+    return pending, removed
+
+
+def upgrade_repo_files_v30() -> bool:
+    changed = False
+    if os.path.exists("index.html"):
+        with open("index.html", "r", encoding="utf-8") as f:
+            orig = f.read()
+        html = orig
+        end_m = html.rfind("/* [BLOCK:APP_LOGIC_END] */")
+        if end_m != -1:
+            cuts = [html.find(k, 0, end_m) for k in ("/* === v22:", "/* === v23:", "/* === v25:", "/* === v26:", "/* === v27:", "/* === v28:", "/* === v29:", "/* === v30:")]
+            valid = [p for p in cuts if p != -1]
+            cut_at = min(valid) if valid else end_m
+            html = html[:cut_at].rstrip() + "\n\n    " + V30_INDEX_JS_ADDON.strip() + "\n    /* [BLOCK:APP_LOGIC_END] */" + html[end_m + len("/* [BLOCK:APP_LOGIC_END] */"):]
+        html = re.sub(r'(<span id="onlyInStockText">)(?:Còn tồn|In Stock)(</span>)', r'\1Tồn ≥ 3\2', html, count=1)
+        if html != orig:
+            with open("index.html", "w", encoding="utf-8") as f:
+                f.write(html)
+            changed = True
+    return changed
 
 
 def extract_smart_secret(raw_val: str) -> str:
     raw = str(raw_val or "").strip()
-    if not raw:
-        return ""
-    m_b = re.search(r"(?:-b|--cookie)\s+(['\"])(.+?)\1", raw, flags=re.S)
-    if m_b:
-        raw = m_b.group(2)
-    else:
-        m_h = re.search(r"(?:-H|--header)\s+(['\"])cookie\s*:\s*(.+?)\1", raw, flags=re.I | re.S)
-        if m_h:
-            raw = m_h.group(2)
-        else:
-            m_line = re.search(r"(?:^|[\r\n])cookie\s*:\s*([^\r\n]+)", raw, flags=re.I)
-            if m_line:
-                raw = m_line.group(1)
-
+    if not raw: return ""
+    mb = re.search(r"(?:-b|--cookie)\s+(['\"])(.+?)\1", raw, flags=re.S)
+    mh = re.search(r"(?:-H|--header)\s+(['\"])cookie\s*:\s*(.+?)\1", raw, flags=re.I | re.S)
+    ml = re.search(r"(?:^|[\r\n])cookie\s*:\s*([^\r\n]+)", raw, flags=re.I)
+    if mb: raw = mb.group(2)
+    elif mh: raw = mh.group(2)
+    elif ml: raw = ml.group(1)
     if "^" in raw and ("sapo-admin" in raw or "AspNetCore" in raw):
         raw = re.sub(r"\^([\"%&|<>^])", r"\1", raw)
-
-    s = raw.strip().strip('"').strip("'")
-    s = re.sub(r"[\r\n]+", " ", s).strip()
+    s = re.sub(r"[\r\n]+", " ", raw.strip().strip('"').strip("'")).strip()
     for pfx in ("cookie:", "x-sapo-access-token:"):
-        if s.lower().startswith(pfx):
-            s = s[len(pfx):].strip()
+        if s.lower().startswith(pfx): s = s[len(pfx):].strip()
     return "".join(ch for ch in s if 32 <= ord(ch) <= 126)
 
 
-def make_cookie_headers(cookie_str: str) -> dict:
-    return {
-        "accept": "application/json, text/plain, */*",
-        "accept-language": "vi",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        "cookie": cookie_str,
-        "referer": f"https://{DOMAIN}/admin/products",
-        "x-sapo-client": "sapo-frontend-v3",
-        "x-sapo-serviceid": "sapo-frontend-v3",
-    }
-
-
-def make_token_headers(token_str: str) -> dict:
-    return {
-        "accept": "application/json, text/plain, */*",
-        "accept-language": "vi",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        "X-Sapo-Access-Token": token_str,
-    }
-
-
 def build_header_candidates() -> list:
-    candidates = []
-    local_cookie = ""
-    if os.path.exists(".sapo_cookie.txt"):
-        try:
-            with open(".sapo_cookie.txt", "r", encoding="utf-8") as cf:
-                local_cookie = extract_smart_secret(cf.read())
-        except Exception:
-            pass
-
-    env_cookie = extract_smart_secret(os.environ.get("SAPO_COOKIE", "") or DEFAULT_COOKIE)
-    env_token = extract_smart_secret(os.environ.get("SAPO_ACCESS_TOKEN", ""))
-
-    for label, c_val in [("SAPO_COOKIE", env_cookie), (".sapo_cookie.txt", local_cookie)]:
-        if c_val:
-            candidates.append((label, make_cookie_headers(c_val)))
-
-    if env_token:
-        if "sapo-admin=" in env_token or ".AspNetCore" in env_token or ";" in env_token:
-            candidates.append(("SAPO_ACCESS_TOKEN (dang Cookie)", make_cookie_headers(env_token)))
+    cands = []
+    base = {"accept": "application/json, text/plain, */*", "accept-language": "vi", "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/131.0.0.0"}
+    ck = extract_smart_secret(os.environ.get("SAPO_COOKIE", ""))
+    tk = extract_smart_secret(os.environ.get("SAPO_ACCESS_TOKEN", ""))
+    if ck:
+        cands.append(("SAPO_COOKIE", {**base, "cookie": ck, "referer": f"https://{DOMAIN}/admin/products", "x-sapo-client": "sapo-frontend-v3", "x-sapo-serviceid": "sapo-frontend-v3"}))
+    if tk:
+        if "sapo-admin=" in tk or ";" in tk:
+            cands.append(("SAPO_ACCESS_TOKEN(cookie)", {**base, "cookie": tk, "referer": f"https://{DOMAIN}/admin/products", "x-sapo-client": "sapo-frontend-v3", "x-sapo-serviceid": "sapo-frontend-v3"}))
         else:
-            candidates.append(("SAPO_ACCESS_TOKEN", make_token_headers(env_token)))
-            candidates.append(("SAPO_ACCESS_TOKEN (thu nhu Cookie)", make_cookie_headers(env_token)))
-
-    return candidates
-
-
-def write_github_summary(md_text: str):
-    summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "").strip()
-    if summary_path:
-        try:
-            with open(summary_path, "a", encoding="utf-8") as sf:
-                sf.write(md_text + "\n")
-        except Exception:
-            pass
-
-
-def fetch_existing_live_release_meta() -> tuple:
-    repo_slug = os.environ.get("GITHUB_REPOSITORY", "moonchuyensi-cmd/havana-sale").strip()
-    if not repo_slug:
-        return "", 0
-    headers = {"Accept": "application/vnd.github+json", "User-Agent": "havana-sale-auto-sync-v29"}
-    gh_token = os.environ.get("GITHUB_TOKEN", "").strip()
-    if gh_token:
-        headers["Authorization"] = f"Bearer {gh_token}"
-    try:
-        req = urllib.request.Request(f"https://api.github.com/repos/{repo_slug}/releases/tags/live-stock", headers=headers)
-        with urllib.request.urlopen(req, timeout=12) as resp:
-            rel = json.loads(resp.read().decode("utf-8"))
-            if rel and rel.get("body"):
-                feed = json.loads(rel["body"])
-                return str(feed.get("synced_at") or ""), int(feed.get("synced_epoch") or 0)
-    except Exception:
-        pass
-    return "", 0
+            cands.append(("SAPO_ACCESS_TOKEN", {**base, "X-Sapo-Access-Token": tk}))
+    return cands
 
 
 def load_black_friday_rules() -> dict:
-    target_xlsx = "Black Friday.xlsx" if os.path.exists("Black Friday.xlsx") else None
-    if not target_xlsx:
-        excel_files = [f for f in glob.glob("*.xlsx") if not os.path.basename(f).startswith("~$")]
-        if excel_files:
-            excel_files.sort(key=lambda x: (0 if "black" in x.lower() else 1, len(x), x))
-            target_xlsx = excel_files[0]
-
     sale_rules = {}
-    if target_xlsx:
+    if os.path.exists("sale_rules.json"):
+        try:
+            with open("sale_rules.json", "r", encoding="utf-8") as f:
+                sale_rules = json.load(f)
+        except Exception:
+            pass
+    if not sale_rules and os.path.exists("Black Friday.xlsx"):
         try:
             import openpyxl
         except ImportError:
             subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl", "-q"])
             import openpyxl
-
-        try:
-            wb_edit = openpyxl.load_workbook(target_xlsx)
-            xlsx_patched = False
-            if "Tổng CH" in wb_edit.sheetnames:
-                ws_e = wb_edit["Tổng CH"]
-                for r_idx in range(2, ws_e.max_row + 1):
-                    c_val = str(ws_e.cell(r_idx, 1).value or "").strip().upper()
-                    if c_val in PRICE_PATCH_V29:
-                        _, target_sale, _, target_pct_dec = PRICE_PATCH_V29[c_val]
-                        cur_sale = parse_money(ws_e.cell(r_idx, 3).value)
-                        if cur_sale in (99000, 159000) and cur_sale != target_sale:
-                            ws_e.cell(r_idx, 3).value = target_sale
-                            ws_e.cell(r_idx, 4).value = target_pct_dec
-                            xlsx_patched = True
-            if xlsx_patched:
-                wb_edit.save(target_xlsx)
-        except Exception:
-            pass
-
-        wb = openpyxl.load_workbook(target_xlsx, data_only=True)
-        ordered_sheets = sorted(
-            wb.sheetnames,
-            key=lambda n: 0 if ("TỔNG" in n.upper() or "TONG" in strip_accents(n) or "PHỤ" in n.upper() or "PHU" in strip_accents(n)) else 1
-        )
-        for sname in ordered_sheets:
-            if "RÚT" in sname.upper() or "RUT" in strip_accents(sname):
-                continue
-            ws = wb[sname]
-            rows = list(ws.iter_rows(values_only=True))
-            if not rows:
-                continue
-            header = [strip_accents(c) for c in rows[0]]
-            col_sku, col_orig, col_sale, col_pct, col_suggest, col_type = 0, None, None, None, None, None
-            for idx, h in enumerate(header):
-                if h in ("MA", "MA MOI") and col_sku == 0:
-                    col_sku = idx
-                elif "GIA BAN" in h:
-                    col_orig = idx
-                elif "DONG GIA" in h or "GIA GIAM" in h or "GIA SALE" in h:
-                    col_sale = idx
-                elif "GIAM GIA" in h or "%" in h:
-                    col_pct = idx
-                elif "DE XUAT" in h or "39 - 79" in h:
-                    col_suggest = idx
-                elif h == "LOAI":
-                    col_type = idx
-
-            if (col_sale is None and col_pct is None) and sname not in ("Tổng CH", "Phụ kiện"):
-                continue
-
+        wb = openpyxl.load_workbook("Black Friday.xlsx", data_only=True)
+        for sname in ("Tổng CH", "Phụ kiện"):
+            if sname not in wb.sheetnames: continue
+            rows = list(wb[sname].iter_rows(values_only=True))
             for r in rows[1:]:
-                if not r or col_sku >= len(r):
-                    continue
-                code = clean_base_code(r[col_sku])
-                if not code or code in EXCLUDED_SKUS:
-                    continue
-                orig_p = parse_money(r[col_orig]) if (col_orig is not None and col_orig < len(r)) else 0
-                sale_p = parse_money(r[col_sale]) if (col_sale is not None and col_sale < len(r)) else 0
-                if col_suggest is not None and col_suggest < len(r):
-                    sug_p = parse_money(r[col_suggest])
-                    if sug_p > 0:
-                        sale_p = sug_p
-                if sale_p == -1:
-                    continue
-                pct_v = parse_pct(r[col_pct]) if (col_pct is not None and col_pct < len(r)) else 0.0
-                if sale_p <= 0 and orig_p > 0 and pct_v > 0:
-                    sale_p = int(round(orig_p * (100.0 - pct_v) / 1000.0) * 1000)
-
-                sub_type = norm_nfc(r[col_type]) if (col_type is not None and col_type < len(r) and r[col_type]) else ""
-                if sale_p > 0 or pct_v > 0:
-                    prev_sub = sale_rules.get(code, {}).get("subType", "") or PK_KNOWN_SUBTYPES.get(code, "")
-                    sale_rules[code] = {
-                        "origPrice": orig_p,
-                        "salePrice": sale_p,
-                        "discountPct": round((1 - sale_p / orig_p) * 100) if orig_p > sale_p > 0 else round(pct_v, 1),
-                        "subType": sub_type or prev_sub,
-                    }
-    elif os.path.exists("sale_rules.json"):
-        with open("sale_rules.json", "r", encoding="utf-8") as f:
-            sale_rules = json.load(f)
-    elif os.path.exists("index.html"):
-        with open("index.html", "r", encoding="utf-8") as f:
-            m = re.search(r"let SALE_RULES_MASTER = (\{[^\n]*\});", f.read())
-            if m:
-                sale_rules = json.loads(m.group(1))
-
-    for ex_code in EXCLUDED_SKUS:
-        sale_rules.pop(ex_code, None)
-    for code, (orig_p, sale_p, disc_p, _) in PRICE_PATCH_V29.items():
-        if code in sale_rules and sale_rules[code].get("salePrice") in (99000, 159000, sale_p):
-            sale_rules[code]["origPrice"] = orig_p
-            sale_rules[code]["salePrice"] = sale_p
-            sale_rules[code]["discountPct"] = disc_p
-
+                if not r or len(r) < 3: continue
+                c = clean_base_code(r[0])
+                if not c or c in EXCLUDED_SKUS: continue
+                op, sp = parse_money(r[1]), parse_money(r[2])
+                if sp > 0:
+                    sale_rules[c] = {"origPrice": op, "salePrice": sp, "discountPct": round((1 - sp / op) * 100) if op > sp else 30, "subType": norm_nfc(r[4]) if len(r) > 4 and r[4] else PK_KNOWN_SUBTYPES.get(c, "")}
+    for ex in EXCLUDED_SKUS:
+        sale_rules.pop(ex, None)
+    for code, (op, sp, dp, _) in PRICE_PATCH_V30.items():
+        if code in sale_rules:
+            sale_rules[code].update({"origPrice": op, "salePrice": sp, "discountPct": dp})
     if sale_rules:
         with open("sale_rules.json", "w", encoding="utf-8") as f:
             json.dump(sale_rules, f, ensure_ascii=False, indent=2)
     return sale_rules
 
 
-def unpack_any_zip_archives():
-    os.makedirs("images", exist_ok=True)
-    os.makedirs("videos", exist_ok=True)
-    os.makedirs("sizes", exist_ok=True)
-
-    zip_candidates = []
-    for pat in ("*.zip", "media/*.zip", "media/**/*.zip", "images/*.zip"):
-        zip_candidates.extend(glob.glob(pat, recursive=True))
-
-    for zpath in sorted(set(zip_candidates)):
-        low_z = os.path.basename(zpath).lower()
-        if "havana_sale" in low_z or "deploy" in low_z or "auto_cloud" in low_z:
-            continue
-        base_zip_sku = os.path.splitext(os.path.basename(zpath))[0].upper()
-        extract_dir = os.path.join("media", "_unzipped_" + base_zip_sku)
-        os.makedirs(extract_dir, exist_ok=True)
-        try:
-            with zf_mod.ZipFile(zpath, "r") as zf:
-                zf.extractall(extract_dir)
-            os.remove(zpath)
-        except Exception:
-            pass
-
-    if os.path.isdir("media"):
-        for root, _, files in os.walk("media"):
-            folder_hint = os.path.basename(root).replace("_unzipped_", "").upper()
-            sku_prefix = clean_base_code(folder_hint) if folder_hint not in ("MEDIA", "") else ""
-            for fname in sorted(files):
-                if fname.startswith(".") or fname.lower() == "keep.txt":
-                    continue
-                src_path = os.path.join(root, fname)
-                low = fname.lower()
-                target_name = fname
-                if sku_prefix and sku_prefix not in re.sub(r"[\s_\-]+", "", fname.upper()):
-                    target_name = f"{sku_prefix}_{fname}"
-                if low.endswith(VID_EXTS):
-                    shutil.copy2(src_path, os.path.join("videos", target_name))
-                    os.remove(src_path)
-                elif low.endswith(IMG_EXTS):
-                    dest_dir = "sizes" if ("size" in low or "bang_size" in low or "bangsize" in low) else "images"
-                    shutil.copy2(src_path, os.path.join(dest_dir, target_name))
-                    os.remove(src_path)
-
-        for entry in os.listdir("media"):
-            full_e = os.path.join("media", entry)
-            if os.path.isdir(full_e):
-                shutil.rmtree(full_e, ignore_errors=True)
-        keep_file = os.path.join("media", "keep.txt")
-        if not os.path.exists(keep_file):
-            with open(keep_file, "w", encoding="utf-8") as f:
-                f.write("Drop SKU folders, images, videos, or .zip files here.\n")
-
-
 def scan_repo_media_folders(codes: list) -> dict:
-    unpack_any_zip_archives()
     compiled = build_sku_matcher(codes)
     media_map = {}
-
-    all_repo_files = []
+    all_files = []
     for root, dirs, files in os.walk("."):
         dirs[:] = [d for d in sorted(dirs) if d not in SKIP_DIRS and not d.startswith(".")]
-        for fname in sorted(files):
-            if fname.startswith(".") or fname.lower() in ("keep.txt", "readme.md"):
-                continue
-            rel = os.path.join(root, fname).replace("\\", "/").lstrip("./")
-            all_repo_files.append(rel)
-
-    all_repo_files.sort(key=lambda p: (0 if p.startswith(("images/", "videos/", "sizes/")) else 1, p.lower()))
-
-    for rel_path in all_repo_files:
-        low = rel_path.lower()
-        is_img = low.endswith(IMG_EXTS)
-        is_vid = low.endswith(VID_EXTS)
-        if not (is_img or is_vid):
-            continue
-        fname_only = os.path.basename(rel_path)
-        parent_dirs = os.path.dirname(rel_path)
-        matched_code = ""
-        for code, rx in compiled:
-            if rx.search(fname_only):
-                matched_code = code
-                break
-        if not matched_code and parent_dirs:
-            for code, rx in compiled:
-                if rx.search(parent_dirs):
-                    matched_code = code
-                    break
-        if not matched_code:
-            continue
-
-        encoded_url = encode_rel_url(rel_path)
-        entry = media_map.setdefault(matched_code, {"images": [], "video": "", "sizeChart": ""})
-        if is_vid:
-            if not entry["video"]:
-                entry["video"] = encoded_url
-        elif is_img:
-            if rel_path.startswith("sizes/") or "size" in fname_only.lower() or "bangsize" in fname_only.lower():
-                if not entry["sizeChart"]:
-                    entry["sizeChart"] = encoded_url
-            elif encoded_url not in entry["images"]:
-                entry["images"].append(encoded_url)
-
+        for fn in sorted(files):
+            if not fn.startswith(".") and fn.lower() not in ("keep.txt", "readme.md"):
+                all_files.append(os.path.join(root, fn).replace("\\", "/").lstrip("./"))
+    all_files.sort(key=lambda p: (0 if p.startswith(("images/", "videos/", "sizes/")) else 1, p.lower()))
+    for rel in all_files:
+        low = rel.lower()
+        if not low.endswith(IMG_EXTS + VID_EXTS): continue
+        fn, pd = os.path.basename(rel), os.path.dirname(rel)
+        hit = next((c for c, rx in compiled if rx.search(fn)), "") or (next((c for c, rx in compiled if rx.search(pd)), "") if pd else "")
+        if not hit or hit in FORCE_RESET_TO_SAPO_SKUS: continue
+        enc = "./" + "/".join(urllib.parse.quote(x) for x in rel.split("/"))
+        ent = media_map.setdefault(hit, {"images": [], "video": "", "sizeChart": ""})
+        if low.endswith(VID_EXTS):
+            if not ent["video"]: ent["video"] = enc
+        elif rel.startswith("sizes/") or "size" in fn.lower() or "bangsize" in fn.lower():
+            if not ent["sizeChart"]: ent["sizeChart"] = enc
+        elif enc not in ent["images"]:
+            ent["images"].append(enc)
     return media_map
 
 
-def map_exact_havana_branch(raw_name: str, loc_id: str, fallback_idx: int = 9):
-    norm = strip_accents(raw_name)
-    if norm == "HAVANA" or "HO PHI TICH" in norm or "93-95" in norm or "93 - 95" in norm:
-        return ("wh_havana", "HAVANA (93-95 Hồ Phi Tích)", 1)
-    if "ONLINE" in norm:
-        return ("wh_online", "HAVANA ONLINE", 2)
-    if "261" in norm or "PHAN CHU TRINH" in norm or "PHAN CHAU TRINH" in norm:
-        return ("wh_pct", "261 - 263 Phan Châu Trinh", 3)
-    if "101" in norm or "AU CO" in norm:
-        return ("wh_auco", "101 Âu Cơ", 4)
-    if "240" in norm or "LE DUAN" in norm:
-        return ("wh_leduan", "240 Lê Duẩn", 5)
-    clean_lbl = norm_nfc(raw_name) or f"Chi nhánh {loc_id}"
-    return (f"wh_{loc_id}", clean_lbl, fallback_idx)
+def map_branch(raw_name: str, loc_id: str, idx: int = 9):
+    n = strip_accents(raw_name)
+    if n == "HAVANA" or "HO PHI TICH" in n or "93-95" in n or "93 - 95" in n: return ("wh_havana", "HAVANA (93-95 Hồ Phi Tích)", 1)
+    if "ONLINE" in n: return ("wh_online", "HAVANA ONLINE", 2)
+    if "261" in n or "PHAN CHU TRINH" in n or "PHAN CHAU TRINH" in n: return ("wh_pct", "261 - 263 Phan Châu Trinh", 3)
+    if "101" in n or "AU CO" in n: return ("wh_auco", "101 Âu Cơ", 4)
+    if "240" in n or "LE DUAN" in n: return ("wh_leduan", "240 Lê Duẩn", 5)
+    return (f"wh_{loc_id}", norm_nfc(raw_name) or f"Chi nhánh {loc_id}", idx)
 
 
 def infer_category(code: str, pname: str, sub_type: str = "") -> str:
-    up = code.upper()
-    name_l = norm_nfc(pname).lower()
-    sub_l = norm_nfc(sub_type).lower()
-    hint = f"{sub_l} {name_l}".strip()
+    up, nl, sl = code.upper(), norm_nfc(pname).lower(), norm_nfc(sub_type).lower()
+    hint = f"{sl} {nl}".strip()
     if up.startswith("PK"):
-        first_src = sub_l or name_l
-        if re.search(r"^(giày|dép|guốc|sandal|sục|boot|bốt)", first_src):
-            return "PK_GIAY_DEP"
-        if re.search(r"^(túi|ví|balo|ba lô|clutch)", first_src):
-            return "PK_TUI_XACH"
-        if re.search(r"(giày|dép|guốc|sandal|sục|boot|bốt|cao gót|búp bê|mary jane)", hint):
-            return "PK_GIAY_DEP"
-        if re.search(r"(túi|\bví\b|balo|ba lô|clutch|tote|đeo chéo|kẹp nách)", hint):
-            return "PK_TUI_XACH"
+        if re.search(r"(giày|dép|guốc|sandal|sục|boot|bốt)", hint): return "PK_GIAY_DEP"
+        if re.search(r"(túi|\bví\b|balo|ba lô|clutch|tote)", hint): return "PK_TUI_XACH"
         return "PK_PHU_KIEN"
     if up.startswith("AD"): return "AO_DAI"
     if up.startswith("ATH"): return "AO_THUN"
-    if up.startswith(("AO", "AE")): return "AO_SO_MI" if ("sơ mi" in name_l or "sơmi" in name_l) else "AO_KIEU"
+    if up.startswith(("AO", "AE")): return "AO_SO_MI" if ("sơ mi" in nl or "sơmi" in nl) else "AO_KIEU"
     if up.startswith(("AK", "HD")): return "AO_KHOAC"
     if up.startswith("LEN"): return "AO_LEN"
     if up.startswith("CV"): return "CHAN_VAY"
@@ -2071,62 +690,195 @@ def infer_category(code: str, pname: str, sub_type: str = "") -> str:
 
 
 def fetch_json(path: str, headers: dict) -> dict:
-    last_err = None
-    for attempt in range(2):
+    req = urllib.request.Request(f"https://{DOMAIN}{path}", headers=headers)
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        raw = resp.read().decode("utf-8")
+        if raw.lstrip().startswith("<"):
+            raise RuntimeError("Sapo Cookie het han!")
+        return json.loads(raw)
+
+
+def write_outputs(wh_list: list, prods: list, synced_at: str, rules: dict, epoch: int, expired: bool):
+    filtered = []
+    for p in prods:
+        cv = filter_variants_min_stock(p.get("variants"), MIN_VARIANT_STOCK)
+        if cv:
+            pc = dict(p, variants=cv)
+            if calc_product_total_stock(pc) >= MIN_TOTAL_STOCK:
+                filtered.append(pc)
+    with open("sapo_5_kho.json", "w", encoding="utf-8") as f:
+        json.dump({"min_stock_rule": MIN_TOTAL_STOCK, "min_variant_stock_rule": MIN_VARIANT_STOCK, "synced_at": synced_at, "synced_epoch": int(epoch or 0), "sapo_cookie_expired": bool(expired), "warehouses": wh_list, "products": filtered}, f, ensure_ascii=False, indent=2)
+    if os.path.exists("index.html"):
+        with open("index.html", "r", encoding="utf-8") as f:
+            h = f.read()
+        s_i, e_i = h.find("/* [BLOCK:DATA_PAYLOAD_START] */"), h.find("/* [BLOCK:DATA_PAYLOAD_END] */")
+        if s_i != -1 and e_i > s_i:
+            e_i += len("/* [BLOCK:DATA_PAYLOAD_END] */")
+            blk = f"/* [BLOCK:DATA_PAYLOAD_START] */\n    let WAREHOUSE_CONFIG = {json.dumps(wh_list, ensure_ascii=False)};\n    let SALE_RULES_MASTER = {json.dumps(rules or {}, ensure_ascii=False)};\n    let BASELINE_PRODUCTS = {json.dumps(filtered, ensure_ascii=False)};\n    let PRODUCTS = BASELINE_PRODUCTS.map((p) => Object.assign({{}}, p));\n    /* [BLOCK:DATA_PAYLOAD_END] */"
+            with open("index.html", "w", encoding="utf-8") as f:
+                f.write(h[:s_i] + blk + h[e_i:])
+
+
+def publish_live_release(wh_list: list, prods: list, synced_at: str, epoch: int, expired: bool):
+    gh_token = os.environ.get("GITHUB_TOKEN", "").strip()
+    repo = os.environ.get("GITHUB_REPOSITORY", "moonchuyensi-cmd/havana-sale").strip()
+    if not gh_token or not repo: return False
+    wh_ids = [w.get("id") for w in wh_list]
+    items = {}
+    for p in prods:
+        c = str(p.get("sku") or "").upper()
+        if not c: continue
+        vv = filter_variants_min_stock(p.get("variants"), MIN_VARIANT_STOCK)
+        ent = {"v": [[v.get("size") or "Freesize", [int((v.get("stocks") or {}).get(w) or 0) for w in wh_ids]] for v in vv]}
+        if c in FORCE_RESET_TO_SAPO_SKUS and p.get("sapoImages"):
+            ent["si"] = list(p["sapoImages"])[:5]
+        items[c] = ent
+    body = json.dumps({"v": 30, "full": 1, "cookie_expired": bool(expired), "synced_at": synced_at, "synced_epoch": int(epoch or 0), "warehouses": wh_list, "items": items}, ensure_ascii=False, separators=(",", ":"))
+    hdrs = {"Authorization": f"Bearer {gh_token}", "Accept": "application/vnd.github+json", "Content-Type": "application/json", "User-Agent": "havana-v30"}
+    rel_id = None
+    try:
+        with urllib.request.urlopen(urllib.request.Request(f"https://api.github.com/repos/{repo}/releases/tags/live-stock", headers=hdrs), timeout=15) as r:
+            rel_id = json.loads(r.read().decode("utf-8")).get("id")
+    except Exception:
+        pass
+    data = json.dumps({"tag_name": "live-stock", "name": f"Live Sapo ({synced_at})", "body": body, "draft": False, "prerelease": True}).encode("utf-8")
+    try:
+        url = f"https://api.github.com/repos/{repo}/releases/{rel_id}" if rel_id else f"https://api.github.com/repos/{repo}/releases"
+        with urllib.request.urlopen(urllib.request.Request(url, data=data, headers=hdrs, method="PATCH" if rel_id else "POST"), timeout=20) as r:
+            r.read()
+        return True
+    except Exception:
+        return False
+
+
+def main():
+    purged_now, removed_files = purge_wrong_custom_media_once()
+    upgraded_html = upgrade_repo_files_v30()
+    sale_rules = load_black_friday_rules()
+
+    old_wh, old_prods, old_stamp, old_epoch = [], [], "21:18 21/11", 0
+    if os.path.exists("sapo_5_kho.json"):
         try:
-            req = urllib.request.Request(f"https://{DOMAIN}{path}", headers=headers)
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                raw = resp.read().decode("utf-8")
-                if raw.lstrip().startswith("<"):
-                    raise RuntimeError("Sapo Cookie/Token da het han!")
-                return json.loads(raw)
+            with open("sapo_5_kho.json", "r", encoding="utf-8") as f:
+                od = json.load(f)
+            old_wh = od.get("warehouses") or []
+            old_prods = od.get("products") or []
+            old_stamp = str(od.get("synced_at") or old_stamp)
+            old_epoch = int(od.get("synced_epoch") or 0)
+        except Exception:
+            pass
+
+    preserved = {}
+    for op in old_prods:
+        ci, si, vd, sz = split_custom_and_sapo_media(op)
+        c = clean_base_code(str(op.get("sku") or "").split("-")[0])
+        if c:
+            preserved[c] = {"custom": [] if c in FORCE_RESET_TO_SAPO_SKUS else ci, "sapo": si, "vid": "" if c in FORCE_RESET_TO_SAPO_SKUS else vd, "sz": "" if c in FORCE_RESET_TO_SAPO_SKUS else sz}
+
+    all_sapo, loc_meta, active_hdrs = [], {}, None
+    for lbl, hdrs in build_header_candidates():
+        try:
+            p1 = fetch_json("/admin/products.json?page=1&limit=250", hdrs)
+            b1 = p1.get("products") or []
+            all_sapo.extend(b1)
+            active_hdrs = hdrs
+            try:
+                ld = fetch_json("/admin/locations.json", hdrs)
+                for idx, loc in enumerate(ld.get("locations") or []):
+                    rid = str(loc["id"])
+                    rname = loc.get("label") or loc.get("name") or ""
+                    wid, wlbl, word = map_branch(rname, rid, 10 + idx)
+                    loc_meta[rid] = {"id": wid, "sapo_name": rname, "name": wlbl, "order": word}
+            except Exception:
+                pass
+            if len(b1) == 250:
+                tot = int((p1.get("metadata") or {}).get("total") or 0)
+                max_p = min(40, (tot + 249) // 250) if tot > 250 else 15
+                with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+                    for b_res in pool.map(lambda pg: fetch_json(f"/admin/products.json?page={pg}&limit=250", hdrs), range(2, max_p + 1)):
+                        all_sapo.extend(b_res.get("products") or [])
+            print(f"[+] Ket noi Sapo OK ({lbl}): {len(all_sapo)} sp")
+            break
         except Exception as e:
-            last_err = e
-            if attempt == 0:
-                time.sleep(1)
-    raise last_err
+            print(f"[!] {lbl} loi: {e}")
+
+    repo_media = scan_repo_media_folders(list(sale_rules.keys()))
+
+    if not all_sapo:
+        for ep in old_prods:
+            c = clean_base_code(str(ep.get("sku") or "").split("-")[0])
+            if c in sale_rules:
+                ep["origPrice"] = sale_rules[c]["origPrice"] or ep.get("origPrice", 299000)
+                ep["salePrice"] = sale_rules[c]["salePrice"] or ep.get("salePrice", 159000)
+                ep["discountPct"] = max(1, round((1 - ep["salePrice"] / ep["origPrice"]) * 100))
+            rm = repo_media.get(c, {})
+            pr = preserved.get(c, {})
+            c_imgs = [] if c in FORCE_RESET_TO_SAPO_SKUS else (rm.get("images") or pr.get("custom") or [])
+            s_imgs = pr.get("sapo") or []
+            fin = c_imgs if c_imgs else s_imgs
+            ep.update({"sapoImages": s_imgs, "images": fin, "image": fin[0] if fin else "", "video": rm.get("video") or pr.get("vid") or "", "sizeChart": rm.get("sizeChart") or pr.get("sz") or ""})
+        wh_out = old_wh or [{"id": "wh_havana", "name": "HAVANA (93-95 Hồ Phi Tích)"}, {"id": "wh_online", "name": "HAVANA ONLINE"}, {"id": "wh_pct", "name": "261 - 263 Phan Châu Trinh"}, {"id": "wh_auco", "name": "101 Âu Cơ"}, {"id": "wh_leduan", "name": "240 Lê Duẩn"}]
+        publish_live_release(wh_out, old_prods, old_stamp, old_epoch, expired=True)
+        if upgraded_html or purged_now or removed_files or os.environ.get("GITHUB_EVENT_NAME") != "schedule":
+            if os.path.exists(".skip_git_commit"): os.remove(".skip_git_commit")
+            write_outputs(wh_out, old_prods, old_stamp, sale_rules, old_epoch, expired=True)
+        else:
+            with open(".skip_git_commit", "w", encoding="utf-8") as sf: sf.write(old_stamp)
+        print("[!] Cookie Sapo dang het han — da cap nhat giao dien Bill v30 thanh cong!")
+        return
+
+    grouped = {}
+    for p in all_sapo:
+        vraw = p.get("variants") or []
+        if not vraw: continue
+        ntoks = [t for t in reversed(re.findall(r"\b([A-Z]{1,5}\d{1,5})\b", norm_nfc(p.get("name") or "").upper())) if t in sale_rules]
+        base = ntoks[0] if ntoks else next((clean_base_code(str(v.get("sku") or "").split("-")[0]) for v in vraw if clean_base_code(str(v.get("sku") or "").split("-")[0]) in sale_rules), "")
+        if not base or base in EXCLUDED_SKUS: continue
+        rule = sale_rules[base]
+        op = rule.get("origPrice") or parse_money(vraw[0].get("variant_retail_price") or 299000)
+        sp = rule.get("salePrice") or 159000
+        dp = max(1, round((1 - sp / op) * 100)) if op > sp > 0 else 30
+        s_imgs = extract_sapo_product_images(p)
+        if base in FORCE_RESET_TO_SAPO_SKUS and not s_imgs and active_hdrs and p.get("id"):
+            try:
+                s_imgs = extract_sapo_product_images(fetch_json(f"/admin/products/{p['id']}.json", active_hdrs).get("product") or {})
+            except Exception:
+                pass
+        v_list = []
+        for v in vraw:
+            opts = [norm_nfc(v.get(k)) for k in ("opt1", "opt2", "opt3") if v.get(k)]
+            sz = " - ".join(opts) if opts else norm_nfc(v.get("title") or "Freesize")
+            if sz.lower() == "default title": sz = "Freesize"
+            st = {}
+            for inv in (v.get("inventories") or []):
+                rid = str(inv.get("location_id"))
+                if rid not in loc_meta:
+                    wid, wlbl, word = map_branch(inv.get("location_label") or "", rid, 20 + len(loc_meta))
+                    loc_meta[rid] = {"id": wid, "sapo_name": wlbl, "name": wlbl, "order": word}
+                av = inv.get("available") if inv.get("available") is not None else inv.get("on_hand", 0)
+                st[loc_meta[rid]["id"]] = st.get(loc_meta[rid]["id"], 0) + max(0, int(av or 0))
+            v_list.append({"size": sz, "stocks": st})
+        if base in grouped:
+            grouped[base]["variants"].extend(v_list)
+            for u in s_imgs:
+                if u not in grouped[base]["sapoImages"]: grouped[base]["sapoImages"].append(u)
+        else:
+            pname = norm_nfc(p.get("name") or base)
+            rm, pr = repo_media.get(base, {}), preserved.get(base, {})
+            c_imgs = [] if base in FORCE_RESET_TO_SAPO_SKUS else (rm.get("images") or pr.get("custom") or [])
+            all_si = s_imgs if s_imgs else (pr.get("sapo") or [])
+            fin = c_imgs if c_imgs else all_si
+            grouped[base] = {"sku": base, "name": pname, "subType": rule.get("subType", ""), "category": infer_category(base, pname, rule.get("subType", "")), "origPrice": op, "salePrice": sp, "discountPct": dp, "image": fin[0] if fin else "", "images": fin, "sapoImages": all_si, "video": rm.get("video") or pr.get("vid") or "", "sizeChart": rm.get("sizeChart") or pr.get("sz") or "", "variants": v_list}
+
+    wh_sorted = [{k: v for k, v in it.items() if k != "order"} for it in sorted(loc_meta.values(), key=lambda x: x["order"])]
+    now_st, now_ep = vn_now_str(), int(datetime.datetime.now(datetime.timezone.utc).timestamp())
+    prods_all = list(grouped.values())
+    publish_live_release(wh_sorted, prods_all, now_st, now_ep, expired=False)
+    if os.path.exists(".skip_git_commit"): os.remove(".skip_git_commit")
+    write_outputs(wh_sorted, prods_all, now_st, sale_rules, now_ep, expired=False)
+    print(f"[+] Hoan tat Auto-Sync v30 LIVE ({now_st})!")
 
 
-def extract_base_code_from_sapo_product(p: dict, sale_rules: dict) -> str:
-    name_tokens = re.findall(r"\b([A-Z]{1,5}\d{1,5})\b", norm_nfc(p.get("name") or "").upper())
-    name_sale_codes = [tok for tok in reversed(name_tokens) if sale_rules and tok in sale_rules]
-    var_sale_codes, candidates = [], []
-    for v in p.get("variants", []):
-        sku_raw = str(v.get("sku") or "").strip().upper()
-        base = clean_base_code(sku_raw.split("-")[0])
-        if base:
-            if sale_rules and base in sale_rules:
-                if base not in var_sale_codes:
-                    var_sale_codes.append(base)
-            elif not base.startswith("PVN"):
-                candidates.append(base)
-    if name_sale_codes:
-        return name_sale_codes[0]
-    if var_sale_codes:
-        return var_sale_codes[0]
-    for tok in reversed(name_tokens):
-        if not tok.startswith("PVN"):
-            candidates.append(tok)
-    return candidates[0] if candidates else ""
-
-
-def write_outputs(
-    warehouses_sorted: list,
-    products_out: list,
-    synced_at_str: str,
-    sale_rules: dict = None,
-    synced_epoch: int = 0,
-    sapo_cookie_expired: bool = False
-):
-    filtered_out = []
-    for p in products_out:
-        clean_vars = filter_variants_min_stock(p.get("variants"), MIN_VARIANT_STOCK)
-        if len(clean_vars) > 0:
-            p_copy = dict(p)
-            p_copy["variants"] = clean_vars
-            if calc_product_total_stock(p_copy) >= MIN_TOTAL_STOCK:
-                filtered_out.append(p_copy)
-
-    payload = {
-        "min_stock_rule": MIN_TOTAL_STOCK,
-        "min_variant_stock_rule": MIN_VARIANT_STOCK
+if __name__ == "__main__":
+    main()
+# === HET FILE V30 - DA COPY DU 100% ===
