@@ -41,9 +41,9 @@ PK_KNOWN_SUBTYPES = {
 V31_INDEX_JS_ADDON = r'''/* === v31: CUSTOM "PHIEU LEN DON" HEADER + BILL DISCLAIMER + VARIANT >= 3 === */
     const MIN_STOCK_V31 = 3;
     const FORCE_SAPO_V31 = new Set(["SAT532", "CV538"]);
-    const BILL_BADGE_VI_V31 = "HAVANA BLACK FRIDAY • ĐƠN TẠM TÍNH";
+    const BILL_BADGE_VI_V31 = "HAVANA BLACK FRIDAY • GIÁ GỐC TẠI KHO";
     const BILL_BADGE_EN_V31 = "HAVANA BLACK FRIDAY • ORDER SLIP";
-    const BILL_TITLE_VI_V31 = "Phiếu Lên Đơn & Gửi Chốt Nhanh";
+    const BILL_TITLE_VI_V31 = "Phiếu Lên Đơn Tạm";
     const BILL_TITLE_EN_V31 = "Quick Order & Checkout Slip";
     const BILL_NOTE_VI_V31 = "📌 Lưu ý: Hàng sale số lượng ít nên có thể lệch so với tồn thực tế, mong quý khách hàng thông cảm ạ!";
     const BILL_NOTE_EN_V31 = "📌 Note: Sale items have limited stock and may slightly differ from actual store inventory. Thank you for your understanding!";
@@ -557,7 +557,7 @@ def upgrade_repo_files_v31() -> bool:
         )
         html = re.sub(
             r'(<h2 id="billModalTitle"[^>]*>)[^<]*(</h2>)',
-            r'\1Phiếu Lên Đơn &amp; Gửi Chốt Nhanh\2',
+            r'\1Phiếu Lên Đơn Tạm\2',
             html,
             count=1
         )
