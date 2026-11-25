@@ -1,8 +1,8 @@
 {
   "min_stock_rule": 3,
   "min_variant_stock_rule": 3,
-  "synced_at": "09:07 25/11",
-  "synced_epoch": 1795572431,
+  "synced_at": "09:20 25/11",
+  "synced_epoch": 1795573225,
   "sapo_cookie_expired": false,
   "warehouses": [
     {
@@ -2419,7 +2419,7 @@
           "size": "Đỏ Sọc Be",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 5,
+            "wh_pct": 4,
             "wh_auco": 3,
             "wh_leduan": 5,
             "wh_online": 0,
@@ -10070,7 +10070,7 @@
           "size": "Trắng",
           "stocks": {
             "wh_havana": 47,
-            "wh_pct": 3,
+            "wh_pct": 2,
             "wh_auco": 3,
             "wh_leduan": 1,
             "wh_online": 0,
@@ -10438,7 +10438,7 @@
             "wh_havana": 25,
             "wh_pct": 0,
             "wh_auco": 0,
-            "wh_leduan": 7,
+            "wh_leduan": 6,
             "wh_online": 0,
             "wh_790054": 0
           }
@@ -11151,7 +11151,7 @@
           "stocks": {
             "wh_havana": 23,
             "wh_pct": 10,
-            "wh_auco": 4,
+            "wh_auco": 3,
             "wh_leduan": 0,
             "wh_online": 0,
             "wh_790054": 0
@@ -11531,7 +11531,7 @@
           "stocks": {
             "wh_havana": 5,
             "wh_pct": 8,
-            "wh_auco": 2,
+            "wh_auco": 1,
             "wh_leduan": 5,
             "wh_online": 0,
             "wh_790054": 0
