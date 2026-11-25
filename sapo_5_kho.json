@@ -1,8 +1,8 @@
 {
   "min_stock_rule": 3,
   "min_variant_stock_rule": 3,
-  "synced_at": "12:58 25/11",
-  "synced_epoch": 1795586338,
+  "synced_at": "13:19 25/11",
+  "synced_epoch": 1795587556,
   "sapo_cookie_expired": false,
   "warehouses": [
     {
@@ -241,17 +241,6 @@
       "sizeChart": "",
       "variants": [
         {
-          "size": "Be",
-          "stocks": {
-            "wh_havana": 0,
-            "wh_pct": 0,
-            "wh_auco": 3,
-            "wh_leduan": 0,
-            "wh_online": 0,
-            "wh_790054": 0
-          }
-        },
-        {
           "size": "Xám",
           "stocks": {
             "wh_havana": 0,
@@ -442,7 +431,7 @@
         {
           "size": "Be Hoa - S",
           "stocks": {
-            "wh_havana": 5,
+            "wh_havana": 0,
             "wh_pct": 16,
             "wh_auco": 2,
             "wh_leduan": 2,
@@ -453,7 +442,7 @@
         {
           "size": "Be Hoa - M",
           "stocks": {
-            "wh_havana": 5,
+            "wh_havana": 0,
             "wh_pct": 10,
             "wh_auco": 4,
             "wh_leduan": 4,
@@ -1273,7 +1262,7 @@
         {
           "size": "Trắng",
           "stocks": {
-            "wh_havana": 29,
+            "wh_havana": 24,
             "wh_pct": 2,
             "wh_auco": 10,
             "wh_leduan": 10,
@@ -1662,7 +1651,7 @@
             "wh_havana": 0,
             "wh_pct": 1,
             "wh_auco": 0,
-            "wh_leduan": 1,
+            "wh_leduan": 0,
             "wh_online": 3,
             "wh_790054": 0
           }
@@ -1919,7 +1908,7 @@
             "wh_havana": 0,
             "wh_pct": 2,
             "wh_auco": 1,
-            "wh_leduan": 2,
+            "wh_leduan": 1,
             "wh_online": 0,
             "wh_790054": 0
           }
@@ -2090,7 +2079,7 @@
             "wh_havana": 105,
             "wh_pct": 5,
             "wh_auco": 2,
-            "wh_leduan": 3,
+            "wh_leduan": 2,
             "wh_online": 0,
             "wh_790054": 0
           }
@@ -2099,7 +2088,7 @@
           "size": "Xanh Ngọc",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 1,
+            "wh_pct": 0,
             "wh_auco": 0,
             "wh_leduan": 8,
             "wh_online": 0,
@@ -2355,7 +2344,7 @@
             "wh_havana": 0,
             "wh_pct": 1,
             "wh_auco": 5,
-            "wh_leduan": 2,
+            "wh_leduan": 1,
             "wh_online": 1,
             "wh_790054": 0
           }
@@ -2715,7 +2704,7 @@
             "wh_havana": 0,
             "wh_pct": 2,
             "wh_auco": 9,
-            "wh_leduan": 11,
+            "wh_leduan": 10,
             "wh_online": 0,
             "wh_790054": 0
           }
@@ -2723,7 +2712,7 @@
         {
           "size": "Nâu",
           "stocks": {
-            "wh_havana": 9,
+            "wh_havana": 5,
             "wh_pct": 2,
             "wh_auco": 4,
             "wh_leduan": 3,
@@ -2864,7 +2853,7 @@
         {
           "size": "Xám - S",
           "stocks": {
-            "wh_havana": 49,
+            "wh_havana": 39,
             "wh_pct": 3,
             "wh_auco": 3,
             "wh_leduan": 1,
@@ -3219,7 +3208,7 @@
             "wh_havana": 0,
             "wh_pct": 0,
             "wh_auco": 0,
-            "wh_leduan": 4,
+            "wh_leduan": 3,
             "wh_online": 0,
             "wh_790054": 0
           }
@@ -3490,7 +3479,7 @@
         {
           "size": "Nâu Caro",
           "stocks": {
-            "wh_havana": 9,
+            "wh_havana": 0,
             "wh_pct": 1,
             "wh_auco": 0,
             "wh_leduan": 9,
@@ -4356,7 +4345,7 @@
         {
           "size": "Hồng sọc",
           "stocks": {
-            "wh_havana": 10,
+            "wh_havana": 5,
             "wh_pct": 4,
             "wh_auco": 4,
             "wh_leduan": 6,
@@ -4530,7 +4519,7 @@
         {
           "size": "Xanh đen",
           "stocks": {
-            "wh_havana": 21,
+            "wh_havana": 10,
             "wh_pct": 0,
             "wh_auco": 0,
             "wh_leduan": 0,
@@ -4541,7 +4530,7 @@
         {
           "size": "Ghi",
           "stocks": {
-            "wh_havana": 11,
+            "wh_havana": 1,
             "wh_pct": 0,
             "wh_auco": 0,
             "wh_leduan": 5,
@@ -4552,7 +4541,7 @@
         {
           "size": "Nâu",
           "stocks": {
-            "wh_havana": 47,
+            "wh_havana": 40,
             "wh_pct": 0,
             "wh_auco": 0,
             "wh_leduan": 2,
@@ -4797,7 +4786,7 @@
         {
           "size": "Ghi",
           "stocks": {
-            "wh_havana": 5,
+            "wh_havana": 3,
             "wh_pct": 12,
             "wh_auco": 10,
             "wh_leduan": 10,
@@ -4808,7 +4797,7 @@
         {
           "size": "Trắng",
           "stocks": {
-            "wh_havana": 20,
+            "wh_havana": 10,
             "wh_pct": 0,
             "wh_auco": 8,
             "wh_leduan": 3,
@@ -5115,7 +5104,7 @@
         {
           "size": "Hồng",
           "stocks": {
-            "wh_havana": 4,
+            "wh_havana": 0,
             "wh_pct": 5,
             "wh_auco": 2,
             "wh_leduan": 5,
@@ -5471,7 +5460,7 @@
           "size": "Nâu",
           "stocks": {
             "wh_havana": 5,
-            "wh_pct": 2,
+            "wh_pct": 1,
             "wh_auco": 3,
             "wh_leduan": 12,
             "wh_online": 0,
@@ -5645,7 +5634,7 @@
         {
           "size": "Be",
           "stocks": {
-            "wh_havana": 24,
+            "wh_havana": 21,
             "wh_pct": 7,
             "wh_auco": 3,
             "wh_leduan": 2,
@@ -5938,7 +5927,7 @@
         {
           "size": "Trắng",
           "stocks": {
-            "wh_havana": 5,
+            "wh_havana": 0,
             "wh_pct": 13,
             "wh_auco": 6,
             "wh_leduan": 7,
@@ -6048,7 +6037,7 @@
             "wh_havana": 0,
             "wh_pct": 7,
             "wh_auco": 4,
-            "wh_leduan": 11,
+            "wh_leduan": 10,
             "wh_online": 0,
             "wh_790054": 0
           }
@@ -6165,7 +6154,7 @@
         {
           "size": "Xanh dương",
           "stocks": {
-            "wh_havana": 27,
+            "wh_havana": 22,
             "wh_pct": 2,
             "wh_auco": 4,
             "wh_leduan": 6,
@@ -6227,7 +6216,7 @@
             "wh_havana": 0,
             "wh_pct": 7,
             "wh_auco": 0,
-            "wh_leduan": 2,
+            "wh_leduan": 1,
             "wh_online": 3,
             "wh_790054": 0
           }
@@ -6468,7 +6457,7 @@
             "wh_havana": 0,
             "wh_pct": 3,
             "wh_auco": 0,
-            "wh_leduan": 3,
+            "wh_leduan": 2,
             "wh_online": 0,
             "wh_790054": 0
           }
@@ -7988,7 +7977,7 @@
         {
           "size": "Be - M",
           "stocks": {
-            "wh_havana": 16,
+            "wh_havana": 10,
             "wh_pct": 0,
             "wh_auco": 0,
             "wh_leduan": 0,
@@ -8272,7 +8261,7 @@
             "wh_havana": 1,
             "wh_pct": 0,
             "wh_auco": 1,
-            "wh_leduan": 3,
+            "wh_leduan": 2,
             "wh_online": 0,
             "wh_790054": 0
           }
@@ -8428,7 +8417,7 @@
         {
           "size": "Trắng - M",
           "stocks": {
-            "wh_havana": 6,
+            "wh_havana": 0,
             "wh_pct": 4,
             "wh_auco": 12,
             "wh_leduan": 4,
@@ -8594,10 +8583,10 @@
         {
           "size": "Trắng",
           "stocks": {
-            "wh_havana": 37,
+            "wh_havana": 29,
             "wh_pct": 1,
             "wh_auco": 2,
-            "wh_leduan": 1,
+            "wh_leduan": 0,
             "wh_online": 0,
             "wh_790054": 0
           }
@@ -9551,7 +9540,7 @@
         {
           "size": "Hồng",
           "stocks": {
-            "wh_havana": 26,
+            "wh_havana": 21,
             "wh_pct": 5,
             "wh_auco": 3,
             "wh_leduan": 10,
@@ -9613,7 +9602,7 @@
         {
           "size": "Trắng",
           "stocks": {
-            "wh_havana": 37,
+            "wh_havana": 27,
             "wh_pct": 2,
             "wh_auco": 3,
             "wh_leduan": 1,
@@ -9857,7 +9846,7 @@
             "wh_havana": 0,
             "wh_pct": 1,
             "wh_auco": 0,
-            "wh_leduan": 1,
+            "wh_leduan": 0,
             "wh_online": 3,
             "wh_790054": 0
           }
@@ -9879,7 +9868,7 @@
             "wh_havana": 0,
             "wh_pct": 6,
             "wh_auco": 8,
-            "wh_leduan": 6,
+            "wh_leduan": 5,
             "wh_online": 2,
             "wh_790054": 0
           }
@@ -9979,7 +9968,7 @@
         {
           "size": "Trắng",
           "stocks": {
-            "wh_havana": 5,
+            "wh_havana": 0,
             "wh_pct": 0,
             "wh_auco": 0,
             "wh_leduan": 5,
@@ -10683,7 +10672,7 @@
           "size": "Xanh Đen - M",
           "stocks": {
             "wh_havana": 41,
-            "wh_pct": 3,
+            "wh_pct": 2,
             "wh_auco": 0,
             "wh_leduan": 7,
             "wh_online": 0,
@@ -10727,7 +10716,7 @@
           "stocks": {
             "wh_havana": 7,
             "wh_pct": 3,
-            "wh_auco": 4,
+            "wh_auco": 2,
             "wh_leduan": 4,
             "wh_online": 0,
             "wh_790054": 0
@@ -10901,20 +10890,9 @@
           }
         },
         {
-          "size": "Áo Đỏ - F",
-          "stocks": {
-            "wh_havana": 3,
-            "wh_pct": 0,
-            "wh_auco": 0,
-            "wh_leduan": 0,
-            "wh_online": 0,
-            "wh_790054": 0
-          }
-        },
-        {
           "size": "Áo Trắng - F",
           "stocks": {
-            "wh_havana": 10,
+            "wh_havana": 5,
             "wh_pct": 0,
             "wh_auco": 0,
             "wh_leduan": 0,
@@ -10948,40 +10926,6 @@
       "variants": [
         {
           "size": "Áo Hồng - XL",
-          "stocks": {
-            "wh_havana": 6,
-            "wh_pct": 0,
-            "wh_auco": 0,
-            "wh_leduan": 0,
-            "wh_online": 0,
-            "wh_790054": 0
-          }
-        }
-      ]
-    },
-    {
-      "sku": "AD192",
-      "name": "Áo dài hoa xù nổi cúc bọc (25) AD192",
-      "subType": "",
-      "category": "AO_DAI",
-      "origPrice": 345000,
-      "salePrice": 159000,
-      "discountPct": 54,
-      "image": "./images/Ad192.jpg",
-      "images": [
-        "./images/Ad192.jpg",
-        "./images/AD192_aba533e7f72d4de59832de69a99b5457~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./AD192/aba533e7f72d4de59832de69a99b5457~tplv-aphluv4xwc-origin-jpeg.jpeg"
-      ],
-      "sapoImages": [
-        "https://sapo.dktcdn.net/100/618/480/variants/bcd61037-abab-47bb-800b-5a051b1aadde.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/c03bcd26-66e0-448c-9a12-df511f190997.jpg"
-      ],
-      "video": "",
-      "sizeChart": "",
-      "variants": [
-        {
-          "size": "Hoa Hồng Quần Đỏ - XL",
           "stocks": {
             "wh_havana": 3,
             "wh_pct": 0,
@@ -11051,7 +10995,7 @@
         {
           "size": "Nâu - S",
           "stocks": {
-            "wh_havana": 36,
+            "wh_havana": 31,
             "wh_pct": 5,
             "wh_auco": 0,
             "wh_leduan": 12,
@@ -11073,7 +11017,7 @@
         {
           "size": "Nâu - L",
           "stocks": {
-            "wh_havana": 5,
+            "wh_havana": 0,
             "wh_pct": 7,
             "wh_auco": 1,
             "wh_leduan": 5,
@@ -11187,7 +11131,7 @@
           "size": "Trắng - M",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 1,
+            "wh_pct": 0,
             "wh_auco": 1,
             "wh_leduan": 4,
             "wh_online": 0,
@@ -11451,42 +11395,6 @@
       ]
     },
     {
-      "sku": "AD163",
-      "name": "Áo dài hoạ tiết hoa hồng, đính nút cài 2 cúc trước ngực (05/12)(2) AD163",
-      "subType": "",
-      "category": "AO_DAI",
-      "origPrice": 209000,
-      "salePrice": 159000,
-      "discountPct": 24,
-      "image": "./images/AD163_54f34ab5cdbd478eaaafe408f8af7cb5~tplv-aphluv4xwc-origin-jpeg.jpeg",
-      "images": [
-        "./images/AD163_54f34ab5cdbd478eaaafe408f8af7cb5~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./images/AD163_d3e5030ebe2f4cb98f866398de2fed9f~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./AD163/54f34ab5cdbd478eaaafe408f8af7cb5~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./AD163/d3e5030ebe2f4cb98f866398de2fed9f~tplv-aphluv4xwc-origin-jpeg.jpeg"
-      ],
-      "sapoImages": [
-        "https://sapo.dktcdn.net/100/618/480/variants/414997c0-d2f7-48f6-97ec-5d1dfabc6815.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/051aa973-909a-468b-983c-58eace40d763.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/05770210-7cd1-4856-a22a-77abbf266441.jpg"
-      ],
-      "video": "",
-      "sizeChart": "",
-      "variants": [
-        {
-          "size": "Be Quần Nâu",
-          "stocks": {
-            "wh_havana": 5,
-            "wh_pct": 0,
-            "wh_auco": 0,
-            "wh_leduan": 0,
-            "wh_online": 0,
-            "wh_790054": 0
-          }
-        }
-      ]
-    },
-    {
       "sku": "AD153",
       "name": "Áo dài họa tiết râm bụt có đính cúc ngọc trai trước ngực và bên vai(29/11)(2) AD153",
       "subType": "",
@@ -11696,7 +11604,7 @@
         {
           "size": "Hồng - S",
           "stocks": {
-            "wh_havana": 6,
+            "wh_havana": 3,
             "wh_pct": 0,
             "wh_auco": 0,
             "wh_leduan": 1,
