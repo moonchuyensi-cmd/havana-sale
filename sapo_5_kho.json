@@ -1,8 +1,8 @@
 {
   "min_stock_rule": 3,
   "min_variant_stock_rule": 3,
-  "synced_at": "08:36 25/11",
-  "synced_epoch": 1795570599,
+  "synced_at": "08:50 25/11",
+  "synced_epoch": 1795571439,
   "sapo_cookie_expired": false,
   "warehouses": [
     {
@@ -2107,37 +2107,6 @@
       ]
     },
     {
-      "sku": "PK1038",
-      "name": "Dép Sục đế cao Su",
-      "subType": "",
-      "category": "PK_GIAY_DEP",
-      "origPrice": 185000,
-      "salePrice": 39000,
-      "discountPct": 79,
-      "image": "./images/Pk1038.jpg",
-      "images": [
-        "./images/Pk1038.jpg"
-      ],
-      "sapoImages": [
-        "https://sapo.dktcdn.net/100/618/480/variants/3a1a056b-3c90-4fc1-999a-1e7036c2b939.jpg"
-      ],
-      "video": "",
-      "sizeChart": "",
-      "variants": [
-        {
-          "size": "Nâu - 36/37",
-          "stocks": {
-            "wh_havana": 0,
-            "wh_pct": 3,
-            "wh_auco": 0,
-            "wh_leduan": 0,
-            "wh_online": 0,
-            "wh_790054": 0
-          }
-        }
-      ]
-    },
-    {
       "sku": "SAT533",
       "name": "Set áo cổ tim kèm cv ngắn #3870 (6) SAT533",
       "subType": "",
@@ -2359,7 +2328,7 @@
         {
           "size": "Be",
           "stocks": {
-            "wh_havana": 1,
+            "wh_havana": 0,
             "wh_pct": 4,
             "wh_auco": 0,
             "wh_leduan": 1,
@@ -4962,8 +4931,8 @@
           "size": "Kem",
           "stocks": {
             "wh_havana": 43,
-            "wh_pct": 14,
-            "wh_auco": 4,
+            "wh_pct": 13,
+            "wh_auco": 3,
             "wh_leduan": 2,
             "wh_online": 0,
             "wh_790054": 0
