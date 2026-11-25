@@ -1,8 +1,8 @@
 {
   "min_stock_rule": 3,
   "min_variant_stock_rule": 3,
-  "synced_at": "08:50 25/11",
-  "synced_epoch": 1795571439,
+  "synced_at": "09:07 25/11",
+  "synced_epoch": 1795572431,
   "sapo_cookie_expired": false,
   "warehouses": [
     {
@@ -456,7 +456,7 @@
             "wh_havana": 10,
             "wh_pct": 16,
             "wh_auco": 2,
-            "wh_leduan": 3,
+            "wh_leduan": 2,
             "wh_online": 0,
             "wh_790054": 0
           }
@@ -2453,7 +2453,7 @@
           "stocks": {
             "wh_havana": 0,
             "wh_pct": 2,
-            "wh_auco": 6,
+            "wh_auco": 5,
             "wh_leduan": 3,
             "wh_online": 0,
             "wh_790054": 0
@@ -11181,7 +11181,7 @@
         {
           "size": "Xanh Đen - S",
           "stocks": {
-            "wh_havana": 19,
+            "wh_havana": 17,
             "wh_pct": 3,
             "wh_auco": 5,
             "wh_leduan": 4,
