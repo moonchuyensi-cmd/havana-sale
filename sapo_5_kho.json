@@ -1,8 +1,8 @@
 {
   "min_stock_rule": 3,
   "min_variant_stock_rule": 3,
-  "synced_at": "09:20 25/11",
-  "synced_epoch": 1795573225,
+  "synced_at": "09:34 25/11",
+  "synced_epoch": 1795574062,
   "sapo_cookie_expired": false,
   "warehouses": [
     {
@@ -255,7 +255,7 @@
           "size": "Xám",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 1,
+            "wh_pct": 0,
             "wh_auco": 3,
             "wh_leduan": 5,
             "wh_online": 0,
@@ -536,7 +536,7 @@
           "size": "Vàng",
           "stocks": {
             "wh_havana": 57,
-            "wh_pct": 4,
+            "wh_pct": 3,
             "wh_auco": 1,
             "wh_leduan": 7,
             "wh_online": 0,
@@ -2283,7 +2283,7 @@
           "size": "Kem",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 1,
+            "wh_pct": 0,
             "wh_auco": 7,
             "wh_leduan": 7,
             "wh_online": 0,
@@ -3272,7 +3272,7 @@
           "size": "Xanh đậm - S",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 1,
+            "wh_pct": 0,
             "wh_auco": 0,
             "wh_leduan": 4,
             "wh_online": 0,
@@ -4390,7 +4390,7 @@
           "size": "Đen hoa - M",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 12,
+            "wh_pct": 11,
             "wh_auco": 5,
             "wh_leduan": 0,
             "wh_online": 2,
@@ -5996,7 +5996,7 @@
           "size": "Be",
           "stocks": {
             "wh_havana": 1,
-            "wh_pct": 3,
+            "wh_pct": 2,
             "wh_auco": 1,
             "wh_leduan": 0,
             "wh_online": 0,
@@ -6838,46 +6838,9 @@
           "stocks": {
             "wh_havana": 10,
             "wh_pct": 4,
-            "wh_auco": 4,
+            "wh_auco": 3,
             "wh_leduan": 7,
             "wh_online": 3,
-            "wh_790054": 0
-          }
-        }
-      ]
-    },
-    {
-      "sku": "CV548",
-      "name": "Chân váy dài dáng xòe #5799.13 (3) CV548",
-      "subType": "",
-      "category": "CHAN_VAY",
-      "origPrice": 199000,
-      "salePrice": 79000,
-      "discountPct": 60,
-      "image": "https://sapo.dktcdn.net/100/618/480/variants/326b5da0-42b5-45a7-9092-7cd2025b3c20.jpg",
-      "images": [
-        "https://sapo.dktcdn.net/100/618/480/variants/326b5da0-42b5-45a7-9092-7cd2025b3c20.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/992ec240-a076-4408-81bc-bb7527338187.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/61b9d777-1bd2-4d81-85bb-ba08d1353a56.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/ebc984ef-d7c3-4dcd-bea7-364e4ba54738.jpg"
-      ],
-      "sapoImages": [
-        "https://sapo.dktcdn.net/100/618/480/variants/326b5da0-42b5-45a7-9092-7cd2025b3c20.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/992ec240-a076-4408-81bc-bb7527338187.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/61b9d777-1bd2-4d81-85bb-ba08d1353a56.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/ebc984ef-d7c3-4dcd-bea7-364e4ba54738.jpg"
-      ],
-      "video": "",
-      "sizeChart": "",
-      "variants": [
-        {
-          "size": "Be",
-          "stocks": {
-            "wh_havana": 0,
-            "wh_pct": 2,
-            "wh_auco": 1,
-            "wh_leduan": 0,
-            "wh_online": 0,
             "wh_790054": 0
           }
         }
@@ -10608,7 +10571,7 @@
           "stocks": {
             "wh_havana": 8,
             "wh_pct": 7,
-            "wh_auco": 2,
+            "wh_auco": 1,
             "wh_leduan": 8,
             "wh_online": 3,
             "wh_790054": 0
