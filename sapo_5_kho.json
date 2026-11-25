@@ -1,8 +1,8 @@
 {
   "min_stock_rule": 3,
   "min_variant_stock_rule": 3,
-  "synced_at": "15:57 25/11",
-  "synced_epoch": 1795597079,
+  "synced_at": "16:01 25/11",
+  "synced_epoch": 1795597280,
   "sapo_cookie_expired": false,
   "warehouses": [
     {
@@ -3921,7 +3921,7 @@
           "size": "Xanh dương - M",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 4,
+            "wh_pct": 3,
             "wh_auco": 1,
             "wh_leduan": 3,
             "wh_online": 0,
@@ -8553,7 +8553,7 @@
           "size": "Trắng",
           "stocks": {
             "wh_havana": 11,
-            "wh_pct": 12,
+            "wh_pct": 11,
             "wh_auco": 6,
             "wh_leduan": 4,
             "wh_online": 0,
@@ -9811,7 +9811,7 @@
             "wh_havana": 0,
             "wh_pct": 4,
             "wh_auco": 0,
-            "wh_leduan": 3,
+            "wh_leduan": 2,
             "wh_online": 2,
             "wh_790054": 0
           }
@@ -10747,7 +10747,7 @@
           "size": "Đen - M",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 1,
+            "wh_pct": 0,
             "wh_auco": 1,
             "wh_leduan": 2,
             "wh_online": 0,
