@@ -1,8 +1,8 @@
 {
   "min_stock_rule": 3,
   "min_variant_stock_rule": 3,
-  "synced_at": "10:06 26/11",
-  "synced_epoch": 1795662372,
+  "synced_at": "10:14 26/11",
+  "synced_epoch": 1795662860,
   "sapo_cookie_expired": false,
   "warehouses": [
     {
@@ -9689,7 +9689,7 @@
         {
           "size": "Xanh Nhạt - M",
           "stocks": {
-            "wh_havana": 13,
+            "wh_havana": 12,
             "wh_pct": 8,
             "wh_auco": 8,
             "wh_leduan": 8,
