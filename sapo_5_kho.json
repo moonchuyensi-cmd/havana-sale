@@ -1,8 +1,8 @@
 {
   "min_stock_rule": 3,
   "min_variant_stock_rule": 3,
-  "synced_at": "13:39 26/11",
-  "synced_epoch": 1795675177,
+  "synced_at": "13:52 26/11",
+  "synced_epoch": 1795675920,
   "sapo_cookie_expired": false,
   "warehouses": [
     {
@@ -5693,7 +5693,7 @@
           "size": "Tím",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 11,
+            "wh_pct": 0,
             "wh_auco": 10,
             "wh_leduan": 14,
             "wh_online": 0,
@@ -7325,7 +7325,7 @@
         {
           "size": "Trắng",
           "stocks": {
-            "wh_havana": 3,
+            "wh_havana": 0,
             "wh_pct": 3,
             "wh_auco": 3,
             "wh_leduan": 6,
