@@ -1,8 +1,8 @@
 {
   "min_stock_rule": 3,
   "min_variant_stock_rule": 3,
-  "synced_at": "14:13 26/11",
-  "synced_epoch": 1795677213,
+  "synced_at": "14:37 26/11",
+  "synced_epoch": 1795678661,
   "sapo_cookie_expired": false,
   "warehouses": [
     {
@@ -2629,7 +2629,7 @@
         {
           "size": "Be",
           "stocks": {
-            "wh_havana": 16,
+            "wh_havana": 15,
             "wh_pct": 1,
             "wh_auco": 1,
             "wh_leduan": 1,
@@ -3668,7 +3668,7 @@
         {
           "size": "Nâu - S",
           "stocks": {
-            "wh_havana": 24,
+            "wh_havana": 23,
             "wh_pct": 9,
             "wh_auco": 9,
             "wh_leduan": 10,
@@ -3802,7 +3802,7 @@
           "size": "Đen hoa - M",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 10,
+            "wh_pct": 9,
             "wh_auco": 5,
             "wh_leduan": 0,
             "wh_online": 2,
@@ -4454,17 +4454,6 @@
       "video": "",
       "sizeChart": "",
       "variants": [
-        {
-          "size": "Đen",
-          "stocks": {
-            "wh_havana": 0,
-            "wh_pct": 0,
-            "wh_auco": 0,
-            "wh_leduan": 0,
-            "wh_online": 3,
-            "wh_790054": 0
-          }
-        },
         {
           "size": "Vàng",
           "stocks": {
@@ -5577,7 +5566,7 @@
             "wh_pct": 1,
             "wh_auco": 0,
             "wh_leduan": 0,
-            "wh_online": 3,
+            "wh_online": 2,
             "wh_790054": 0
           }
         }
@@ -6170,46 +6159,6 @@
             "wh_pct": 3,
             "wh_auco": 0,
             "wh_leduan": 0,
-            "wh_online": 0,
-            "wh_790054": 0
-          }
-        }
-      ]
-    },
-    {
-      "sku": "AO987",
-      "name": "Áo kiểu cổ V viền ren #6487.16 (3) AO987",
-      "subType": "",
-      "category": "AO_KIEU",
-      "origPrice": 179000,
-      "salePrice": 79000,
-      "discountPct": 56,
-      "image": "./images/AO987_046a29d9f0a140719d60ca1236022776~tplv-aphluv4xwc-origin-jpeg.jpeg",
-      "images": [
-        "./images/AO987_046a29d9f0a140719d60ca1236022776~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./images/AO987_4e98dcc21d634c22b0ae0403033a1e3b~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./images/AO987_56030b514b684caf963aa958e807daec~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./images/AO987_98b196f892004543baf450514b53716e~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./AO987/046a29d9f0a140719d60ca1236022776~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./AO987/4e98dcc21d634c22b0ae0403033a1e3b~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./AO987/56030b514b684caf963aa958e807daec~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./AO987/98b196f892004543baf450514b53716e~tplv-aphluv4xwc-origin-jpeg.jpeg"
-      ],
-      "sapoImages": [
-        "https://sapo.dktcdn.net/100/618/480/variants/7b7c4b36-75c6-466b-bd28-b42c1f47178d.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/85e81f19-3d8c-4709-8498-1d4820548947.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/c0684dec-7aa7-4994-a3d5-12c31bbb52cd.jpg"
-      ],
-      "video": "",
-      "sizeChart": "",
-      "variants": [
-        {
-          "size": "Xanh Dương",
-          "stocks": {
-            "wh_havana": 0,
-            "wh_pct": 1,
-            "wh_auco": 1,
-            "wh_leduan": 1,
             "wh_online": 0,
             "wh_790054": 0
           }
@@ -7760,7 +7709,7 @@
         {
           "size": "Xám",
           "stocks": {
-            "wh_havana": 104,
+            "wh_havana": 103,
             "wh_pct": 5,
             "wh_auco": 7,
             "wh_leduan": 6,
@@ -9903,7 +9852,7 @@
         {
           "size": "Nâu - S",
           "stocks": {
-            "wh_havana": 30,
+            "wh_havana": 29,
             "wh_pct": 11,
             "wh_auco": 4,
             "wh_leduan": 11,
@@ -9914,7 +9863,7 @@
         {
           "size": "Nâu - M",
           "stocks": {
-            "wh_havana": 39,
+            "wh_havana": 38,
             "wh_pct": 8,
             "wh_auco": 2,
             "wh_leduan": 7,
