@@ -1,8 +1,8 @@
 {
   "min_stock_rule": 3,
   "min_variant_stock_rule": 3,
-  "synced_at": "16:26 26/11",
-  "synced_epoch": 1795685203,
+  "synced_at": "16:49 26/11",
+  "synced_epoch": 1795686566,
   "sapo_cookie_expired": false,
   "warehouses": [
     {
@@ -7676,7 +7676,7 @@
           "stocks": {
             "wh_havana": 100,
             "wh_pct": 5,
-            "wh_auco": 7,
+            "wh_auco": 6,
             "wh_leduan": 6,
             "wh_online": 3,
             "wh_790054": 0
@@ -9650,7 +9650,7 @@
             "wh_havana": 0,
             "wh_pct": 5,
             "wh_auco": 3,
-            "wh_leduan": 3,
+            "wh_leduan": 2,
             "wh_online": 0,
             "wh_790054": 0
           }
