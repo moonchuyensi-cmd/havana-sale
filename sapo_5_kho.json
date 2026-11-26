@@ -1,8 +1,8 @@
 {
   "min_stock_rule": 3,
   "min_variant_stock_rule": 3,
-  "synced_at": "16:10 26/11",
-  "synced_epoch": 1795684240,
+  "synced_at": "16:26 26/11",
+  "synced_epoch": 1795685203,
   "sapo_cookie_expired": false,
   "warehouses": [
     {
@@ -155,17 +155,6 @@
       "video": "",
       "sizeChart": "",
       "variants": [
-        {
-          "size": "Be",
-          "stocks": {
-            "wh_havana": 0,
-            "wh_pct": 3,
-            "wh_auco": 0,
-            "wh_leduan": 0,
-            "wh_online": 0,
-            "wh_790054": 0
-          }
-        },
         {
           "size": "Nâu",
           "stocks": {
@@ -893,8 +882,8 @@
           "size": "Rêu",
           "stocks": {
             "wh_havana": 28,
-            "wh_pct": 8,
-            "wh_auco": 6,
+            "wh_pct": 7,
+            "wh_auco": 5,
             "wh_leduan": 6,
             "wh_online": 0,
             "wh_790054": 0
@@ -932,7 +921,7 @@
             "wh_havana": 0,
             "wh_pct": 6,
             "wh_auco": 0,
-            "wh_leduan": 10,
+            "wh_leduan": 9,
             "wh_online": 0,
             "wh_790054": 0
           }
@@ -943,7 +932,7 @@
             "wh_havana": 0,
             "wh_pct": 6,
             "wh_auco": 0,
-            "wh_leduan": 1,
+            "wh_leduan": 0,
             "wh_online": 0,
             "wh_790054": 0
           }
@@ -1238,7 +1227,7 @@
           "size": "Be",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 3,
+            "wh_pct": 2,
             "wh_auco": 0,
             "wh_leduan": 3,
             "wh_online": 1,
@@ -3168,41 +3157,6 @@
             "wh_pct": 9,
             "wh_auco": 7,
             "wh_leduan": 6,
-            "wh_online": 0,
-            "wh_790054": 0
-          }
-        }
-      ]
-    },
-    {
-      "sku": "SAT522",
-      "name": "Set áo chấm bi kèm cardigan (25) SAT522",
-      "subType": "",
-      "category": "SET_BO",
-      "origPrice": 234000,
-      "salePrice": 159000,
-      "discountPct": 32,
-      "image": "./images/SAT522_0f9e5dd0f6994b27ba8992c26ab2239f~tplv-aphluv4xwc-origin-jpeg.jpeg",
-      "images": [
-        "./images/SAT522_0f9e5dd0f6994b27ba8992c26ab2239f~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./images/SAT522_11585aa38a0e4c979fbfec88e436d971~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./images/SAT522_26f6c1245e20472081608c5c2b45a2a1~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./images/SAT522_ae79e671fdbf4b6b810642bfb5df7af0~tplv-aphluv4xwc-origin-jpeg.jpeg"
-      ],
-      "sapoImages": [
-        "https://sapo.dktcdn.net/100/618/480/variants/17db87a5-ee86-4503-b192-d4f392756ccf.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/b029325e-c9d5-4292-b64e-104eb6d20f2b.jpg"
-      ],
-      "video": "",
-      "sizeChart": "",
-      "variants": [
-        {
-          "size": "Hồng",
-          "stocks": {
-            "wh_havana": 0,
-            "wh_pct": 1,
-            "wh_auco": 0,
-            "wh_leduan": 2,
             "wh_online": 0,
             "wh_790054": 0
           }
@@ -7277,7 +7231,7 @@
             "wh_havana": 0,
             "wh_pct": 3,
             "wh_auco": 3,
-            "wh_leduan": 6,
+            "wh_leduan": 5,
             "wh_online": 0,
             "wh_790054": 0
           }
@@ -8346,7 +8300,7 @@
           "size": "Xanh Dương",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 4,
+            "wh_pct": 3,
             "wh_auco": 6,
             "wh_leduan": 5,
             "wh_online": 0,
