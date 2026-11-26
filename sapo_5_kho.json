@@ -1,8 +1,8 @@
 {
   "min_stock_rule": 3,
   "min_variant_stock_rule": 3,
-  "synced_at": "09:18 26/11",
-  "synced_epoch": 1795659535,
+  "synced_at": "09:29 26/11",
+  "synced_epoch": 1795660152,
   "sapo_cookie_expired": false,
   "warehouses": [
     {
@@ -4548,7 +4548,7 @@
           "size": "Xanh Mint",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 7,
+            "wh_pct": 6,
             "wh_auco": 4,
             "wh_leduan": 10,
             "wh_online": 0,
