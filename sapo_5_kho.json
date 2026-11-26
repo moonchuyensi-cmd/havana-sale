@@ -1,8 +1,8 @@
 {
   "min_stock_rule": 3,
   "min_variant_stock_rule": 3,
-  "synced_at": "08:49 26/11",
-  "synced_epoch": 1795657763,
+  "synced_at": "09:18 26/11",
+  "synced_epoch": 1795659535,
   "sapo_cookie_expired": false,
   "warehouses": [
     {
@@ -3121,7 +3121,7 @@
           "size": "Nâu Caro",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 31,
+            "wh_pct": 30,
             "wh_auco": 6,
             "wh_leduan": 22,
             "wh_online": 0,
