@@ -1,8 +1,8 @@
 {
   "min_stock_rule": 3,
   "min_variant_stock_rule": 3,
-  "synced_at": "11:39 26/11",
-  "synced_epoch": 1795667947,
+  "synced_at": "11:55 26/11",
+  "synced_epoch": 1795668950,
   "sapo_cookie_expired": false,
   "warehouses": [
     {
@@ -9959,7 +9959,7 @@
         {
           "size": "Nâu - M",
           "stocks": {
-            "wh_havana": 40,
+            "wh_havana": 39,
             "wh_pct": 8,
             "wh_auco": 2,
             "wh_leduan": 7,
