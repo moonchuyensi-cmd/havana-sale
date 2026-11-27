@@ -1,4 +1,4 @@
-// Cloudflare Pages Function: /api/stock (v36 Preserve ATH ONL Excel Stock + Live Release Sync)
+// Cloudflare Pages Function: /api/stock (v37 Dual Main Sections: BF & ATH Single-Price)
 const MIN_TOTAL_STOCK = 3;
 const MIN_VARIANT_STOCK = 3;
 const EXCLUDED_SKUS = new Set(["LEN374", "QJ358"]);
@@ -43,7 +43,7 @@ export async function onRequestGet(context) {
 
   try {
     const ghRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO_SLUG}/releases/tags/live-stock`, {
-      headers: { "Accept": "application/vnd.github+json", "User-Agent": "havana-cf-v36" }
+      headers: { "Accept": "application/vnd.github+json", "User-Agent": "havana-cf-v37" }
     });
     if (ghRes.ok) {
       const rel = await ghRes.json();
@@ -73,6 +73,9 @@ export async function onRequestGet(context) {
             for (const [c, fe] of Object.entries(feed.items)) {
               if (!seen.has(c) && saleRules[c] && !EXCLUDED_SKUS.has(c) && Array.isArray(fe.v) && fe.v.length) {
                 const r = saleRules[c];
+                const isAth = r.section === "ATH" || Boolean(r.singlePrice);
+                const sp = r.salePrice || r.origPrice || 159000;
+                const op = isAth ? sp : (r.origPrice || sp);
                 const built = fe.v.map(([sz, qa]) => {
                   const st = {};
                   whIds.forEach((w, i) => { st[w] = Number((qa && qa[i]) || 0); });
@@ -80,7 +83,8 @@ export async function onRequestGet(context) {
                 });
                 payload.products.push({
                   sku: c, name: fe.n || ("Áo thun Havana " + c), subType: r.subType || "",
-                  origPrice: r.origPrice || 199000, salePrice: r.salePrice || 79000, discountPct: r.discountPct || 50,
+                  section: isAth ? "ATH" : "BF", singlePrice: isAth,
+                  origPrice: op, salePrice: sp, discountPct: isAth ? 0 : (r.discountPct || 30),
                   image: "", images: [], sapoImages: fe.si || [], video: "", sizeChart: "", variants: built
                 });
               }
@@ -99,10 +103,20 @@ export async function onRequestGet(context) {
       const c = String(p.sku || "").trim().toUpperCase().split("-")[0];
       if (!c || EXCLUDED_SKUS.has(c)) return false;
       if (saleRules && saleRules[c]) {
-        if (saleRules[c].origPrice > 0) p.origPrice = saleRules[c].origPrice;
-        if (saleRules[c].salePrice > 0) p.salePrice = saleRules[c].salePrice;
-        if (p.origPrice > p.salePrice && p.salePrice > 0) {
-          p.discountPct = Math.max(1, Math.round((1 - p.salePrice / p.origPrice) * 100));
+        const r = saleRules[c];
+        const isAth = r.section === "ATH" || Boolean(r.singlePrice);
+        p.section = isAth ? "ATH" : "BF";
+        p.singlePrice = isAth;
+        if (isAth) {
+          const athP = Number(r.salePrice || r.origPrice || p.salePrice || p.origPrice || 0);
+          if (athP > 0) { p.origPrice = athP; p.salePrice = athP; }
+          p.discountPct = 0;
+        } else {
+          if (r.origPrice > 0) p.origPrice = r.origPrice;
+          if (r.salePrice > 0) p.salePrice = r.salePrice;
+          if (p.origPrice > p.salePrice && p.salePrice > 0) {
+            p.discountPct = Math.max(1, Math.round((1 - p.salePrice / p.origPrice) * 100));
+          }
         }
       }
       if (FORCE_SAPO_SKUS.has(c)) {
@@ -113,7 +127,7 @@ export async function onRequestGet(context) {
       return p.variants.length > 0 && calcTot(p) >= MIN_TOTAL_STOCK;
     });
   }
-  payload.sync_source = "v36_hybrid_live";
+  payload.sync_source = "v37_dual_sections";
   return new Response(JSON.stringify(payload), {
     headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store, max-age=0" }
   });

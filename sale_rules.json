@@ -3,2646 +3,3480 @@
     "origPrice": 259000,
     "salePrice": 159000,
     "discountPct": 39,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD113": {
     "origPrice": 199000,
     "salePrice": 159000,
     "discountPct": 20,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD153": {
     "origPrice": 279000,
     "salePrice": 159000,
     "discountPct": 43,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD155": {
     "origPrice": 299000,
     "salePrice": 159000,
     "discountPct": 47,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD173": {
     "origPrice": 209000,
     "salePrice": 159000,
     "discountPct": 24,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD176": {
     "origPrice": 289000,
     "salePrice": 159000,
     "discountPct": 45,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD181": {
     "origPrice": 249000,
     "salePrice": 159000,
     "discountPct": 36,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD186": {
     "origPrice": 329000,
     "salePrice": 159000,
     "discountPct": 52,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD189": {
     "origPrice": 345000,
     "salePrice": 159000,
     "discountPct": 54,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD190": {
     "origPrice": 359000,
     "salePrice": 159000,
     "discountPct": 56,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD192": {
     "origPrice": 345000,
     "salePrice": 159000,
     "discountPct": 54,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD193": {
     "origPrice": 335000,
     "salePrice": 159000,
     "discountPct": 53,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD194": {
     "origPrice": 209000,
     "salePrice": 159000,
     "discountPct": 24,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD196": {
     "origPrice": 249000,
     "salePrice": 159000,
     "discountPct": 36,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD198": {
     "origPrice": 345000,
     "salePrice": 159000,
     "discountPct": 54,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD206": {
     "origPrice": 299000,
     "salePrice": 159000,
     "discountPct": 47,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD214": {
     "origPrice": 349000,
     "salePrice": 159000,
     "discountPct": 54,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD229": {
     "origPrice": 259000,
     "salePrice": 159000,
     "discountPct": 39,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD244": {
     "origPrice": 329000,
     "salePrice": 159000,
     "discountPct": 52,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD246": {
     "origPrice": 299000,
     "salePrice": 159000,
     "discountPct": 47,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD43": {
     "origPrice": 253000,
     "salePrice": 159000,
     "discountPct": 37,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD94": {
     "origPrice": 259000,
     "salePrice": 159000,
     "discountPct": 39,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD45": {
     "origPrice": 229000,
     "salePrice": 159000,
     "discountPct": 31,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD40": {
     "origPrice": 169000,
     "salePrice": 99000,
     "discountPct": 41,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD06": {
     "origPrice": 219000,
     "salePrice": 159000,
     "discountPct": 27,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD26": {
     "origPrice": 234000,
     "salePrice": 159000,
     "discountPct": 32,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD162": {
     "origPrice": 319000,
     "salePrice": 159000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD126": {
     "origPrice": 269000,
     "salePrice": 159000,
     "discountPct": 41,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD200": {
     "origPrice": 359000,
     "salePrice": 159000,
     "discountPct": 56,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD163": {
     "origPrice": 209000,
     "salePrice": 159000,
     "discountPct": 24,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AD131": {
     "origPrice": 229000,
     "salePrice": 159000,
     "discountPct": 31,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AE366": {
     "origPrice": 239000,
     "salePrice": 99000,
     "discountPct": 59,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AK161": {
     "origPrice": 349000,
     "salePrice": 199000,
     "discountPct": 43,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AK162": {
     "origPrice": 369000,
     "salePrice": 199000,
     "discountPct": 46,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AK167": {
     "origPrice": 369000,
     "salePrice": 199000,
     "discountPct": 46,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AK169": {
     "origPrice": 299000,
     "salePrice": 159000,
     "discountPct": 47,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AK170": {
     "origPrice": 249000,
     "salePrice": 159000,
     "discountPct": 36,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AK171": {
     "origPrice": 249000,
     "salePrice": 159000,
     "discountPct": 36,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AK181": {
     "origPrice": 299000,
     "salePrice": 159000,
     "discountPct": 47,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AK184": {
     "origPrice": 249000,
     "salePrice": 159000,
     "discountPct": 36,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AK185": {
     "origPrice": 209000,
     "salePrice": 159000,
     "discountPct": 24,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AK196": {
     "origPrice": 265000,
     "salePrice": 159000,
     "discountPct": 40,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO1005": {
     "origPrice": 209000,
     "salePrice": 99000,
     "discountPct": 53,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO1008": {
     "origPrice": 129000,
     "salePrice": 39000,
     "discountPct": 70,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO1010": {
     "origPrice": 194000,
     "salePrice": 79000,
     "discountPct": 59,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO1012": {
     "origPrice": 319000,
     "salePrice": 99000,
     "discountPct": 69,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO1013": {
     "origPrice": 259000,
     "salePrice": 99000,
     "discountPct": 62,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO1016": {
     "origPrice": 214000,
     "salePrice": 79000,
     "discountPct": 63,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO1020": {
     "origPrice": 289000,
     "salePrice": 159000,
     "discountPct": 45,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO1023": {
     "origPrice": 199000,
     "salePrice": 99000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO1025": {
     "origPrice": 319000,
     "salePrice": 159000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO1033": {
     "origPrice": 199000,
     "salePrice": 99000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO1036": {
     "origPrice": 229000,
     "salePrice": 159000,
     "discountPct": 31,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO1037": {
     "origPrice": 185000,
     "salePrice": 99000,
     "discountPct": 46,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO1039": {
     "origPrice": 169000,
     "salePrice": 99000,
     "discountPct": 41,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO1040": {
     "origPrice": 184000,
     "salePrice": 99000,
     "discountPct": 46,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO1042": {
     "origPrice": 235000,
     "salePrice": 199000,
     "discountPct": 15,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO397": {
     "origPrice": 115000,
     "salePrice": 39000,
     "discountPct": 66,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO499": {
     "origPrice": 119000,
     "salePrice": 39000,
     "discountPct": 67,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO563": {
     "origPrice": 139000,
     "salePrice": 39000,
     "discountPct": 72,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO595": {
     "origPrice": 189000,
     "salePrice": 79000,
     "discountPct": 58,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO625": {
     "origPrice": 179000,
     "salePrice": 39000,
     "discountPct": 78,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO684": {
     "origPrice": 209000,
     "salePrice": 79000,
     "discountPct": 62,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO709": {
     "origPrice": 119000,
     "salePrice": 39000,
     "discountPct": 67,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO726": {
     "origPrice": 225000,
     "salePrice": 39000,
     "discountPct": 83,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO754": {
     "origPrice": 199000,
     "salePrice": 99000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO773": {
     "origPrice": 179000,
     "salePrice": 79000,
     "discountPct": 56,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO776": {
     "origPrice": 209000,
     "salePrice": 99000,
     "discountPct": 53,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO777": {
     "origPrice": 255000,
     "salePrice": 99000,
     "discountPct": 61,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO792": {
     "origPrice": 219000,
     "salePrice": 99000,
     "discountPct": 55,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO799": {
     "origPrice": 199000,
     "salePrice": 79000,
     "discountPct": 60,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO802": {
     "origPrice": 229000,
     "salePrice": 79000,
     "discountPct": 66,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO809": {
     "origPrice": 205000,
     "salePrice": 99000,
     "discountPct": 52,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO812": {
     "origPrice": 159000,
     "salePrice": 79000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO822": {
     "origPrice": 189000,
     "salePrice": 99000,
     "discountPct": 48,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO840": {
     "origPrice": 149000,
     "salePrice": 79000,
     "discountPct": 47,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO845": {
     "origPrice": 199000,
     "salePrice": 99000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO850": {
     "origPrice": 255000,
     "salePrice": 99000,
     "discountPct": 61,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO851": {
     "origPrice": 165000,
     "salePrice": 39000,
     "discountPct": 76,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO858": {
     "origPrice": 199000,
     "salePrice": 99000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO859": {
     "origPrice": 154000,
     "salePrice": 79000,
     "discountPct": 49,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO865": {
     "origPrice": 215000,
     "salePrice": 99000,
     "discountPct": 54,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO880": {
     "origPrice": 175000,
     "salePrice": 79000,
     "discountPct": 55,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO886": {
     "origPrice": 249000,
     "salePrice": 39000,
     "discountPct": 84,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO887": {
     "origPrice": 195000,
     "salePrice": 79000,
     "discountPct": 59,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO889": {
     "origPrice": 265000,
     "salePrice": 99000,
     "discountPct": 63,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO899": {
     "origPrice": 209000,
     "salePrice": 99000,
     "discountPct": 53,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO900": {
     "origPrice": 209000,
     "salePrice": 79000,
     "discountPct": 62,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO902": {
     "origPrice": 329000,
     "salePrice": 99000,
     "discountPct": 70,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO907": {
     "origPrice": 249000,
     "salePrice": 99000,
     "discountPct": 60,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO911": {
     "origPrice": 249000,
     "salePrice": 99000,
     "discountPct": 60,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO912": {
     "origPrice": 249000,
     "salePrice": 99000,
     "discountPct": 60,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO915": {
     "origPrice": 259000,
     "salePrice": 99000,
     "discountPct": 62,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO917": {
     "origPrice": 249000,
     "salePrice": 99000,
     "discountPct": 60,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO919": {
     "origPrice": 259000,
     "salePrice": 99000,
     "discountPct": 62,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO928": {
     "origPrice": 169000,
     "salePrice": 99000,
     "discountPct": 41,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO932": {
     "origPrice": 225000,
     "salePrice": 99000,
     "discountPct": 56,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO933": {
     "origPrice": 139000,
     "salePrice": 39000,
     "discountPct": 72,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO934": {
     "origPrice": 189000,
     "salePrice": 79000,
     "discountPct": 58,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO935": {
     "origPrice": 199000,
     "salePrice": 99000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO936": {
     "origPrice": 265000,
     "salePrice": 99000,
     "discountPct": 63,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO939": {
     "origPrice": 189000,
     "salePrice": 39000,
     "discountPct": 79,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO940": {
     "origPrice": 259000,
     "salePrice": 79000,
     "discountPct": 69,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO944": {
     "origPrice": 319000,
     "salePrice": 99000,
     "discountPct": 69,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO947": {
     "origPrice": 179000,
     "salePrice": 79000,
     "discountPct": 56,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO949": {
     "origPrice": 169000,
     "salePrice": 79000,
     "discountPct": 53,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO950": {
     "origPrice": 199000,
     "salePrice": 79000,
     "discountPct": 60,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO953": {
     "origPrice": 169000,
     "salePrice": 79000,
     "discountPct": 53,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO954": {
     "origPrice": 289000,
     "salePrice": 99000,
     "discountPct": 66,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO955": {
     "origPrice": 175000,
     "salePrice": 79000,
     "discountPct": 55,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO956": {
     "origPrice": 159000,
     "salePrice": 39000,
     "discountPct": 75,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO964": {
     "origPrice": 254000,
     "salePrice": 79000,
     "discountPct": 69,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO967": {
     "origPrice": 199000,
     "salePrice": 79000,
     "discountPct": 60,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO969": {
     "origPrice": 299000,
     "salePrice": 99000,
     "discountPct": 67,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO976": {
     "origPrice": 219000,
     "salePrice": 39000,
     "discountPct": 82,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO978": {
     "origPrice": 299000,
     "salePrice": 99000,
     "discountPct": 67,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO979": {
     "origPrice": 299000,
     "salePrice": 99000,
     "discountPct": 67,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO980": {
     "origPrice": 325000,
     "salePrice": 99000,
     "discountPct": 70,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO986": {
     "origPrice": 269000,
     "salePrice": 99000,
     "discountPct": 63,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO987": {
     "origPrice": 179000,
     "salePrice": 79000,
     "discountPct": 56,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO988": {
     "origPrice": 328000,
     "salePrice": 99000,
     "discountPct": 70,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO992": {
     "origPrice": 279000,
     "salePrice": 99000,
     "discountPct": 65,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO993": {
     "origPrice": 369000,
     "salePrice": 99000,
     "discountPct": 73,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH543": {
     "origPrice": 300000,
     "salePrice": 99000,
     "discountPct": 67,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH782": {
     "origPrice": 155000,
     "salePrice": 39000,
     "discountPct": 75,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH800": {
     "origPrice": 189000,
     "salePrice": 39000,
     "discountPct": 79,
-    "subType": ""
-  },
-  "ATH810": {
-    "origPrice": 169000,
-    "salePrice": 152100,
-    "discountPct": 10,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH821": {
     "origPrice": 199000,
     "salePrice": 79000,
     "discountPct": 60,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH823": {
     "origPrice": 279000,
     "salePrice": 79000,
     "discountPct": 72,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH827": {
     "origPrice": 189000,
     "salePrice": 99000,
     "discountPct": 48,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH828": {
     "origPrice": 159000,
     "salePrice": 39000,
     "discountPct": 75,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH834": {
     "origPrice": 189000,
     "salePrice": 39000,
     "discountPct": 79,
-    "subType": ""
-  },
-  "ATH835": {
-    "origPrice": 179000,
-    "salePrice": 161100,
-    "discountPct": 10,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH843": {
     "origPrice": 249000,
     "salePrice": 79000,
     "discountPct": 68,
-    "subType": ""
-  },
-  "ATH844": {
-    "origPrice": 153000,
-    "salePrice": 122400,
-    "discountPct": 20,
-    "subType": ""
-  },
-  "ATH847": {
-    "origPrice": 239000,
-    "salePrice": 191200,
-    "discountPct": 20,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH848": {
     "origPrice": 269000,
     "salePrice": 79000,
     "discountPct": 71,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH851": {
     "origPrice": 199000,
     "salePrice": 79000,
     "discountPct": 60,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH860": {
     "origPrice": 239000,
     "salePrice": 79000,
     "discountPct": 67,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH861": {
     "origPrice": 199000,
     "salePrice": 79000,
     "discountPct": 60,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH867": {
     "origPrice": 189000,
     "salePrice": 79000,
     "discountPct": 58,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH871": {
     "origPrice": 169000,
     "salePrice": 79000,
     "discountPct": 53,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH875": {
     "origPrice": 235000,
     "salePrice": 99000,
     "discountPct": 58,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH876": {
     "origPrice": 229000,
     "salePrice": 79000,
     "discountPct": 66,
-    "subType": ""
-  },
-  "ATH877": {
-    "origPrice": 179000,
-    "salePrice": 161100,
-    "discountPct": 10,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH878": {
     "origPrice": 189000,
     "salePrice": 79000,
     "discountPct": 58,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH891": {
     "origPrice": 259000,
     "salePrice": 99000,
     "discountPct": 62,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH893": {
     "origPrice": 299000,
     "salePrice": 159000,
     "discountPct": 47,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH895": {
     "origPrice": 229000,
     "salePrice": 159000,
     "discountPct": 31,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH897": {
     "origPrice": 189000,
     "salePrice": 99000,
     "discountPct": 48,
-    "subType": ""
-  },
-  "ATH899": {
-    "origPrice": 239000,
-    "salePrice": 191200,
-    "discountPct": 20,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH900": {
     "origPrice": 219000,
     "salePrice": 159000,
     "discountPct": 27,
-    "subType": ""
-  },
-  "ATH903": {
-    "origPrice": 139000,
-    "salePrice": 125100,
-    "discountPct": 10,
-    "subType": ""
-  },
-  "ATH908": {
-    "origPrice": 209000,
-    "salePrice": 188100,
-    "discountPct": 10,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH909": {
     "origPrice": 189000,
     "salePrice": 99000,
     "discountPct": 48,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH910": {
     "origPrice": 189000,
     "salePrice": 79000,
     "discountPct": 58,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH911": {
     "origPrice": 329000,
     "salePrice": 199000,
     "discountPct": 40,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH922": {
     "origPrice": 169000,
     "salePrice": 79000,
     "discountPct": 53,
-    "subType": ""
-  },
-  "ATH923": {
-    "origPrice": 259000,
-    "salePrice": 207200,
-    "discountPct": 20,
-    "subType": ""
-  },
-  "ATH925": {
-    "origPrice": 329000,
-    "salePrice": 263200,
-    "discountPct": 20,
-    "subType": ""
-  },
-  "ATH928": {
-    "origPrice": 249000,
-    "salePrice": 199200,
-    "discountPct": 20,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH933": {
     "origPrice": 209000,
     "salePrice": 99000,
     "discountPct": 53,
-    "subType": ""
-  },
-  "ATH938": {
-    "origPrice": 149000,
-    "salePrice": 134100,
-    "discountPct": 10,
-    "subType": ""
-  },
-  "ATH940": {
-    "origPrice": 299000,
-    "salePrice": 239200,
-    "discountPct": 20,
-    "subType": ""
-  },
-  "ATH941": {
-    "origPrice": 339000,
-    "salePrice": 271200,
-    "discountPct": 20,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "BE154": {
     "origPrice": 238000,
     "salePrice": 39000,
     "discountPct": 84,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV07": {
     "origPrice": 168000,
     "salePrice": 39000,
     "discountPct": 77,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV360": {
     "origPrice": 119000,
     "salePrice": 39000,
     "discountPct": 67,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV369": {
     "origPrice": 139000,
     "salePrice": 39000,
     "discountPct": 72,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV419": {
     "origPrice": 199000,
     "salePrice": 39000,
     "discountPct": 80,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV423": {
     "origPrice": 159000,
     "salePrice": 79000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV455": {
     "origPrice": 175000,
     "salePrice": 39000,
     "discountPct": 78,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV459": {
     "origPrice": 209000,
     "salePrice": 79000,
     "discountPct": 62,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV464": {
     "origPrice": 249000,
     "salePrice": 79000,
     "discountPct": 68,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV472": {
     "origPrice": 205000,
     "salePrice": 99000,
     "discountPct": 52,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV476": {
     "origPrice": 159000,
     "salePrice": 79000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV490": {
     "origPrice": 269000,
     "salePrice": 99000,
     "discountPct": 63,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV492": {
     "origPrice": 209000,
     "salePrice": 99000,
     "discountPct": 53,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV496": {
     "origPrice": 219000,
     "salePrice": 99000,
     "discountPct": 55,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV499": {
     "origPrice": 195000,
     "salePrice": 79000,
     "discountPct": 59,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV501": {
     "origPrice": 219000,
     "salePrice": 99000,
     "discountPct": 55,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV505": {
     "origPrice": 319000,
     "salePrice": 99000,
     "discountPct": 69,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV506": {
     "origPrice": 256000,
     "salePrice": 99000,
     "discountPct": 61,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV509": {
     "origPrice": 299000,
     "salePrice": 99000,
     "discountPct": 67,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV512": {
     "origPrice": 129000,
     "salePrice": 39000,
     "discountPct": 70,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV514": {
     "origPrice": 219000,
     "salePrice": 159000,
     "discountPct": 27,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV515": {
     "origPrice": 229000,
     "salePrice": 99000,
     "discountPct": 57,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV522": {
     "origPrice": 159000,
     "salePrice": 79000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV523": {
     "origPrice": 159000,
     "salePrice": 79000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV524": {
     "origPrice": 149000,
     "salePrice": 79000,
     "discountPct": 47,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV526": {
     "origPrice": 154000,
     "salePrice": 79000,
     "discountPct": 49,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV531": {
     "origPrice": 219000,
     "salePrice": 99000,
     "discountPct": 55,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV532": {
     "origPrice": 179000,
     "salePrice": 79000,
     "discountPct": 56,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV533": {
     "origPrice": 289000,
     "salePrice": 99000,
     "discountPct": 66,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV535": {
     "origPrice": 345000,
     "salePrice": 99000,
     "discountPct": 71,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV538": {
     "origPrice": 214000,
     "salePrice": 99000,
     "discountPct": 54,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV539": {
     "origPrice": 149000,
     "salePrice": 79000,
     "discountPct": 47,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV541": {
     "origPrice": 279000,
     "salePrice": 159000,
     "discountPct": 43,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV542": {
     "origPrice": 259000,
     "salePrice": 99000,
     "discountPct": 62,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV543": {
     "origPrice": 349000,
     "salePrice": 99000,
     "discountPct": 72,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV544": {
     "origPrice": 349000,
     "salePrice": 199000,
     "discountPct": 43,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV545": {
     "origPrice": 179000,
     "salePrice": 79000,
     "discountPct": 56,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV546": {
     "origPrice": 165000,
     "salePrice": 99000,
     "discountPct": 40,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV548": {
     "origPrice": 199000,
     "salePrice": 79000,
     "discountPct": 60,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV551": {
     "origPrice": 219000,
     "salePrice": 39000,
     "discountPct": 82,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV552": {
     "origPrice": 335000,
     "salePrice": 199000,
     "discountPct": 41,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV553": {
     "origPrice": 234000,
     "salePrice": 159000,
     "discountPct": 32,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV554": {
     "origPrice": 169000,
     "salePrice": 79000,
     "discountPct": 53,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV555": {
     "origPrice": 249000,
     "salePrice": 159000,
     "discountPct": 36,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV559": {
     "origPrice": 239000,
     "salePrice": 79000,
     "discountPct": 67,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV560": {
     "origPrice": 159000,
     "salePrice": 79000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV561": {
     "origPrice": 269000,
     "salePrice": 159000,
     "discountPct": 41,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV562": {
     "origPrice": 269000,
     "salePrice": 199000,
     "discountPct": 26,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV563": {
     "origPrice": 229000,
     "salePrice": 159000,
     "discountPct": 31,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV564": {
     "origPrice": 159000,
     "salePrice": 79000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV565": {
     "origPrice": 289000,
     "salePrice": 159000,
     "discountPct": 45,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV568": {
     "origPrice": 229000,
     "salePrice": 159000,
     "discountPct": 31,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV569": {
     "origPrice": 339000,
     "salePrice": 199000,
     "discountPct": 41,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV570": {
     "origPrice": 169000,
     "salePrice": 99000,
     "discountPct": 41,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV571": {
     "origPrice": 219000,
     "salePrice": 99000,
     "discountPct": 55,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV572": {
     "origPrice": 159000,
     "salePrice": 79000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV574": {
     "origPrice": 289000,
     "salePrice": 199000,
     "discountPct": 31,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV581": {
     "origPrice": 279000,
     "salePrice": 199000,
     "discountPct": 29,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV589": {
     "origPrice": 299000,
     "salePrice": 199000,
     "discountPct": 33,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV593": {
     "origPrice": 179000,
     "salePrice": 79000,
     "discountPct": 56,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "DA186": {
     "origPrice": 285000,
     "salePrice": 39000,
     "discountPct": 86,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "DA212": {
     "origPrice": 149000,
     "salePrice": 39000,
     "discountPct": 74,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "DA271": {
     "origPrice": 279000,
     "salePrice": 99000,
     "discountPct": 65,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "DA292": {
     "origPrice": 235000,
     "salePrice": 99000,
     "discountPct": 58,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "DA294": {
     "origPrice": 289000,
     "salePrice": 99000,
     "discountPct": 66,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "DA299": {
     "origPrice": 379000,
     "salePrice": 199000,
     "discountPct": 47,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "DA300": {
     "origPrice": 369000,
     "salePrice": 199000,
     "discountPct": 46,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "DA301": {
     "origPrice": 329000,
     "salePrice": 159000,
     "discountPct": 52,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "DA303": {
     "origPrice": 275000,
     "salePrice": 99000,
     "discountPct": 64,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "DA304": {
     "origPrice": 319000,
     "salePrice": 99000,
     "discountPct": 69,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "DA305": {
     "origPrice": 349000,
     "salePrice": 99000,
     "discountPct": 72,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "DA306": {
     "origPrice": 309000,
     "salePrice": 159000,
     "discountPct": 49,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "DA310": {
     "origPrice": 199000,
     "salePrice": 99000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "HD12": {
     "origPrice": 399000,
     "salePrice": 199000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "HD14": {
     "origPrice": 259000,
     "salePrice": 159000,
     "discountPct": 39,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN182": {
     "origPrice": 205000,
     "salePrice": 79000,
     "discountPct": 61,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN307": {
     "origPrice": 229000,
     "salePrice": 99000,
     "discountPct": 57,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN317": {
     "origPrice": 239000,
     "salePrice": 99000,
     "discountPct": 59,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN318": {
     "origPrice": 245000,
     "salePrice": 159000,
     "discountPct": 35,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN320": {
     "origPrice": 429000,
     "salePrice": 99000,
     "discountPct": 77,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN325": {
     "origPrice": 129000,
     "salePrice": 79000,
     "discountPct": 39,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN326": {
     "origPrice": 159000,
     "salePrice": 79000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN329": {
     "origPrice": 169000,
     "salePrice": 79000,
     "discountPct": 53,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN331": {
     "origPrice": 209000,
     "salePrice": 79000,
     "discountPct": 62,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN332": {
     "origPrice": 159000,
     "salePrice": 99000,
     "discountPct": 38,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN334": {
     "origPrice": 209000,
     "salePrice": 99000,
     "discountPct": 53,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN335": {
     "origPrice": 225000,
     "salePrice": 99000,
     "discountPct": 56,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN337": {
     "origPrice": 225000,
     "salePrice": 99000,
     "discountPct": 56,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN342": {
     "origPrice": 199000,
     "salePrice": 99000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN343": {
     "origPrice": 259000,
     "salePrice": 99000,
     "discountPct": 62,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN344": {
     "origPrice": 319000,
     "salePrice": 199000,
     "discountPct": 38,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN347": {
     "origPrice": 329000,
     "salePrice": 159000,
     "discountPct": 52,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN348": {
     "origPrice": 339000,
     "salePrice": 199000,
     "discountPct": 41,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN349": {
     "origPrice": 269000,
     "salePrice": 99000,
     "discountPct": 63,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN350": {
     "origPrice": 219000,
     "salePrice": 99000,
     "discountPct": 55,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN351": {
     "origPrice": 299000,
     "salePrice": 99000,
     "discountPct": 67,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN352": {
     "origPrice": 299000,
     "salePrice": 159000,
     "discountPct": 47,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN353": {
     "origPrice": 299000,
     "salePrice": 159000,
     "discountPct": 47,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN354": {
     "origPrice": 279000,
     "salePrice": 159000,
     "discountPct": 43,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN356": {
     "origPrice": 389000,
     "salePrice": 199000,
     "discountPct": 49,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN358": {
     "origPrice": 249000,
     "salePrice": 159000,
     "discountPct": 36,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN360": {
     "origPrice": 309000,
     "salePrice": 99000,
     "discountPct": 68,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN361": {
     "origPrice": 309000,
     "salePrice": 159000,
     "discountPct": 49,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN362": {
     "origPrice": 299000,
     "salePrice": 99000,
     "discountPct": 67,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN365": {
     "origPrice": 249000,
     "salePrice": 99000,
     "discountPct": 60,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN366": {
     "origPrice": 266000,
     "salePrice": 159000,
     "discountPct": 40,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN367": {
     "origPrice": 219000,
     "salePrice": 79000,
     "discountPct": 64,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN368": {
     "origPrice": 329000,
     "salePrice": 199000,
     "discountPct": 40,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN370": {
     "origPrice": 359000,
     "salePrice": 199000,
     "discountPct": 45,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN372": {
     "origPrice": 279000,
     "salePrice": 199000,
     "discountPct": 29,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN375": {
     "origPrice": 229000,
     "salePrice": 159000,
     "discountPct": 31,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN376": {
     "origPrice": 289000,
     "salePrice": 199000,
     "discountPct": 31,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN377": {
     "origPrice": 329000,
     "salePrice": 199000,
     "discountPct": 40,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN378": {
     "origPrice": 339000,
     "salePrice": 199000,
     "discountPct": 41,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN380": {
     "origPrice": 195000,
     "salePrice": 99000,
     "discountPct": 49,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN381": {
     "origPrice": 295000,
     "salePrice": 199000,
     "discountPct": 33,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN384": {
     "origPrice": 209000,
     "salePrice": 99000,
     "discountPct": 53,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN389": {
     "origPrice": 329000,
     "salePrice": 199000,
     "discountPct": 40,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK897": {
     "origPrice": 105000,
     "salePrice": 79000,
     "discountPct": 25,
-    "subType": "Phụ kiện"
+    "subType": "Phụ kiện",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ141": {
     "origPrice": 155000,
     "salePrice": 39000,
     "discountPct": 75,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ160": {
     "origPrice": 125000,
     "salePrice": 39000,
     "discountPct": 69,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ283": {
     "origPrice": 165000,
     "salePrice": 39000,
     "discountPct": 76,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ288": {
     "origPrice": 139000,
     "salePrice": 39000,
     "discountPct": 72,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ315": {
     "origPrice": 145000,
     "salePrice": 79000,
     "discountPct": 46,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ316": {
     "origPrice": 229000,
     "salePrice": 159000,
     "discountPct": 31,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ330": {
     "origPrice": 239000,
     "salePrice": 99000,
     "discountPct": 59,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ331": {
     "origPrice": 219000,
     "salePrice": 159000,
     "discountPct": 27,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ337": {
     "origPrice": 249000,
     "salePrice": 159000,
     "discountPct": 36,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ343": {
     "origPrice": 229000,
     "salePrice": 79000,
     "discountPct": 66,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ347": {
     "origPrice": 199000,
     "salePrice": 159000,
     "discountPct": 20,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ355": {
     "origPrice": 189000,
     "salePrice": 39000,
     "discountPct": 79,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ360": {
     "origPrice": 239000,
     "salePrice": 159000,
     "discountPct": 33,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ369": {
     "origPrice": 259000,
     "salePrice": 159000,
     "discountPct": 39,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ371": {
     "origPrice": 199000,
     "salePrice": 99000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ373": {
     "origPrice": 199000,
     "salePrice": 99000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ375": {
     "origPrice": 249000,
     "salePrice": 159000,
     "discountPct": 36,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ378": {
     "origPrice": 359000,
     "salePrice": 199000,
     "discountPct": 45,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ382": {
     "origPrice": 215000,
     "salePrice": 99000,
     "discountPct": 54,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ385": {
     "origPrice": 215000,
     "salePrice": 99000,
     "discountPct": 54,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ387": {
     "origPrice": 239000,
     "salePrice": 159000,
     "discountPct": 33,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ389": {
     "origPrice": 209000,
     "salePrice": 159000,
     "discountPct": 24,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ395": {
     "origPrice": 209000,
     "salePrice": 159000,
     "discountPct": 24,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ396": {
     "origPrice": 205000,
     "salePrice": 159000,
     "discountPct": 22,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ403": {
     "origPrice": 249000,
     "salePrice": 199000,
     "discountPct": 20,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ404": {
     "origPrice": 159000,
     "salePrice": 99000,
     "discountPct": 38,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ407": {
     "origPrice": 235000,
     "salePrice": 39000,
     "discountPct": 83,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ410": {
     "origPrice": 209000,
     "salePrice": 159000,
     "discountPct": 24,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ415": {
     "origPrice": 219000,
     "salePrice": 99000,
     "discountPct": 55,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ432": {
     "origPrice": 189000,
     "salePrice": 99000,
     "discountPct": 48,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ433": {
     "origPrice": 359000,
     "salePrice": 199000,
     "discountPct": 45,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ434": {
     "origPrice": 199000,
     "salePrice": 99000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ435": {
     "origPrice": 339000,
     "salePrice": 159000,
     "discountPct": 53,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ440": {
     "origPrice": 225000,
     "salePrice": 99000,
     "discountPct": 56,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ444": {
     "origPrice": 350000,
     "salePrice": 199000,
     "discountPct": 43,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ446": {
     "origPrice": 249000,
     "salePrice": 159000,
     "discountPct": 36,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ447": {
     "origPrice": 239000,
     "salePrice": 99000,
     "discountPct": 59,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ449": {
     "origPrice": 325000,
     "salePrice": 159000,
     "discountPct": 51,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ450": {
     "origPrice": 389000,
     "salePrice": 199000,
     "discountPct": 49,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ454": {
     "origPrice": 339000,
     "salePrice": 199000,
     "discountPct": 41,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ456": {
     "origPrice": 179000,
     "salePrice": 99000,
     "discountPct": 45,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ457": {
     "origPrice": 279000,
     "salePrice": 159000,
     "discountPct": 43,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ461": {
     "origPrice": 219000,
     "salePrice": 99000,
     "discountPct": 55,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ464": {
     "origPrice": 279000,
     "salePrice": 199000,
     "discountPct": 29,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ467": {
     "origPrice": 249000,
     "salePrice": 159000,
     "discountPct": 36,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ468": {
     "origPrice": 239000,
     "salePrice": 159000,
     "discountPct": 33,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ472": {
     "origPrice": 179000,
     "salePrice": 99000,
     "discountPct": 45,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ475": {
     "origPrice": 219000,
     "salePrice": 159000,
     "discountPct": 27,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ476": {
     "origPrice": 175000,
     "salePrice": 99000,
     "discountPct": 43,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ477": {
     "origPrice": 259000,
     "salePrice": 159000,
     "discountPct": 39,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ483": {
     "origPrice": 249000,
     "salePrice": 159000,
     "discountPct": 36,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QJ487": {
     "origPrice": 159000,
     "salePrice": 99000,
     "discountPct": 38,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QTA15": {
     "origPrice": 199000,
     "salePrice": 39000,
     "discountPct": 80,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QTA23": {
     "origPrice": 199000,
     "salePrice": 79000,
     "discountPct": 60,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QTA28": {
     "origPrice": 199000,
     "salePrice": 79000,
     "discountPct": 60,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QTA29": {
     "origPrice": 189000,
     "salePrice": 79000,
     "discountPct": 58,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QTA30": {
     "origPrice": 179000,
     "salePrice": 79000,
     "discountPct": 56,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QTA33": {
     "origPrice": 329000,
     "salePrice": 159000,
     "discountPct": 52,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QTA37": {
     "origPrice": 209000,
     "salePrice": 99000,
     "discountPct": 53,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QTA39": {
     "origPrice": 259000,
     "salePrice": 199000,
     "discountPct": 23,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QTA40": {
     "origPrice": 199000,
     "salePrice": 99000,
     "discountPct": 50,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QTH11": {
     "origPrice": 255000,
     "salePrice": 99000,
     "discountPct": 61,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QTH20": {
     "origPrice": 189000,
     "salePrice": 39000,
     "discountPct": 79,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QTH24": {
     "origPrice": 199000,
     "salePrice": 159000,
     "discountPct": 20,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QTH25": {
     "origPrice": 205000,
     "salePrice": 79000,
     "discountPct": 61,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QTH27": {
     "origPrice": 209000,
     "salePrice": 99000,
     "discountPct": 53,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "QTH29": {
     "origPrice": 239000,
     "salePrice": 79000,
     "discountPct": 67,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT360": {
     "origPrice": 175000,
     "salePrice": 39000,
     "discountPct": 78,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT410": {
     "origPrice": 229000,
     "salePrice": 99000,
     "discountPct": 57,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT435": {
     "origPrice": 259000,
     "salePrice": 159000,
     "discountPct": 39,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT436": {
     "origPrice": 225000,
     "salePrice": 79000,
     "discountPct": 65,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT440": {
     "origPrice": 219000,
     "salePrice": 79000,
     "discountPct": 64,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT441": {
     "origPrice": 259000,
     "salePrice": 79000,
     "discountPct": 69,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT448": {
     "origPrice": 259000,
     "salePrice": 159000,
     "discountPct": 39,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT462": {
     "origPrice": 299000,
     "salePrice": 159000,
     "discountPct": 47,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT480": {
     "origPrice": 259000,
     "salePrice": 159000,
     "discountPct": 39,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT484": {
     "origPrice": 234000,
     "salePrice": 99000,
     "discountPct": 58,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT485": {
     "origPrice": 199000,
     "salePrice": 79000,
     "discountPct": 60,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT488": {
     "origPrice": 299000,
     "salePrice": 159000,
     "discountPct": 47,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT490": {
     "origPrice": 279000,
     "salePrice": 99000,
     "discountPct": 65,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT492": {
     "origPrice": 299000,
     "salePrice": 199000,
     "discountPct": 33,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT493": {
     "origPrice": 199000,
     "salePrice": 159000,
     "discountPct": 20,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT495": {
     "origPrice": 229000,
     "salePrice": 99000,
     "discountPct": 57,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT499": {
     "origPrice": 259000,
     "salePrice": 99000,
     "discountPct": 62,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT502": {
     "origPrice": 259000,
     "salePrice": 99000,
     "discountPct": 62,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT506": {
     "origPrice": 225000,
     "salePrice": 39000,
     "discountPct": 83,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT509": {
     "origPrice": 259000,
     "salePrice": 79000,
     "discountPct": 69,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT510": {
     "origPrice": 204000,
     "salePrice": 79000,
     "discountPct": 61,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT512": {
     "origPrice": 209000,
     "salePrice": 79000,
     "discountPct": 62,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT513": {
     "origPrice": 245000,
     "salePrice": 99000,
     "discountPct": 60,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT517": {
     "origPrice": 255000,
     "salePrice": 159000,
     "discountPct": 38,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT521": {
     "origPrice": 349000,
     "salePrice": 199000,
     "discountPct": 43,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT522": {
     "origPrice": 234000,
     "salePrice": 159000,
     "discountPct": 32,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT523": {
     "origPrice": 269000,
     "salePrice": 159000,
     "discountPct": 41,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT526": {
     "origPrice": 219000,
     "salePrice": 159000,
     "discountPct": 27,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT532": {
     "origPrice": 259000,
     "salePrice": 159000,
     "discountPct": 39,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT533": {
     "origPrice": 239000,
     "salePrice": 99000,
     "discountPct": 59,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT540": {
     "origPrice": 309000,
     "salePrice": 159000,
     "discountPct": 49,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT542": {
     "origPrice": 249000,
     "salePrice": 159000,
     "discountPct": 36,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT547": {
     "origPrice": 219000,
     "salePrice": 99000,
     "discountPct": 55,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT463": {
     "origPrice": 279000,
     "salePrice": 159000,
     "discountPct": 43,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT549": {
     "origPrice": 249000,
     "salePrice": 99000,
     "discountPct": 60,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT323": {
     "origPrice": 235000,
     "salePrice": 79000,
     "discountPct": 66,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT465": {
     "origPrice": 259000,
     "salePrice": 99000,
     "discountPct": 62,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT447": {
     "origPrice": 225000,
     "salePrice": 99000,
     "discountPct": 56,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT504": {
     "origPrice": 179000,
     "salePrice": 99000,
     "discountPct": 45,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT491": {
     "origPrice": 289000,
     "salePrice": 159000,
     "discountPct": 45,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV547": {
     "origPrice": 149000,
     "salePrice": 79000,
     "discountPct": 47,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV519": {
     "origPrice": 139000,
     "salePrice": 79000,
     "discountPct": 43,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "CV517": {
     "origPrice": 239000,
     "salePrice": 159000,
     "discountPct": 33,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO1015": {
     "origPrice": 204000,
     "salePrice": 99000,
     "discountPct": 51,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO966": {
     "origPrice": 184000,
     "salePrice": 79000,
     "discountPct": 57,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "LEN385": {
     "origPrice": 259000,
     "salePrice": 159000,
     "discountPct": 39,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT546": {
     "origPrice": 309000,
     "salePrice": 199000,
     "discountPct": 36,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT450": {
     "origPrice": 259000,
     "salePrice": 99000,
     "discountPct": 62,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "SAT471": {
     "origPrice": 339000,
     "salePrice": 199000,
     "discountPct": 41,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO1031": {
     "origPrice": 249000,
     "salePrice": 99000,
     "discountPct": 60,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO1032": {
     "origPrice": 259000,
     "salePrice": 99000,
     "discountPct": 62,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "AO972": {
     "origPrice": 269000,
     "salePrice": 99000,
     "discountPct": 63,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK1006": {
     "origPrice": 215000,
     "salePrice": 99000,
     "discountPct": 54,
-    "subType": "Giày"
+    "subType": "Giày",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK1027": {
     "origPrice": 379000,
     "salePrice": 159000,
     "discountPct": 58,
-    "subType": "Túi xách"
+    "subType": "Túi xách",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK1030": {
     "origPrice": 349000,
     "salePrice": 159000,
     "discountPct": 54,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK1032": {
     "origPrice": 385000,
     "salePrice": 159000,
     "discountPct": 59,
-    "subType": "Giày"
+    "subType": "Giày",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK1036": {
     "origPrice": 149000,
     "salePrice": 99000,
     "discountPct": 34,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK1037": {
     "origPrice": 335000,
     "salePrice": 99000,
     "discountPct": 70,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK1038": {
     "origPrice": 185000,
     "salePrice": 39000,
     "discountPct": 79,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK1041": {
     "origPrice": 345000,
     "salePrice": 159000,
     "discountPct": 54,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK1045": {
     "origPrice": 345000,
     "salePrice": 159000,
     "discountPct": 54,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK1055": {
     "origPrice": 339000,
     "salePrice": 99000,
     "discountPct": 71,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK1056": {
     "origPrice": 289000,
     "salePrice": 99000,
     "discountPct": 66,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK1061": {
     "origPrice": 385000,
     "salePrice": 159000,
     "discountPct": 59,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK1062": {
     "origPrice": 209000,
     "salePrice": 99000,
     "discountPct": 53,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK1064": {
     "origPrice": 289000,
     "salePrice": 159000,
     "discountPct": 45,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK1067": {
     "origPrice": 359000,
     "salePrice": 159000,
     "discountPct": 56,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK783": {
     "origPrice": 119000,
     "salePrice": 39000,
     "discountPct": 67,
-    "subType": ""
+    "subType": "",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK822": {
     "origPrice": 119000,
     "salePrice": 79000,
     "discountPct": 34,
-    "subType": "Mũ"
+    "subType": "Mũ",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK887": {
     "origPrice": 175000,
     "salePrice": 99000,
     "discountPct": 43,
-    "subType": "Túi xách"
+    "subType": "Túi xách",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK893": {
     "origPrice": 189000,
     "salePrice": 79000,
     "discountPct": 58,
-    "subType": "Mũ"
+    "subType": "Mũ",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK894": {
     "origPrice": 150000,
     "salePrice": 79000,
     "discountPct": 47,
-    "subType": "Mũ"
+    "subType": "Mũ",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK898": {
     "origPrice": 125000,
     "salePrice": 79000,
     "discountPct": 37,
-    "subType": "Túi xách"
+    "subType": "Túi xách",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK976": {
     "origPrice": 289000,
     "salePrice": 79000,
     "discountPct": 73,
-    "subType": "Túi xách"
+    "subType": "Túi xách",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK995": {
     "origPrice": 289000,
     "salePrice": 79000,
     "discountPct": 73,
-    "subType": "Túi xách"
+    "subType": "Túi xách",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK997": {
     "origPrice": 309000,
     "salePrice": 99000,
     "discountPct": 68,
-    "subType": "Túi xách"
+    "subType": "Túi xách",
+    "section": "BF",
+    "singlePrice": false
   },
   "PK999": {
     "origPrice": 289000,
     "salePrice": 99000,
     "discountPct": 66,
-    "subType": "Túi xách"
+    "subType": "Túi xách",
+    "section": "BF",
+    "singlePrice": false
   },
   "ATH977": {
-    "origPrice": 129000,
+    "origPrice": 116100,
     "salePrice": 116100,
-    "discountPct": 10,
-    "subType": ""
+    "discountPct": 0,
+    "subType": "Áo thun",
+    "section": "ATH",
+    "singlePrice": true
   },
-  "ATH926": {
-    "origPrice": 926000,
-    "salePrice": 249000,
-    "discountPct": 73,
-    "subType": ""
-  },
-  "ATH927": {
-    "origPrice": 927000,
-    "salePrice": 249000,
-    "discountPct": 73,
-    "subType": ""
-  },
-  "ATH934": {
-    "origPrice": 934000,
-    "salePrice": 189000,
-    "discountPct": 80,
-    "subType": ""
-  },
-  "ATH935": {
-    "origPrice": 935000,
-    "salePrice": 169000,
-    "discountPct": 82,
-    "subType": ""
-  },
-  "ATH937": {
-    "origPrice": 937000,
-    "salePrice": 149000,
-    "discountPct": 84,
-    "subType": ""
-  },
-  "ATH944": {
-    "origPrice": 944000,
-    "salePrice": 260000,
-    "discountPct": 72,
-    "subType": ""
+  "ATH903": {
+    "origPrice": 125100,
+    "salePrice": 125100,
+    "discountPct": 0,
+    "subType": "Áo thun",
+    "section": "ATH",
+    "singlePrice": true
   },
   "ATH970": {
-    "origPrice": 139000,
+    "origPrice": 125100,
     "salePrice": 125100,
-    "discountPct": 10,
-    "subType": ""
+    "discountPct": 0,
+    "subType": "Áo thun",
+    "section": "ATH",
+    "singlePrice": true
   },
   "ATH920": {
-    "origPrice": 142000,
+    "origPrice": 127800,
     "salePrice": 127800,
-    "discountPct": 10,
-    "subType": ""
+    "discountPct": 0,
+    "subType": "Áo thun",
+    "section": "ATH",
+    "singlePrice": true
+  },
+  "ATH938": {
+    "origPrice": 134100,
+    "salePrice": 134100,
+    "discountPct": 0,
+    "subType": "Áo thun",
+    "section": "ATH",
+    "singlePrice": true
   },
   "ATH929": {
-    "origPrice": 149000,
+    "origPrice": 119200,
     "salePrice": 119200,
-    "discountPct": 20,
-    "subType": ""
+    "discountPct": 0,
+    "subType": "Áo thun",
+    "section": "ATH",
+    "singlePrice": true
+  },
+  "ATH844": {
+    "origPrice": 122400,
+    "salePrice": 122400,
+    "discountPct": 0,
+    "subType": "Áo thun",
+    "section": "ATH",
+    "singlePrice": true
+  },
+  "ATH810": {
+    "origPrice": 152100,
+    "salePrice": 152100,
+    "discountPct": 0,
+    "subType": "Áo thun",
+    "section": "ATH",
+    "singlePrice": true
   },
   "ATH945": {
-    "origPrice": 175000,
+    "origPrice": 157500,
     "salePrice": 157500,
-    "discountPct": 10,
-    "subType": ""
+    "discountPct": 0,
+    "subType": "Áo thun",
+    "section": "ATH",
+    "singlePrice": true
+  },
+  "ATH835": {
+    "origPrice": 161100,
+    "salePrice": 161100,
+    "discountPct": 0,
+    "subType": "Áo thun",
+    "section": "ATH",
+    "singlePrice": true
+  },
+  "ATH877": {
+    "origPrice": 161100,
+    "salePrice": 161100,
+    "discountPct": 0,
+    "subType": "Áo thun",
+    "section": "ATH",
+    "singlePrice": true
+  },
+  "ATH908": {
+    "origPrice": 188100,
+    "salePrice": 188100,
+    "discountPct": 0,
+    "subType": "Áo thun",
+    "section": "ATH",
+    "singlePrice": true
+  },
+  "ATH847": {
+    "origPrice": 191200,
+    "salePrice": 191200,
+    "discountPct": 0,
+    "subType": "Áo thun",
+    "section": "ATH",
+    "singlePrice": true
+  },
+  "ATH899": {
+    "origPrice": 191200,
+    "salePrice": 191200,
+    "discountPct": 0,
+    "subType": "Áo thun",
+    "section": "ATH",
+    "singlePrice": true
+  },
+  "ATH928": {
+    "origPrice": 199200,
+    "salePrice": 199200,
+    "discountPct": 0,
+    "subType": "Áo thun",
+    "section": "ATH",
+    "singlePrice": true
   },
   "ATH846": {
-    "origPrice": 259000,
+    "origPrice": 207200,
     "salePrice": 207200,
-    "discountPct": 20,
-    "subType": ""
+    "discountPct": 0,
+    "subType": "Áo thun",
+    "section": "ATH",
+    "singlePrice": true
+  },
+  "ATH923": {
+    "origPrice": 207200,
+    "salePrice": 207200,
+    "discountPct": 0,
+    "subType": "Áo thun",
+    "section": "ATH",
+    "singlePrice": true
   },
   "ATH936": {
-    "origPrice": 275000,
+    "origPrice": 220000,
     "salePrice": 220000,
-    "discountPct": 20,
-    "subType": ""
+    "discountPct": 0,
+    "subType": "Áo thun",
+    "section": "ATH",
+    "singlePrice": true
+  },
+  "ATH940": {
+    "origPrice": 239200,
+    "salePrice": 239200,
+    "discountPct": 0,
+    "subType": "Áo thun",
+    "section": "ATH",
+    "singlePrice": true
+  },
+  "ATH925": {
+    "origPrice": 263200,
+    "salePrice": 263200,
+    "discountPct": 0,
+    "subType": "Áo thun",
+    "section": "ATH",
+    "singlePrice": true
+  },
+  "ATH941": {
+    "origPrice": 271200,
+    "salePrice": 271200,
+    "discountPct": 0,
+    "subType": "Áo thun",
+    "section": "ATH",
+    "singlePrice": true
   }
 }
