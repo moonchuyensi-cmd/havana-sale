@@ -2899,148 +2899,210 @@
   },
   "ATH977": {
     "origPrice": 129000,
-    "salePrice": 129000,
-    "discountPct": 0,
+    "salePrice": 116100,
+    "discountPct": 10,
     "subType": "Áo thun",
-    "section": "ATH"
+    "section": "ATH",
+    "varPrices": {
+      "TRANG": [
+        129000,
+        116100
+      ],
+      "NAU": [
+        129000,
+        103200
+      ],
+      "XANH DUONG": [
+        129000,
+        116100
+      ]
+    }
   },
   "ATH903": {
     "origPrice": 139000,
-    "salePrice": 139000,
-    "discountPct": 0,
+    "salePrice": 125100,
+    "discountPct": 10,
     "subType": "Áo thun",
     "section": "ATH"
   },
   "ATH970": {
     "origPrice": 139000,
-    "salePrice": 139000,
-    "discountPct": 0,
+    "salePrice": 125100,
+    "discountPct": 10,
     "subType": "Áo thun",
     "section": "ATH"
   },
   "ATH920": {
     "origPrice": 142000,
-    "salePrice": 142000,
-    "discountPct": 0,
+    "salePrice": 127800,
+    "discountPct": 10,
     "subType": "Áo thun",
     "section": "ATH"
   },
   "ATH938": {
     "origPrice": 149000,
-    "salePrice": 149000,
-    "discountPct": 0,
+    "salePrice": 134100,
+    "discountPct": 10,
     "subType": "Áo thun",
-    "section": "ATH"
+    "section": "ATH",
+    "varPrices": {
+      "TRANG": [
+        149000,
+        134100
+      ],
+      "DEN": [
+        149000,
+        119200
+      ],
+      "HONG": [
+        149000,
+        134100
+      ],
+      "NAU NHAT": [
+        149000,
+        119200
+      ],
+      "VANG": [
+        149000,
+        134100
+      ],
+      "XANH DUONG": [
+        149000,
+        134100
+      ]
+    }
   },
   "ATH929": {
     "origPrice": 149000,
-    "salePrice": 149000,
-    "discountPct": 0,
+    "salePrice": 134100,
+    "discountPct": 10,
     "subType": "Áo thun",
-    "section": "ATH"
+    "section": "ATH",
+    "varPrices": {
+      "TRANG": [
+        149000,
+        134100
+      ],
+      "DEN": [
+        149000,
+        134100
+      ],
+      "HONG": [
+        149000,
+        134100
+      ],
+      "NAU": [
+        149000,
+        134100
+      ],
+      "XANH DUONG": [
+        149000,
+        119200
+      ]
+    }
   },
   "ATH844": {
     "origPrice": 153000,
-    "salePrice": 153000,
-    "discountPct": 0,
+    "salePrice": 122400,
+    "discountPct": 20,
     "subType": "Áo thun",
     "section": "ATH"
   },
   "ATH810": {
     "origPrice": 169000,
-    "salePrice": 169000,
-    "discountPct": 0,
+    "salePrice": 152100,
+    "discountPct": 10,
     "subType": "Áo thun",
     "section": "ATH"
   },
   "ATH945": {
     "origPrice": 175000,
-    "salePrice": 175000,
-    "discountPct": 0,
+    "salePrice": 157500,
+    "discountPct": 10,
     "subType": "Áo thun",
     "section": "ATH"
   },
   "ATH835": {
     "origPrice": 179000,
-    "salePrice": 179000,
-    "discountPct": 0,
+    "salePrice": 161100,
+    "discountPct": 10,
     "subType": "Áo thun",
     "section": "ATH"
   },
   "ATH877": {
     "origPrice": 179000,
-    "salePrice": 179000,
-    "discountPct": 0,
+    "salePrice": 161100,
+    "discountPct": 10,
     "subType": "Áo thun",
     "section": "ATH"
   },
   "ATH908": {
     "origPrice": 209000,
-    "salePrice": 209000,
-    "discountPct": 0,
+    "salePrice": 188100,
+    "discountPct": 10,
     "subType": "Áo thun",
     "section": "ATH"
   },
   "ATH847": {
     "origPrice": 239000,
-    "salePrice": 239000,
-    "discountPct": 0,
+    "salePrice": 191200,
+    "discountPct": 20,
     "subType": "Áo thun",
     "section": "ATH"
   },
   "ATH899": {
     "origPrice": 239000,
-    "salePrice": 239000,
-    "discountPct": 0,
+    "salePrice": 191200,
+    "discountPct": 20,
     "subType": "Áo thun",
     "section": "ATH"
   },
   "ATH928": {
     "origPrice": 249000,
-    "salePrice": 249000,
-    "discountPct": 0,
+    "salePrice": 199200,
+    "discountPct": 20,
     "subType": "Áo thun",
     "section": "ATH"
   },
   "ATH846": {
     "origPrice": 259000,
-    "salePrice": 259000,
-    "discountPct": 0,
+    "salePrice": 207200,
+    "discountPct": 20,
     "subType": "Áo thun",
     "section": "ATH"
   },
   "ATH923": {
     "origPrice": 259000,
-    "salePrice": 259000,
-    "discountPct": 0,
+    "salePrice": 207200,
+    "discountPct": 20,
     "subType": "Áo thun",
     "section": "ATH"
   },
   "ATH936": {
     "origPrice": 275000,
-    "salePrice": 275000,
-    "discountPct": 0,
+    "salePrice": 220000,
+    "discountPct": 20,
     "subType": "Áo thun",
     "section": "ATH"
   },
   "ATH940": {
     "origPrice": 299000,
-    "salePrice": 299000,
-    "discountPct": 0,
+    "salePrice": 239200,
+    "discountPct": 20,
     "subType": "Áo thun",
     "section": "ATH"
   },
   "ATH925": {
     "origPrice": 329000,
-    "salePrice": 329000,
-    "discountPct": 0,
+    "salePrice": 263200,
+    "discountPct": 20,
     "subType": "Áo thun",
     "section": "ATH"
   },
   "ATH941": {
     "origPrice": 339000,
-    "salePrice": 339000,
-    "discountPct": 0,
+    "salePrice": 271200,
+    "discountPct": 20,
     "subType": "Áo thun",
     "section": "ATH"
   }

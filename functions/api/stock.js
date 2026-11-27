@@ -110,6 +110,7 @@ export async function onRequestGet(context) {
         const op = Math.max(Number(r.origPrice || 0), Number(p.origPrice || 0), sp);
         if (sp > 0) p.salePrice = sp;
         if (op > 0) p.origPrice = op;
+        if (r.varPrices) p.varPrices = r.varPrices;
         p.discountPct = (p.origPrice > p.salePrice && p.salePrice > 0)
           ? Math.max(1, Math.round((1 - p.salePrice / p.origPrice) * 100))
           : 0;
