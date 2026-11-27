@@ -12,8 +12,8 @@ import urllib.parse
 import urllib.request
 
 # ==============================================================================
-# AUTO_SYNC_SAPO.PY (v33 COMPACT - XA 2 NGAY CUOI 26-27 CHI AP DUNG MUA ONLINE)
-# Cap nhat dong bo Header, Mobile Responsive, Phieu Len Don Tam, Anh PNG & Zalo
+# AUTO_SYNC_SAPO.PY (v34 COMPACT - XA NGAY CUOI + DONG HO DEM NGUOC NOI BAT)
+# Giu nguyen "(Chi ap dung cho Online)" + Dong bo Header, Bill, PNG & Zalo
 # ==============================================================================
 
 MIN_TOTAL_STOCK = 3
@@ -23,7 +23,7 @@ SKU_REGEX = re.compile(r"^([A-Z]{1,5}\d{1,5})", re.I)
 EXCLUDED_SKUS = {"LEN374", "QJ358"}
 FORCE_RESET_TO_SAPO_SKUS = {"SAT532", "CV538"}
 PURGE_STATE_FILE = ".purged_wrong_media_v27.json"
-PRICE_PATCH_V33 = {
+PRICE_PATCH_V34 = {
     "AO1010": (194000, 79000, 59, 0.5928),
     "AO726":  (225000, 39000, 83, 0.8267),
     "AO1016": (214000, 79000, 63, 0.6308),
@@ -38,45 +38,167 @@ PK_KNOWN_SUBTYPES = {
     "PK997": "Túi xách", "PK999": "Túi xách", "PK1006": "Giày", "PK1027": "Túi xách", "PK1032": "Giày",
 }
 
-V33_INDEX_JS_ADDON = r'''/* === v33: HEADER "XA 2 NGAY CUOI 26 - 27 (CHI AP DUNG MUA ONLINE)" + FULL V32 === */
-    const MIN_STOCK_V33 = 3;
-    const FORCE_SAPO_V33 = new Set(["SAT532", "CV538"]);
-    const HEADER_TITLE_VI_V33 = "XẢ 2 NGÀY CUỐI 26 - 27";
-    const HEADER_TITLE_EN_V33 = "FINAL 2 DAYS SALE 26 - 27";
-    const HEADER_SUB_VI_V33 = "(Chỉ áp dụng mua Online)";
-    const HEADER_SUB_EN_V33 = "(Online Exclusive Only)";
-    const BILL_BADGE_VI_V33 = "XẢ 2 NGÀY CUỐI 26 - 27 • CHỈ ÁP DỤNG MUA ONLINE";
-    const BILL_BADGE_EN_V33 = "FINAL 2 DAYS 26 - 27 • ONLINE ONLY";
-    const BILL_TITLE_VI_V33 = "Phiếu Lên Đơn Tạm";
-    const BILL_TITLE_EN_V33 = "Provisional Order Slip";
-    const BILL_NOTE_VI_V33 = "📌 Lưu ý: Chương trình xả 2 ngày cuối (26 - 27) chỉ áp dụng mua Online. Hàng sale số lượng ít nên có thể lệch so với tồn thực tế, mong quý khách hàng thông cảm ạ!";
-    const BILL_NOTE_EN_V33 = "📌 Note: Final 2-day clearance (26 - 27) is valid for Online orders only. Sale items have limited stock and may slightly differ from actual inventory.";
-    let v33SyncBusy = false;
-    let v33LastRelMs = 0;
+V34_INDEX_JS_ADDON = r'''/* === v34: "XA NGAY CUOI" + PROMINENT LIVE COUNTDOWN + "(CHI AP DUNG CHO ONLINE)" === */
+    const MIN_STOCK_V34 = 3;
+    const FORCE_SAPO_V34 = new Set(["SAT532", "CV538"]);
+    const HEADER_TITLE_VI_V34 = "XẢ NGÀY CUỐI";
+    const HEADER_TITLE_EN_V34 = "FINAL DAY CLEARANCE";
+    const HEADER_SUB_VI_V34 = "(Chỉ áp dụng cho Online)";
+    const HEADER_SUB_EN_V34 = "(Online Exclusive Only)";
+    const BILL_BADGE_VI_V34 = "XẢ NGÀY CUỐI • CHỈ ÁP DỤNG CHO ONLINE";
+    const BILL_BADGE_EN_V34 = "FINAL DAY SALE • ONLINE ONLY";
+    const BILL_TITLE_VI_V34 = "Phiếu Lên Đơn Tạm";
+    const BILL_TITLE_EN_V34 = "Provisional Order Slip";
+    const BILL_NOTE_VI_V34 = "📌 Lưu ý: Chương trình xả ngày cuối chỉ áp dụng cho Online. Hàng sale số lượng ít nên có thể lệch so với tồn thực tế, mong quý khách hàng thông cảm ạ!";
+    const BILL_NOTE_EN_V34 = "📌 Note: Final day clearance is valid for Online orders only. Sale items have limited stock and may slightly differ from actual inventory.";
+    const FINAL_DEADLINE_MS_V34 = new Date("2026-11-27T23:59:59+07:00").getTime();
+    let v34SyncBusy = false;
+    let v34LastRelMs = 0;
 
-    if (!document.getElementById("v33HeaderStyleFix")) {
+    if (!document.getElementById("v34CountdownStyle")) {
       const st = document.createElement("style");
-      st.id = "v33HeaderStyleFix";
+      st.id = "v34CountdownStyle";
       st.textContent = `
-        #subBrandText { color: var(--sale-red) !important; font-weight: 800 !important; }
+        .v34-title-wrap {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-bottom: 3px;
+        }
+        #mainBrandTitle {
+          color: #be123c !important;
+          font-weight: 800 !important;
+          letter-spacing: -0.01em !important;
+          line-height: 1.15 !important;
+        }
+        #subBrandText {
+          color: #be123c !important;
+          font-weight: 800 !important;
+        }
+        .v34-countdown-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: linear-gradient(135deg, #e11d48 0%, #9f1239 100%);
+          color: #ffffff;
+          padding: 4px 10px;
+          border-radius: 999px;
+          box-shadow: 0 4px 14px rgba(225, 29, 72, 0.38);
+          border: 1px solid rgba(255, 255, 255, 0.35);
+          font-variant-numeric: tabular-nums;
+          animation: v34UrgentPulse 1.9s ease-in-out infinite;
+          white-space: nowrap;
+        }
+        .v34-cd-label {
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.02em;
+          color: #ffe4e6;
+          text-transform: uppercase;
+        }
+        .v34-cd-digits {
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+        }
+        .v34-cd-box {
+          background: rgba(15, 23, 42, 0.44);
+          color: #ffffff;
+          font-weight: 800;
+          font-size: 12.5px;
+          min-width: 24px;
+          height: 21px;
+          padding: 0 4px;
+          border-radius: 6px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid rgba(255, 255, 255, 0.24);
+          font-variant-numeric: tabular-nums;
+        }
+        .v34-cd-sep {
+          font-weight: 800;
+          font-size: 12px;
+          color: #fecdd3;
+        }
+        @keyframes v34UrgentPulse {
+          0%, 100% { transform: scale(1); box-shadow: 0 4px 14px rgba(225, 29, 72, 0.34); }
+          50% { transform: scale(1.025); box-shadow: 0 6px 20px rgba(225, 29, 72, 0.58); }
+        }
         @media (max-width: 768px) {
           .brand > div > div:last-child { flex-wrap: wrap !important; row-gap: 3px !important; }
           .brand-title { font-size: 14.5px !important; }
+          .v34-title-wrap { gap: 6px; }
+          .v34-countdown-pill { padding: 3px 8px; gap: 4px; }
+          .v34-cd-label { font-size: 10px; }
+          .v34-cd-box { font-size: 11px; min-width: 20px; height: 18px; padding: 0 3px; border-radius: 5px; }
         }
       `;
       document.head.appendChild(st);
     }
+
+    const v34EnsureCountdownDOM = () => {
+      const mainT = document.getElementById("mainBrandTitle");
+      if (!mainT) return;
+      let wrap = mainT.parentElement;
+      if (!wrap || !wrap.classList.contains("v34-title-wrap")) {
+        wrap = document.createElement("div");
+        wrap.className = "v34-title-wrap";
+        mainT.parentNode.insertBefore(wrap, mainT);
+        wrap.appendChild(mainT);
+      }
+      if (!document.getElementById("v34CountdownBadge")) {
+        const badge = document.createElement("div");
+        badge.id = "v34CountdownBadge";
+        badge.className = "v34-countdown-pill";
+        badge.innerHTML = `
+          <span class="v34-cd-label" id="v34CdLabel">⏳ Kết thúc sau</span>
+          <span class="v34-cd-digits">
+            <span class="v34-cd-box" id="v34CdH">00</span>
+            <span class="v34-cd-sep">:</span>
+            <span class="v34-cd-box" id="v34CdM">00</span>
+            <span class="v34-cd-sep">:</span>
+            <span class="v34-cd-box" id="v34CdS">00</span>
+          </span>
+        `;
+        wrap.appendChild(badge);
+      }
+    };
+
+    const v34TickCountdown = () => {
+      v34EnsureCountdownDOM();
+      const now = Date.now();
+      let targetMs = FINAL_DEADLINE_MS_V34;
+      if (now > targetMs) {
+        const vnNow = new Date(now + 7 * 3600 * 1000);
+        targetMs = Date.UTC(vnNow.getUTCFullYear(), vnNow.getUTCMonth(), vnNow.getUTCDate(), 23, 59, 59) - 7 * 3600 * 1000;
+      }
+      const diffSec = Math.max(0, Math.floor((targetMs - now) / 1000));
+      const hh = String(Math.floor(diffSec / 3600)).padStart(2, "0");
+      const mm = String(Math.floor((diffSec % 3600) / 60)).padStart(2, "0");
+      const ss = String(diffSec % 60).padStart(2, "0");
+      const hEl = document.getElementById("v34CdH");
+      const mEl = document.getElementById("v34CdM");
+      const sEl = document.getElementById("v34CdS");
+      const lblEl = document.getElementById("v34CdLabel");
+      if (hEl) hEl.textContent = hh;
+      if (mEl) mEl.textContent = mm;
+      if (sEl) sEl.textContent = ss;
+      if (lblEl) lblEl.textContent = currentLang === "EN" ? "⏳ Ends in" : "⏳ Kết thúc sau";
+    };
 
     if (typeof RESET_TO_SAPO_SKUS_V21 !== "undefined" && RESET_TO_SAPO_SKUS_V21 && RESET_TO_SAPO_SKUS_V21.add) {
       RESET_TO_SAPO_SKUS_V21.add("CV538");
       RESET_TO_SAPO_SKUS_V21.add("SAT532");
     }
     try {
-      ["havana_gh_tree_v13","havana_live_rel_v22","havana_live_rel_v25","havana_live_rel_v26","havana_live_rel_v27","havana_live_rel_v28","havana_live_rel_v29","havana_live_rel_v30","havana_live_rel_v31","havana_live_rel_v32"].forEach((k) => sessionStorage.removeItem(k));
+      ["havana_gh_tree_v13","havana_live_rel_v22","havana_live_rel_v25","havana_live_rel_v26","havana_live_rel_v27","havana_live_rel_v28","havana_live_rel_v29","havana_live_rel_v30","havana_live_rel_v31","havana_live_rel_v32","havana_live_rel_v33"].forEach((k) => sessionStorage.removeItem(k));
     } catch (_) {}
-    if (typeof MEDIA_CACHE_VERSION !== "undefined" && MEDIA_CACHE_VERSION < 33) MEDIA_CACHE_VERSION = 33;
+    if (typeof MEDIA_CACHE_VERSION !== "undefined" && MEDIA_CACHE_VERSION < 34) MEDIA_CACHE_VERSION = 34;
 
-    const v33ApplyCampaignBranding = () => {
+    const v34ApplyCampaignBranding = () => {
+      v34EnsureCountdownDOM();
       const mainT = document.getElementById("mainBrandTitle");
       const subT = document.getElementById("subBrandText");
       const badgeEl = document.querySelector("#billModal .bill-head-badge");
@@ -84,35 +206,36 @@ V33_INDEX_JS_ADDON = r'''/* === v33: HEADER "XA 2 NGAY CUOI 26 - 27 (CHI AP DUNG
       const openBtn = document.getElementById("openBillBtn");
       const noteInp = document.getElementById("custNoteInput");
 
-      if (mainT) mainT.textContent = currentLang === "EN" ? HEADER_TITLE_EN_V33 : HEADER_TITLE_VI_V33;
-      if (subT) subT.textContent = currentLang === "EN" ? HEADER_SUB_EN_V33 : HEADER_SUB_VI_V33;
-      if (badgeEl) badgeEl.textContent = currentLang === "EN" ? BILL_BADGE_EN_V33 : BILL_BADGE_VI_V33;
-      if (titleEl) titleEl.textContent = currentLang === "EN" ? BILL_TITLE_EN_V33 : BILL_TITLE_VI_V33;
+      if (mainT) mainT.textContent = currentLang === "EN" ? HEADER_TITLE_EN_V34 : HEADER_TITLE_VI_V34;
+      if (subT) subT.textContent = currentLang === "EN" ? HEADER_SUB_EN_V34 : HEADER_SUB_VI_V34;
+      if (badgeEl) badgeEl.textContent = currentLang === "EN" ? BILL_BADGE_EN_V34 : BILL_BADGE_VI_V34;
+      if (titleEl) titleEl.textContent = currentLang === "EN" ? BILL_TITLE_EN_V34 : BILL_TITLE_VI_V34;
       if (openBtn) openBtn.textContent = currentLang === "EN" ? "Draft Order & Send" : "Xem Đơn Tạm & Gửi Zalo";
       if (noteInp) {
         noteInp.placeholder = currentLang === "EN"
           ? "Shipping address & order note (Online orders only)..."
-          : "Địa chỉ nhận ship & Ghi chú đơn hàng (Chỉ áp dụng đặt Online)...";
+          : "Địa chỉ nhận ship & Ghi chú đơn hàng (Chỉ áp dụng cho Online)...";
       }
-      document.title = "HAVANA — Xả 2 Ngày Cuối 26 - 27 (Chỉ Áp Dụng Mua Online)";
+      document.title = "HAVANA — Xả Ngày Cuối (Chỉ Áp Dụng Cho Online)";
+      v34TickCountdown();
     };
 
-    const _preV33UpdateCartBar = updateCartBar;
+    const _preV34UpdateCartBar = updateCartBar;
     updateCartBar = function() {
-      _preV33UpdateCartBar();
+      _preV34UpdateCartBar();
       const sumTitle = document.getElementById("cartSummaryTitle");
       if (sumTitle && currentLang === "VI" && sumTitle.textContent.startsWith("Phiếu Bill:")) {
         sumTitle.textContent = sumTitle.textContent.replace("Phiếu Bill:", "Đơn tạm:");
       }
-      v33ApplyCampaignBranding();
+      v34ApplyCampaignBranding();
     };
 
-    const v33BillNoteText = () => (currentLang === "EN" ? BILL_NOTE_EN_V33 : BILL_NOTE_VI_V33);
+    const v34BillNoteText = () => (currentLang === "EN" ? BILL_NOTE_EN_V34 : BILL_NOTE_VI_V34);
 
-    const _preV33RenderBillModal = renderBillModal;
+    const _preV34RenderBillModal = renderBillModal;
     renderBillModal = function() {
-      _preV33RenderBillModal();
-      v33ApplyCampaignBranding();
+      _preV34RenderBillModal();
+      v34ApplyCampaignBranding();
       const sumEl = document.getElementById("billSummaryBox");
       if (sumEl) {
         let noteDiv = sumEl.querySelector(".bill-stock-disclaimer");
@@ -122,22 +245,19 @@ V33_INDEX_JS_ADDON = r'''/* === v33: HEADER "XA 2 NGAY CUOI 26 - 27 (CHI AP DUNG
           noteDiv.style.cssText = "margin-top:8px;padding:9px 12px;border-radius:11px;background:#fffbeb;border:1px dashed #f59e0b;color:#92400e;font-size:12.5px;line-height:1.45;font-weight:600;";
           sumEl.appendChild(noteDiv);
         }
-        noteDiv.textContent = v33BillNoteText();
+        noteDiv.textContent = v34BillNoteText();
       }
     };
 
-    const _preV33BuildBillText = buildFormattedBillText;
+    const _preV34BuildBillText = buildFormattedBillText;
     buildFormattedBillText = function() {
-      let baseTxt = _preV33BuildBillText()
-        .replace("🧾 PHIẾU ĐẶT HÀNG HAVANA — BLACK FRIDAY", "🧾 PHIẾU LÊN ĐƠN TẠM — XẢ 2 NGÀY CUỐI 26 - 27 (CHỈ MUA ONLINE)")
-        .replace("🧾 PHIẾU LÊN ĐƠN HAVANA — BLACK FRIDAY", "🧾 PHIẾU LÊN ĐƠN TẠM — XẢ 2 NGÀY CUỐI 26 - 27 (CHỈ MUA ONLINE)")
-        .replace("🧾 PHIẾU LÊN ĐƠN TẠM — HAVANA BLACK FRIDAY", "🧾 PHIẾU LÊN ĐƠN TẠM — XẢ 2 NGÀY CUỐI 26 - 27 (CHỈ MUA ONLINE)");
-      if (baseTxt.includes("26 - 27") || baseTxt.includes("Online orders only")) return baseTxt;
+      let baseTxt = _preV34BuildBillText()
+        .replace(/🧾 PHIẾU [^\n]+/, "🧾 PHIẾU LÊN ĐƠN TẠM — XẢ NGÀY CUỐI (CHỈ ÁP DỤNG CHO ONLINE)");
       baseTxt = baseTxt.replace(/\n--------------------------\n📌 [^\n]+$/, "");
-      return baseTxt + "\n--------------------------\n" + v33BillNoteText();
+      return baseTxt + "\n--------------------------\n" + v34BillNoteText();
     };
 
-    const v33RoundRect = (ctx, x, y, w, h, radii) => {
+    const v34RoundRect = (ctx, x, y, w, h, radii) => {
       ctx.beginPath();
       if (typeof ctx.roundRect === "function") ctx.roundRect(x, y, w, h, radii);
       else {
@@ -158,8 +278,8 @@ V33_INDEX_JS_ADDON = r'''/* === v33: HEADER "XA 2 NGAY CUOI 26 - 27 (CHI AP DUNG
 
       const W = 760, rowH = 62, fontStack = "'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
       const rawNote = currentLang === "EN"
-        ? "* Note: Final 2-day clearance (26-27) is valid for Online orders only. Limited stock may slightly differ from actual inventory."
-        : "* Lưu ý: Xả 2 ngày cuối (26 - 27) chỉ áp dụng mua Online. Hàng sale số lượng ít nên có thể lệch so với tồn thực tế, mong quý khách thông cảm ạ!";
+        ? "* Note: Final day clearance is valid for Online orders only. Limited stock may slightly differ from actual inventory."
+        : "* Lưu ý: Chương trình xả ngày cuối chỉ áp dụng cho Online. Hàng sale số lượng ít nên có thể lệch so với tồn thực tế, mong quý khách thông cảm ạ!";
 
       const tmpCtx = document.createElement("canvas").getContext("2d");
       const noteFont = `600 13.5px ${fontStack}`;
@@ -181,14 +301,14 @@ V33_INDEX_JS_ADDON = r'''/* === v33: HEADER "XA 2 NGAY CUOI 26 - 27 (CHI AP DUNG
 
       ctx.fillStyle = "#f2f9f8"; ctx.fillRect(0, 0, W, H);
       ctx.fillStyle = "#ffffff"; ctx.strokeStyle = "#91d2ce"; ctx.lineWidth = 3;
-      v33RoundRect(ctx, 24, 24, W - 48, H - 48, 22); ctx.fill(); ctx.stroke();
+      v34RoundRect(ctx, 24, 24, W - 48, H - 48, 22); ctx.fill(); ctx.stroke();
 
       ctx.fillStyle = "#165954";
-      v33RoundRect(ctx, 24, 24, W - 48, 86, [22, 22, 0, 0]); ctx.fill();
+      v34RoundRect(ctx, 24, 24, W - 48, 86, [22, 22, 0, 0]); ctx.fill();
       ctx.fillStyle = "#ffffff"; ctx.font = `bold 24px ${fontStack}`;
       ctx.fillText("HAVANA — PHIẾU LÊN ĐƠN TẠM", 52, 65);
       ctx.fillStyle = "#bbf7d0"; ctx.font = `600 14px ${fontStack}`;
-      ctx.fillText("Thời gian: " + nowStr + " • Xả 2 ngày cuối 26 - 27 (Chỉ mua Online)", 52, 92);
+      ctx.fillText("Thời gian: " + nowStr + " • Xả ngày cuối (Chỉ áp dụng cho Online)", 52, 92);
 
       let y = 142;
       ctx.fillStyle = "#11302e"; ctx.font = `bold 15px ${fontStack}`;
@@ -225,7 +345,7 @@ V33_INDEX_JS_ADDON = r'''/* === v33: HEADER "XA 2 NGAY CUOI 26 - 27 (CHI AP DUNG
 
       const noteY = y + 18;
       ctx.fillStyle = "#fffbeb"; ctx.strokeStyle = "#f59e0b"; ctx.lineWidth = 1.2;
-      v33RoundRect(ctx, 52, noteY, W - 104, noteBoxH, 11); ctx.fill(); ctx.stroke();
+      v34RoundRect(ctx, 52, noteY, W - 104, noteBoxH, 11); ctx.fill(); ctx.stroke();
       ctx.fillStyle = "#92400e"; ctx.font = noteFont;
       noteLines.forEach((ln, idx) => ctx.fillText(ln, 66, noteY + 22 + idx * 20));
 
@@ -236,18 +356,18 @@ V33_INDEX_JS_ADDON = r'''/* === v33: HEADER "XA 2 NGAY CUOI 26 - 27 (CHI AP DUNG
       showToast("🖼️ Đã tải ảnh Phiếu Lên Đơn Tạm nét cao về máy!");
     };
 
-    const v33ApplyPrices = (rm) => {
+    const v34ApplyPrices = (rm) => {
       if (!rm || typeof rm !== "object") return;
       const fx = { AO1010: { origPrice: 194000, salePrice: 79000, discountPct: 59 }, AO726: { origPrice: 225000, salePrice: 39000, discountPct: 83 }, AO1016: { origPrice: 214000, salePrice: 79000, discountPct: 63 } };
       Object.keys(fx).forEach((k) => { if (rm[k]) Object.assign(rm[k], fx[k]); });
     };
 
-    const v33ForceSapoCheck = (code) => FORCE_SAPO_V33.has(code) && !(typeof sessionFreshUploadedSkus !== "undefined" && sessionFreshUploadedSkus && sessionFreshUploadedSkus.has(code));
+    const v34ForceSapoCheck = (code) => FORCE_SAPO_V34.has(code) && !(typeof sessionFreshUploadedSkus !== "undefined" && sessionFreshUploadedSkus && sessionFreshUploadedSkus.has(code));
 
-    const v33CleanItemMedia = (p) => {
+    const v34CleanItemMedia = (p) => {
       if (!p) return;
       const code = normalizeBaseCode(String(p.sku || "").split("-")[0]);
-      if (!v33ForceSapoCheck(code)) return;
+      if (!v34ForceSapoCheck(code)) return;
       if (typeof repoLiveMediaBySku === "object" && repoLiveMediaBySku) delete repoLiveMediaBySku[code];
       const s533 = (code === "SAT532" && typeof getSat533ImageSet === "function") ? getSat533ImageSet() : new Set();
       const urls = [];
@@ -258,20 +378,20 @@ V33_INDEX_JS_ADDON = r'''/* === v33: HEADER "XA 2 NGAY CUOI 26 - 27 (CHI AP DUNG
       p.sapoImages = urls; p.hasCustomMedia = false; p.video = ""; p.sizeChart = ""; p.images = [...urls]; p.image = urls[0] || "";
     };
 
-    const _preV33Strip = stripSapoImagesFromProducts;
-    stripSapoImagesFromProducts = function(list) { _preV33Strip(list); if (Array.isArray(list)) list.forEach(v33CleanItemMedia); };
+    const _preV34Strip = stripSapoImagesFromProducts;
+    stripSapoImagesFromProducts = function(list) { _preV34Strip(list); if (Array.isArray(list)) list.forEach(v34CleanItemMedia); };
 
-    const _preV33Slides = getProductSlides;
+    const _preV34Slides = getProductSlides;
     getProductSlides = function(p) {
       const code = normalizeBaseCode(String(p?.sku || "").split("-")[0]);
-      if (v33ForceSapoCheck(code)) {
-        v33CleanItemMedia(p);
+      if (v34ForceSapoCheck(code)) {
+        v34CleanItemMedia(p);
         return (p.sapoImages && p.sapoImages.length) ? p.sapoImages.map((src) => ({ type: "image", src })) : [{ type: "image", src: svgPlaceholder(p.sku, p.name, "#d8f1ef", "#eef9f8") }];
       }
-      return _preV33Slides(p);
+      return _preV34Slides(p);
     };
 
-    const v33FilterVars = (arr) => {
+    const v34FilterVars = (arr) => {
       if (!Array.isArray(arr)) return [];
       const ord = [], mp = {};
       arr.forEach((v) => {
@@ -280,12 +400,12 @@ V33_INDEX_JS_ADDON = r'''/* === v33: HEADER "XA 2 NGAY CUOI 26 - 27 (CHI AP DUNG
         if (!mp[sz]) { ord.push(sz); mp[sz] = {}; }
         Object.entries(v.stocks || {}).forEach(([w, q]) => { mp[sz][w] = (mp[sz][w] || 0) + Math.max(0, Number(q) || 0); });
       });
-      return ord.filter((sz) => Object.values(mp[sz]).reduce((a, b) => a + b, 0) >= MIN_STOCK_V33).map((sz) => ({ size: sz, stocks: mp[sz] }));
+      return ord.filter((sz) => Object.values(mp[sz]).reduce((a, b) => a + b, 0) >= MIN_STOCK_V34).map((sz) => ({ size: sz, stocks: mp[sz] }));
     };
 
-    const v33CalcTot = (p) => (p && Array.isArray(p.variants)) ? p.variants.reduce((s, v) => s + Object.values(v?.stocks || {}).reduce((a, b) => a + Math.max(0, Number(b) || 0), 0), 0) : 0;
+    const v34CalcTot = (p) => (p && Array.isArray(p.variants)) ? p.variants.reduce((s, v) => s + Object.values(v?.stocks || {}).reduce((a, b) => a + Math.max(0, Number(b) || 0), 0), 0) : 0;
 
-    const v33Sanitize = (list) => {
+    const v34Sanitize = (list) => {
       if (!Array.isArray(list)) return [];
       const out = [];
       list.forEach((p) => {
@@ -294,9 +414,9 @@ V33_INDEX_JS_ADDON = r'''/* === v33: HEADER "XA 2 NGAY CUOI 26 - 27 (CHI AP DUNG
         if (!code) return;
         const r = SALE_RULES_MASTER && SALE_RULES_MASTER[code];
         if (r) { if (r.origPrice > 0) p.origPrice = Number(r.origPrice); if (r.salePrice > 0) p.salePrice = Number(r.salePrice); p.discountPct = getProductDiscountPct(p); }
-        v33CleanItemMedia(p);
-        p.variants = v33FilterVars(p.variants);
-        if (p.variants.length > 0 && v33CalcTot(p) >= MIN_STOCK_V33) out.push(p);
+        v34CleanItemMedia(p);
+        p.variants = v34FilterVars(p.variants);
+        if (p.variants.length > 0 && v34CalcTot(p) >= MIN_STOCK_V34) out.push(p);
       });
       return out;
     };
@@ -306,16 +426,16 @@ V33_INDEX_JS_ADDON = r'''/* === v33: HEADER "XA 2 NGAY CUOI 26 - 27 (CHI AP DUNG
       PRODUCTS.forEach((p) => {
         if (!p.variants || !p.variants.length) { delete selectedVariantBySku[p.sku]; return; }
         const cur = p.variants.find((v) => v.size === selectedVariantBySku[p.sku]);
-        if (!cur || getVariantTotal(cur) < MIN_STOCK_V33) selectedVariantBySku[p.sku] = p.variants[0].size;
+        if (!cur || getVariantTotal(cur) < MIN_STOCK_V34) selectedVariantBySku[p.sku] = p.variants[0].size;
       });
     };
 
-    const v33Enforce = () => {
-      v33ApplyPrices(SALE_RULES_MASTER);
-      if (Array.isArray(BASELINE_PRODUCTS)) BASELINE_PRODUCTS = v33Sanitize(BASELINE_PRODUCTS);
-      if (Array.isArray(PRODUCTS)) PRODUCTS = v33Sanitize(PRODUCTS);
+    const v34Enforce = () => {
+      v34ApplyPrices(SALE_RULES_MASTER);
+      if (Array.isArray(BASELINE_PRODUCTS)) BASELINE_PRODUCTS = v34Sanitize(BASELINE_PRODUCTS);
+      if (Array.isArray(PRODUCTS)) PRODUCTS = v34Sanitize(PRODUCTS);
       ensureDefaultSelectedSizes();
-      v33ApplyCampaignBranding();
+      v34ApplyCampaignBranding();
       const stTxt = document.getElementById("onlyInStockText");
       if (stTxt) stTxt.textContent = currentLang === "VI" ? "Tồn ≥ 3" : "Stock ≥ 3";
       if (Array.isArray(cart) && cart.length) {
@@ -325,7 +445,7 @@ V33_INDEX_JS_ADDON = r'''/* === v33: HEADER "XA 2 NGAY CUOI 26 - 27 (CHI AP DUNG
           if (!mp) { adj = true; return false; }
           c.origPrice = mp.origPrice; c.finalPrice = getProductSalePrice(mp); c.discountPct = getProductDiscountPct(mp);
           const mx = getMaxStockForSkuSize(c.sku, c.size);
-          if (mx < MIN_STOCK_V33) { adj = true; return false; }
+          if (mx < MIN_STOCK_V34) { adj = true; return false; }
           if (c.qty > mx) { c.qty = mx; adj = true; }
           return true;
         });
@@ -333,37 +453,37 @@ V33_INDEX_JS_ADDON = r'''/* === v33: HEADER "XA 2 NGAY CUOI 26 - 27 (CHI AP DUNG
       }
     };
 
-    const _preV33Merge = mergeAndApplySaleRules;
+    const _preV34Merge = mergeAndApplySaleRules;
     mergeAndApplySaleRules = function(liveList, rulesObj) {
-      v33ApplyPrices(SALE_RULES_MASTER); v33ApplyPrices(rulesObj);
-      const cleaned = v33Sanitize(Array.isArray(liveList) ? liveList : []);
+      v34ApplyPrices(SALE_RULES_MASTER); v34ApplyPrices(rulesObj);
+      const cleaned = v34Sanitize(Array.isArray(liveList) ? liveList : []);
       const baseR = (rulesObj && Object.keys(rulesObj).length) ? rulesObj : SALE_RULES_MASTER;
       const scoped = {};
       if (baseR) {
         const setK = new Set(cleaned.map((x) => normalizeBaseCode(String(x?.sku || "").split("-")[0])));
         Object.keys(baseR).forEach((k) => { if (setK.has(k)) scoped[k] = baseR[k]; });
       }
-      return v33Sanitize(_preV33Merge(cleaned, scoped));
+      return v34Sanitize(_preV34Merge(cleaned, scoped));
     };
 
-    const _preV33Render = renderCatalog;
-    renderCatalog = function() { v33Enforce(); _preV33Render(); };
+    const _preV34Render = renderCatalog;
+    renderCatalog = function() { v34Enforce(); _preV34Render(); };
 
-    const _preV33Lang = setLang;
+    const _preV34Lang = setLang;
     setLang = function(l) {
-      _preV33Lang(l);
-      v33Enforce();
+      _preV34Lang(l);
+      v34Enforce();
       if (document.getElementById("billModal")?.classList.contains("open")) renderBillModal();
     };
 
-    const v33StampMins = (s) => {
+    const v34StampMins = (s) => {
       const m = String(s || "").trim().match(/^(\d{1,2}):(\d{2})\s+(\d{1,2})\/(\d{1,2})/);
       return m ? ((((Number(m[4]) * 32 + Number(m[3])) * 24 + Number(m[1])) * 60) + Number(m[2])) : 0;
     };
 
     refreshLiveSapoStock = async function(silent = true) {
-      if (v33SyncBusy) return false;
-      v33SyncBusy = true;
+      if (v34SyncBusy) return false;
+      v34SyncBusy = true;
       const timeEl = document.getElementById("liveSyncTimeText");
       const badgeEl = document.getElementById("liveSyncBadge");
       const dotEl = badgeEl ? badgeEl.querySelector(".live-sync-dot") : null;
@@ -382,8 +502,8 @@ V33_INDEX_JS_ADDON = r'''/* === v33: HEADER "XA 2 NGAY CUOI 26 - 27 (CHI AP DUNG
             if (r.ok) data = await r.json();
           } catch (_) {}
         }
-        if (data && data.sync_source !== "cloudflare_edge_sapo_live" && (!silent || Date.now() - v33LastRelMs > 45000)) {
-          v33LastRelMs = Date.now();
+        if (data && data.sync_source !== "cloudflare_edge_sapo_live" && (!silent || Date.now() - v34LastRelMs > 45000)) {
+          v34LastRelMs = Date.now();
           try {
             const repoSlug = typeof GITHUB_REPO_SLUG !== "undefined" ? GITHUB_REPO_SLUG : "moonchuyensi-cmd/havana-sale";
             const gr = await fetch(`https://api.github.com/repos/${repoSlug}/releases/tags/live-stock?t=${Date.now()}`, { headers: { "Accept": "application/vnd.github+json" }, cache: "no-store" });
@@ -392,7 +512,7 @@ V33_INDEX_JS_ADDON = r'''/* === v33: HEADER "XA 2 NGAY CUOI 26 - 27 (CHI AP DUNG
               const feed = rel && rel.body ? JSON.parse(rel.body) : null;
               if (feed && feed.items && Array.isArray(feed.warehouses)) {
                 const fEp = Number(feed.synced_epoch || 0), bEp = Number(data.synced_epoch || 0);
-                const isNewer = (fEp > 0 && bEp > 0) ? (fEp >= bEp) : (v33StampMins(feed.synced_at) >= v33StampMins(data.synced_at));
+                const isNewer = (fEp > 0 && bEp > 0) ? (fEp >= bEp) : (v34StampMins(feed.synced_at) >= v34StampMins(data.synced_at));
                 if (isNewer) {
                   const whIds = feed.warehouses.map((w) => w.id);
                   data.warehouses = feed.warehouses;
@@ -417,12 +537,12 @@ V33_INDEX_JS_ADDON = r'''/* === v33: HEADER "XA 2 NGAY CUOI 26 - 27 (CHI AP DUNG
           if (Array.isArray(data.warehouses) && data.warehouses.length) WAREHOUSE_CONFIG = data.warehouses;
           try {
             const sr = await fetch("./sale_rules.json?t=" + Date.now(), { cache: "no-store" });
-            if (sr.ok) { const rr = await sr.json(); if (rr && Object.keys(rr).length >= 10) { v33ApplyPrices(rr); SALE_RULES_MASTER = rr; } }
+            if (sr.ok) { const rr = await sr.json(); if (rr && Object.keys(rr).length >= 10) { v34ApplyPrices(rr); SALE_RULES_MASTER = rr; } }
           } catch (_) {}
-          const cleanLive = v33Sanitize(data.products);
+          const cleanLive = v34Sanitize(data.products);
           stripSapoImagesFromProducts(cleanLive);
           PRODUCTS = mergeAndApplySaleRules(cleanLive, SALE_RULES_MASTER);
-          v33Enforce();
+          v34Enforce();
           const exp = Boolean(data.sapo_cookie_expired);
           if (timeEl) {
             timeEl.textContent = exp
@@ -438,14 +558,15 @@ V33_INDEX_JS_ADDON = r'''/* === v33: HEADER "XA 2 NGAY CUOI 26 - 27 (CHI AP DUNG
           if (document.getElementById("billModal")?.classList.contains("open")) { if (!cart.length) closeBillModal(); else renderBillModal(); }
           return true;
         }
-      } catch (_) {} finally { v33SyncBusy = false; }
+      } catch (_) {} finally { v34SyncBusy = false; }
       return false;
     };
 
-    v33Enforce();
+    v34Enforce();
     renderCatalog();
     updateCartBar();
-    setTimeout(v33ApplyCampaignBranding, 10);
+    setTimeout(v34ApplyCampaignBranding, 10);
+    setInterval(v34TickCountdown, 1000);
     setInterval(() => { if (document.visibilityState === "visible") refreshLiveSapoStock(true); }, 45000);
     window.addEventListener("focus", () => refreshLiveSapoStock(true), { passive: true });
     refreshLiveSapoStock(true);'''
@@ -590,7 +711,7 @@ def purge_wrong_custom_media_once():
     return pending, removed
 
 
-def upgrade_repo_files_v33() -> bool:
+def upgrade_repo_files_v34() -> bool:
     changed = False
     if os.path.exists("index.html"):
         with open("index.html", "r", encoding="utf-8") as f:
@@ -598,25 +719,25 @@ def upgrade_repo_files_v33() -> bool:
         html = orig
         html = re.sub(
             r'(<title>)[^<]*(</title>)',
-            r'\1HAVANA — Xả 2 Ngày Cuối 26 - 27 (Chỉ Áp Dụng Mua Online)\2',
+            r'\1HAVANA — Xả Ngày Cuối (Chỉ Áp Dụng Cho Online)\2',
             html,
             count=1
         )
         html = re.sub(
             r'(<div class="brand-title" id="mainBrandTitle">)[^<]*(</div>)',
-            r'\1XẢ 2 NGÀY CUỐI 26 - 27\2',
+            r'\1XẢ NGÀY CUỐI\2',
             html,
             count=1
         )
         html = re.sub(
             r'(<span id="subBrandText">)[^<]*(</span>)',
-            r'\1(Chỉ áp dụng mua Online)\2',
+            r'\1(Chỉ áp dụng cho Online)\2',
             html,
             count=1
         )
         html = re.sub(
             r'(<span class="bill-head-badge">)[^<]*(</span>)',
-            r'\1XẢ 2 NGÀY CUỐI 26 - 27 • CHỈ ÁP DỤNG MUA ONLINE\2',
+            r'\1XẢ NGÀY CUỐI • CHỈ ÁP DỤNG CHO ONLINE\2',
             html,
             count=1
         )
@@ -628,7 +749,7 @@ def upgrade_repo_files_v33() -> bool:
         )
         html = re.sub(
             r'(<input type="text" class="bill-input" id="custNoteInput" placeholder=")[^"]*(")',
-            r'\1Địa chỉ nhận ship &amp; Ghi chú đơn hàng (Chỉ áp dụng đặt Online)...\2',
+            r'\1Địa chỉ nhận ship &amp; Ghi chú đơn hàng (Chỉ áp dụng cho Online)...\2',
             html,
             count=1
         )
@@ -636,10 +757,10 @@ def upgrade_repo_files_v33() -> bool:
         html = html.replace('🖼️ Tải ảnh Bill gửi Zalo', '🖼️ Tải ảnh Đơn tạm gửi Zalo')
         end_m = html.rfind("/* [BLOCK:APP_LOGIC_END] */")
         if end_m != -1:
-            cuts = [html.find(k, 0, end_m) for k in ("/* === v22:", "/* === v23:", "/* === v25:", "/* === v26:", "/* === v27:", "/* === v28:", "/* === v29:", "/* === v30:", "/* === v31:", "/* === v32:", "/* === v33:")]
+            cuts = [html.find(k, 0, end_m) for k in ("/* === v22:", "/* === v23:", "/* === v25:", "/* === v26:", "/* === v27:", "/* === v28:", "/* === v29:", "/* === v30:", "/* === v31:", "/* === v32:", "/* === v33:", "/* === v34:")]
             valid = [p for p in cuts if p != -1]
             cut_at = min(valid) if valid else end_m
-            html = html[:cut_at].rstrip() + "\n\n    " + V33_INDEX_JS_ADDON.strip() + "\n    /* [BLOCK:APP_LOGIC_END] */" + html[end_m + len("/* [BLOCK:APP_LOGIC_END] */"):]
+            html = html[:cut_at].rstrip() + "\n\n    " + V34_INDEX_JS_ADDON.strip() + "\n    /* [BLOCK:APP_LOGIC_END] */" + html[end_m + len("/* [BLOCK:APP_LOGIC_END] */"):]
         html = re.sub(r'(<span id="onlyInStockText">)(?:Còn tồn|In Stock)(</span>)', r'\1Tồn ≥ 3\2', html, count=1)
         if html != orig:
             with open("index.html", "w", encoding="utf-8") as f:
@@ -707,7 +828,7 @@ def load_black_friday_rules() -> dict:
                     sale_rules[c] = {"origPrice": op, "salePrice": sp, "discountPct": round((1 - sp / op) * 100) if op > sp else 30, "subType": norm_nfc(r[4]) if len(r) > 4 and r[4] else PK_KNOWN_SUBTYPES.get(c, "")}
     for ex in EXCLUDED_SKUS:
         sale_rules.pop(ex, None)
-    for code, (op, sp, dp, _) in PRICE_PATCH_V33.items():
+    for code, (op, sp, dp, _) in PRICE_PATCH_V34.items():
         if code in sale_rules:
             sale_rules[code].update({"origPrice": op, "salePrice": sp, "discountPct": dp})
     if sale_rules:
@@ -816,8 +937,8 @@ def publish_live_release(wh_list: list, prods: list, synced_at: str, epoch: int,
         if c in FORCE_RESET_TO_SAPO_SKUS and p.get("sapoImages"):
             ent["si"] = list(p["sapoImages"])[:5]
         items[c] = ent
-    body = json.dumps({"v": 33, "full": 1, "cookie_expired": bool(expired), "synced_at": synced_at, "synced_epoch": int(epoch or 0), "warehouses": wh_list, "items": items}, ensure_ascii=False, separators=(",", ":"))
-    hdrs = {"Authorization": f"Bearer {gh_token}", "Accept": "application/vnd.github+json", "Content-Type": "application/json", "User-Agent": "havana-v33"}
+    body = json.dumps({"v": 34, "full": 1, "cookie_expired": bool(expired), "synced_at": synced_at, "synced_epoch": int(epoch or 0), "warehouses": wh_list, "items": items}, ensure_ascii=False, separators=(",", ":"))
+    hdrs = {"Authorization": f"Bearer {gh_token}", "Accept": "application/vnd.github+json", "Content-Type": "application/json", "User-Agent": "havana-v34"}
     rel_id = None
     try:
         with urllib.request.urlopen(urllib.request.Request(f"https://api.github.com/repos/{repo}/releases/tags/live-stock", headers=hdrs), timeout=15) as r:
@@ -836,10 +957,10 @@ def publish_live_release(wh_list: list, prods: list, synced_at: str, epoch: int,
 
 def main():
     purged_now, removed_files = purge_wrong_custom_media_once()
-    upgraded_html = upgrade_repo_files_v33()
+    upgraded_html = upgrade_repo_files_v34()
     sale_rules = load_black_friday_rules()
 
-    old_wh, old_prods, old_stamp, old_epoch = [], [], "08:12 26/11", 0
+    old_wh, old_prods, old_stamp, old_epoch = [], [], "18:04 26/11", 0
     if os.path.exists("sapo_5_kho.json"):
         try:
             with open("sapo_5_kho.json", "r", encoding="utf-8") as f:
@@ -907,7 +1028,7 @@ def main():
             write_outputs(wh_out, old_prods, old_stamp, sale_rules, old_epoch, expired=True)
         else:
             with open(".skip_git_commit", "w", encoding="utf-8") as sf: sf.write(old_stamp)
-        print("[!] Cookie Sapo dang het han — da cap nhat giao dien Xa 2 Ngay Cuoi v33 thanh cong!")
+        print("[!] Cookie Sapo dang het han — da cap nhat Xa Ngay Cuoi + Dong ho dem nguoc v34 thanh cong!")
         return
 
     grouped = {}
@@ -959,9 +1080,9 @@ def main():
     publish_live_release(wh_sorted, prods_all, now_st, now_ep, expired=False)
     if os.path.exists(".skip_git_commit"): os.remove(".skip_git_commit")
     write_outputs(wh_sorted, prods_all, now_st, sale_rules, now_ep, expired=False)
-    print(f"[+] Hoan tat Auto-Sync v33 LIVE ({now_st})!")
+    print(f"[+] Hoan tat Auto-Sync v34 LIVE ({now_st})!")
 
 
 if __name__ == "__main__":
     main()
-# === HET FILE V33 - DA COPY DU 100% ===
+# === HET FILE V34 - DA COPY DU 100% ===
