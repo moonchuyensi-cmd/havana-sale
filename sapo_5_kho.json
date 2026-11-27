@@ -1,8 +1,8 @@
 {
   "min_stock_rule": 3,
   "min_variant_stock_rule": 3,
-  "synced_at": "11:13 27/11",
-  "synced_epoch": 1795752812,
+  "synced_at": "11:26 27/11",
+  "synced_epoch": 1795753593,
   "sapo_cookie_expired": false,
   "warehouses": [
     {
@@ -7656,7 +7656,7 @@
         {
           "size": "Xám",
           "stocks": {
-            "wh_havana": 99,
+            "wh_havana": 98,
             "wh_pct": 5,
             "wh_auco": 6,
             "wh_leduan": 6,
