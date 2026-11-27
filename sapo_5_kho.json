@@ -1,8 +1,8 @@
 {
   "min_stock_rule": 3,
   "min_variant_stock_rule": 3,
-  "synced_at": "11:26 27/11",
-  "synced_epoch": 1795753593,
+  "synced_at": "11:30 27/11",
+  "synced_epoch": 1795753850,
   "sapo_cookie_expired": false,
   "warehouses": [
     {
@@ -37,6 +37,80 @@
     }
   ],
   "products": [
+    {
+      "sku": "ATH977",
+      "name": "Áo thun cổ chéo tay dài #3078 #6682.12 (7) ATH977",
+      "subType": "",
+      "category": "AO_THUN",
+      "origPrice": 129000,
+      "salePrice": 129000,
+      "discountPct": 30,
+      "image": "https://sapo.dktcdn.net/100/618/480/variants/11f3df61-a7a1-4b4a-9d2d-d9b0f1261b08.jpg",
+      "images": [
+        "https://sapo.dktcdn.net/100/618/480/variants/11f3df61-a7a1-4b4a-9d2d-d9b0f1261b08.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/910df4bf-a7ff-4610-832b-f2139810de4a.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/d93201f4-f41f-47d0-99d9-8d98b1fbf2a7.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/30535523-753b-424e-ba26-a5cd0edf0806.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/5ae3060c-b220-41a0-b205-6d148f9c132c.jpg"
+      ],
+      "sapoImages": [
+        "https://sapo.dktcdn.net/100/618/480/variants/11f3df61-a7a1-4b4a-9d2d-d9b0f1261b08.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/910df4bf-a7ff-4610-832b-f2139810de4a.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/d93201f4-f41f-47d0-99d9-8d98b1fbf2a7.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/30535523-753b-424e-ba26-a5cd0edf0806.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/5ae3060c-b220-41a0-b205-6d148f9c132c.jpg"
+      ],
+      "video": "",
+      "sizeChart": "",
+      "variants": [
+        {
+          "size": "Trắng",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 1,
+            "wh_auco": 6,
+            "wh_leduan": 5,
+            "wh_online": 2,
+            "wh_790054": 0
+          }
+        },
+        {
+          "size": "Hồng",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 2,
+            "wh_auco": 5,
+            "wh_leduan": 6,
+            "wh_online": 0,
+            "wh_790054": 0
+          }
+        },
+        {
+          "size": "Xanh Dương",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 3,
+            "wh_auco": 7,
+            "wh_leduan": 4,
+            "wh_online": 3,
+            "wh_790054": 0
+          }
+        },
+        {
+          "size": "Nâu",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 0,
+            "wh_auco": 1,
+            "wh_leduan": 0,
+            "wh_online": 3,
+            "wh_790054": 0
+          }
+        }
+      ],
+      "excel_override": true,
+      "hasCustomMedia": false
+    },
     {
       "sku": "CV589",
       "name": "Chân váy lưới bồng #8881 (3) CV589",
@@ -136,6 +210,69 @@
         }
       ],
       "hasCustomMedia": true
+    },
+    {
+      "sku": "ATH944",
+      "name": "Áo thun tay ngắn kẻ ngang #135 (3) ATH944",
+      "subType": "",
+      "category": "AO_THUN",
+      "origPrice": 944000,
+      "salePrice": 260000,
+      "discountPct": 72,
+      "image": "https://sapo.dktcdn.net/100/618/480/variants/a996d0eb-b9fe-4ae0-933a-ff2a16a9ac4a.jpg",
+      "images": [
+        "https://sapo.dktcdn.net/100/618/480/variants/a996d0eb-b9fe-4ae0-933a-ff2a16a9ac4a.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/a586425c-359a-48b4-901c-db69718154ff.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/73d78784-cb11-4653-b899-d2768ccae426.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/3528eb2e-6602-4417-bcf8-71c04ee7c91a.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/8056c9e6-541f-4a5c-8006-b1fd28a8d705.jpg"
+      ],
+      "sapoImages": [
+        "https://sapo.dktcdn.net/100/618/480/variants/a996d0eb-b9fe-4ae0-933a-ff2a16a9ac4a.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/a586425c-359a-48b4-901c-db69718154ff.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/73d78784-cb11-4653-b899-d2768ccae426.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/3528eb2e-6602-4417-bcf8-71c04ee7c91a.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/8056c9e6-541f-4a5c-8006-b1fd28a8d705.jpg"
+      ],
+      "video": "",
+      "sizeChart": "",
+      "variants": [
+        {
+          "size": "Be",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 0,
+            "wh_auco": 0,
+            "wh_leduan": 0,
+            "wh_online": 3,
+            "wh_790054": 0
+          }
+        },
+        {
+          "size": "Nâu",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 0,
+            "wh_auco": 0,
+            "wh_leduan": 0,
+            "wh_online": 3,
+            "wh_790054": 0
+          }
+        },
+        {
+          "size": "Xanh Mint",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 0,
+            "wh_auco": 0,
+            "wh_leduan": 3,
+            "wh_online": 0,
+            "wh_790054": 0
+          }
+        }
+      ],
+      "excel_override": true,
+      "hasCustomMedia": false
     },
     {
       "sku": "QTA39",
@@ -520,6 +657,7 @@
           }
         }
       ],
+      "excel_override": true,
       "hasCustomMedia": true
     },
     {
@@ -1254,6 +1392,7 @@
           }
         }
       ],
+      "excel_override": true,
       "hasCustomMedia": true
     },
     {
@@ -1452,6 +1591,17 @@
       "sizeChart": "",
       "variants": [
         {
+          "size": "Đen",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 0,
+            "wh_auco": 0,
+            "wh_leduan": 0,
+            "wh_online": 3,
+            "wh_790054": 0
+          }
+        },
+        {
           "size": "Hồng",
           "stocks": {
             "wh_havana": 0,
@@ -1496,7 +1646,60 @@
           }
         }
       ],
+      "excel_override": true,
       "hasCustomMedia": true
+    },
+    {
+      "sku": "ATH937",
+      "name": "Áo thun in \"Born to be …\" #392793 (17) ATH937",
+      "subType": "",
+      "category": "AO_THUN",
+      "origPrice": 937000,
+      "salePrice": 149000,
+      "discountPct": 84,
+      "image": "https://sapo.dktcdn.net/100/618/480/variants/e50683be-e03a-4d2f-bdc4-89ca07f1953a.jpg",
+      "images": [
+        "https://sapo.dktcdn.net/100/618/480/variants/e50683be-e03a-4d2f-bdc4-89ca07f1953a.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/47b0e81e-8fe5-4d9b-ba01-aafdce3de6e6.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/2ba074da-3ccf-448e-9c99-130f592c3ade.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/1fd2c62f-81f9-45a3-9cee-13bf248386f9.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/03fd9ef3-0785-4520-958a-82bcd98c0aa6.jpg"
+      ],
+      "sapoImages": [
+        "https://sapo.dktcdn.net/100/618/480/variants/e50683be-e03a-4d2f-bdc4-89ca07f1953a.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/47b0e81e-8fe5-4d9b-ba01-aafdce3de6e6.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/2ba074da-3ccf-448e-9c99-130f592c3ade.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/1fd2c62f-81f9-45a3-9cee-13bf248386f9.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/03fd9ef3-0785-4520-958a-82bcd98c0aa6.jpg"
+      ],
+      "video": "",
+      "sizeChart": "",
+      "variants": [
+        {
+          "size": "Hồng",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 0,
+            "wh_auco": 0,
+            "wh_leduan": 0,
+            "wh_online": 3,
+            "wh_790054": 0
+          }
+        },
+        {
+          "size": "Vàng",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 0,
+            "wh_auco": 0,
+            "wh_leduan": 0,
+            "wh_online": 3,
+            "wh_790054": 0
+          }
+        }
+      ],
+      "excel_override": true,
+      "hasCustomMedia": false
     },
     {
       "sku": "AK196",
@@ -1579,6 +1782,67 @@
       "hasCustomMedia": true
     },
     {
+      "sku": "ATH935",
+      "name": "Áo thun \"Water color…\" #392743 (17) ATH935",
+      "subType": "",
+      "category": "AO_THUN",
+      "origPrice": 935000,
+      "salePrice": 169000,
+      "discountPct": 82,
+      "image": "https://sapo.dktcdn.net/100/618/480/variants/aabcd543-0f9a-44a4-9a23-2c18862ee43b.jpg",
+      "images": [
+        "https://sapo.dktcdn.net/100/618/480/variants/aabcd543-0f9a-44a4-9a23-2c18862ee43b.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/eb059515-d06b-4634-8cad-8bc303598e31.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/abf699b1-7ca0-42c7-883b-cb701906b848.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/3c776597-cd73-4475-a4cd-755ea1a84b7d.jpg"
+      ],
+      "sapoImages": [
+        "https://sapo.dktcdn.net/100/618/480/variants/aabcd543-0f9a-44a4-9a23-2c18862ee43b.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/eb059515-d06b-4634-8cad-8bc303598e31.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/abf699b1-7ca0-42c7-883b-cb701906b848.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/3c776597-cd73-4475-a4cd-755ea1a84b7d.jpg"
+      ],
+      "video": "",
+      "sizeChart": "",
+      "variants": [
+        {
+          "size": "Xanh Dương",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 0,
+            "wh_auco": 0,
+            "wh_leduan": 0,
+            "wh_online": 3,
+            "wh_790054": 0
+          }
+        },
+        {
+          "size": "Xám",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 0,
+            "wh_auco": 0,
+            "wh_leduan": 0,
+            "wh_online": 3,
+            "wh_790054": 0
+          }
+        },
+        {
+          "size": "Vàng",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 0,
+            "wh_auco": 0,
+            "wh_leduan": 0,
+            "wh_online": 3,
+            "wh_790054": 0
+          }
+        }
+      ],
+      "excel_override": true,
+      "hasCustomMedia": false
+    },
+    {
       "sku": "PK1041",
       "name": "Giày Mary Jane da lộn phối dây",
       "subType": "",
@@ -1657,6 +1921,7 @@
           }
         }
       ],
+      "excel_override": true,
       "hasCustomMedia": false
     },
     {
@@ -1717,6 +1982,7 @@
           }
         }
       ],
+      "excel_override": true,
       "hasCustomMedia": false
     },
     {
@@ -2190,7 +2456,7 @@
             "wh_pct": 4,
             "wh_auco": 9,
             "wh_leduan": 9,
-            "wh_online": 1,
+            "wh_online": 2,
             "wh_790054": 0
           }
         },
@@ -2250,6 +2516,7 @@
           }
         }
       ],
+      "excel_override": true,
       "hasCustomMedia": true
     },
     {
@@ -4010,6 +4277,7 @@
           }
         }
       ],
+      "excel_override": true,
       "hasCustomMedia": true
     },
     {
@@ -4826,13 +5094,24 @@
       "sizeChart": "",
       "variants": [
         {
+          "size": "Đen",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 0,
+            "wh_auco": 0,
+            "wh_leduan": 0,
+            "wh_online": 3,
+            "wh_790054": 0
+          }
+        },
+        {
           "size": "Trắng",
           "stocks": {
             "wh_havana": 0,
             "wh_pct": 1,
             "wh_auco": 2,
             "wh_leduan": 0,
-            "wh_online": 0,
+            "wh_online": 1,
             "wh_790054": 0
           }
         },
@@ -4848,6 +5127,7 @@
           }
         }
       ],
+      "excel_override": true,
       "hasCustomMedia": true
     },
     {
@@ -5592,6 +5872,7 @@
           }
         }
       ],
+      "excel_override": true,
       "hasCustomMedia": true
     },
     {
@@ -5619,17 +5900,29 @@
       "sizeChart": "",
       "variants": [
         {
+          "size": "Vàng",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 0,
+            "wh_auco": 0,
+            "wh_leduan": 1,
+            "wh_online": 7,
+            "wh_790054": 0
+          }
+        },
+        {
           "size": "Tím",
           "stocks": {
             "wh_havana": 0,
             "wh_pct": 0,
             "wh_auco": 10,
             "wh_leduan": 0,
-            "wh_online": 0,
+            "wh_online": 4,
             "wh_790054": 0
           }
         }
       ],
+      "excel_override": true,
       "hasCustomMedia": true
     },
     {

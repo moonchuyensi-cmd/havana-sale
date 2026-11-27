@@ -2566,5 +2566,47 @@
     "salePrice": 99000,
     "discountPct": 66,
     "subType": "Túi xách"
+  },
+  "ATH977": {
+    "origPrice": 129000,
+    "salePrice": 129000,
+    "discountPct": 30,
+    "subType": ""
+  },
+  "ATH926": {
+    "origPrice": 926000,
+    "salePrice": 249000,
+    "discountPct": 73,
+    "subType": ""
+  },
+  "ATH927": {
+    "origPrice": 927000,
+    "salePrice": 249000,
+    "discountPct": 73,
+    "subType": ""
+  },
+  "ATH934": {
+    "origPrice": 934000,
+    "salePrice": 189000,
+    "discountPct": 80,
+    "subType": ""
+  },
+  "ATH935": {
+    "origPrice": 935000,
+    "salePrice": 169000,
+    "discountPct": 82,
+    "subType": ""
+  },
+  "ATH937": {
+    "origPrice": 937000,
+    "salePrice": 149000,
+    "discountPct": 84,
+    "subType": ""
+  },
+  "ATH944": {
+    "origPrice": 944000,
+    "salePrice": 260000,
+    "discountPct": 72,
+    "subType": ""
   }
 }
