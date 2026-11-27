@@ -1,8 +1,8 @@
 {
   "min_stock_rule": 3,
   "min_variant_stock_rule": 3,
-  "synced_at": "09:27 27/11",
-  "synced_epoch": 1795746432,
+  "synced_at": "09:35 27/11",
+  "synced_epoch": 1795746956,
   "sapo_cookie_expired": false,
   "warehouses": [
     {
@@ -1937,7 +1937,7 @@
           "stocks": {
             "wh_havana": 0,
             "wh_pct": 0,
-            "wh_auco": 4,
+            "wh_auco": 3,
             "wh_leduan": 1,
             "wh_online": 0,
             "wh_790054": 0
@@ -1972,7 +1972,7 @@
           "stocks": {
             "wh_havana": 0,
             "wh_pct": 0,
-            "wh_auco": 4,
+            "wh_auco": 3,
             "wh_leduan": 1,
             "wh_online": 0,
             "wh_790054": 0
@@ -3276,7 +3276,7 @@
           "stocks": {
             "wh_havana": 0,
             "wh_pct": 0,
-            "wh_auco": 3,
+            "wh_auco": 2,
             "wh_leduan": 2,
             "wh_online": 0,
             "wh_790054": 0
@@ -7874,7 +7874,7 @@
             "wh_pct": 21,
             "wh_auco": 9,
             "wh_leduan": 16,
-            "wh_online": 1,
+            "wh_online": 0,
             "wh_790054": 0
           }
         },
@@ -8782,17 +8782,6 @@
             "wh_havana": 0,
             "wh_pct": 4,
             "wh_auco": 0,
-            "wh_leduan": 0,
-            "wh_online": 0,
-            "wh_790054": 0
-          }
-        },
-        {
-          "size": "Ghi - L",
-          "stocks": {
-            "wh_havana": 0,
-            "wh_pct": 0,
-            "wh_auco": 3,
             "wh_leduan": 0,
             "wh_online": 0,
             "wh_790054": 0
