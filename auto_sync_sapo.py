@@ -3,7 +3,7 @@ import urllib.error, urllib.parse, urllib.request
 import zipfile as zf_mod
 
 # ==============================================================================
-# AUTO_SYNC_SAPO.PY (v39 - KHUNG GIA ATH GOM GIA GOC & GIA DA GIAM NHU BF)
+# AUTO_SYNC_SAPO.PY (v40 - CHUAN GIA LE & GIA SAU GIAM ATH + GIA THEO MAU 10%/20%)
 # Tach ma trung khoi Black Friday + Hien thi -%, Gia da giam, Gia goc & Tiet kiem
 # ==============================================================================
 
@@ -146,6 +146,7 @@ export async function onRequestGet(context) {
         const op = Math.max(Number(r.origPrice || 0), Number(p.origPrice || 0), sp);
         if (sp > 0) p.salePrice = sp;
         if (op > 0) p.origPrice = op;
+        if (r.varPrices) p.varPrices = r.varPrices;
         p.discountPct = (p.origPrice > p.salePrice && p.salePrice > 0)
           ? Math.max(1, Math.round((1 - p.salePrice / p.origPrice) * 100))
           : 0;
@@ -363,19 +364,79 @@ V39_INDEX_JS_ADDON = r'''/* === v39: ATH FIRST + FULL BLACK-FRIDAY STYLE PRICE F
       v39TickCountdown();
     };
 
-    // Card UI: Hien thi DAY DU Gia da giam + Gia goc gach ngang + Huy hieu -% + Tiet kiem y het Black Friday!
-    // Chi an phan gach ngang neu ma nao thuc su co origPrice <= salePrice de tranh loi Tiet kiem 0d.
+    // Card UI: Hien thi DAY DU Gia da giam + Gia goc gach ngang + Huy hieu -% + Tiet kiem (ho tro gia theo mau 10%/20%)
+    const v39NormVarKey = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[đĐ]/g, "d").toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim();
+    const v39GetVarPricePair = (p, rawSize) => {
+      if (!p) return null;
+      const code = normalizeBaseCode(String(p.sku || "").split("-")[0]);
+      const r = SALE_RULES_MASTER && SALE_RULES_MASTER[code];
+      const vp = (r && r.varPrices) || p.varPrices;
+      if (!vp) return null;
+      const szKey = v39NormVarKey(rawSize !== undefined ? rawSize : selectedVariantBySku[p.sku]);
+      if (!szKey) return null;
+      if (vp[szKey]) return vp[szKey];
+      const padded = " " + szKey + " ";
+      const sorted = Object.entries(vp).sort((a, b) => b[0].length - a[0].length);
+      for (const [k, pair] of sorted) {
+        if (padded.includes(" " + k + " ")) return pair;
+      }
+      return null;
+    };
+
+    const _preV39SalePrice = getProductSalePrice;
+    getProductSalePrice = function(p) {
+      const pair = v39GetVarPricePair(p);
+      return (pair && pair[1] > 0) ? Number(pair[1]) : _preV39SalePrice(p);
+    };
+    const _preV39DiscPct = getProductDiscountPct;
+    getProductDiscountPct = function(p) {
+      const pair = v39GetVarPricePair(p);
+      return (pair && pair[0] > pair[1] && pair[1] > 0) ? Math.max(1, Math.round((1 - pair[1] / pair[0]) * 100)) : _preV39DiscPct(p);
+    };
+
     const _preV39BuildCard = buildCardInnerHtml;
     buildCardInnerHtml = function(p, idxInList) {
-      let html = _preV39BuildCard(p, idxInList);
-      const finalPrice = getProductSalePrice(p);
-      if (!(Number(p.origPrice) > finalPrice)) {
+      const pair = v39GetVarPricePair(p);
+      const pView = (pair && pair[1] > 0)
+        ? Object.assign({}, p, {
+            origPrice: Math.max(pair[0], pair[1]),
+            salePrice: pair[1],
+            discountPct: pair[0] > pair[1] ? Math.max(1, Math.round((1 - pair[1] / pair[0]) * 100)) : 0
+          })
+        : p;
+      let html = _preV39BuildCard(pView, idxInList);
+      const finalPrice = getProductSalePrice(pView);
+      if (!(Number(pView.origPrice) > finalPrice)) {
         html = html.replace(/<span class="discount-badge">[^<]*<\/span>/, "");
         html = html.replace(/<span class="price-orig">[^<]*<\/span>/, "");
         html = html.replace(/<span class="save-tag">[^<]*<\/span>/, "");
       }
       return html;
     };
+
+    document.addEventListener("click", (ev) => {
+      const btn = ev.target && ev.target.closest ? ev.target.closest("#productGrid button") : null;
+      if (!btn) return;
+      const card = btn.closest("[data-sku]") || btn.closest(".product-card") || btn.closest(".card");
+      setTimeout(() => {
+        if (!card) return;
+        const dSku = card.getAttribute && card.getAttribute("data-sku");
+        const sortedProds = (PRODUCTS || []).slice().sort((a, b) => String(b.sku || "").length - String(a.sku || "").length);
+        const mp = dSku
+          ? (PRODUCTS || []).find((x) => x.sku === dSku)
+          : sortedProds.find((x) => new RegExp("(^|[^A-Z0-9])" + String(x.sku || "").replace(/[^A-Z0-9]/gi, "") + "([^A-Z0-9]|$)", "i").test(card.textContent || ""));
+        if (!mp || !v39GetVarPricePair(mp)) return;
+        const tmp = document.createElement("div");
+        tmp.innerHTML = buildCardInnerHtml(mp, 0);
+        const newOrig = tmp.querySelector(".price-orig");
+        const newBox = newOrig && newOrig.parentElement;
+        if (!newBox) return;
+        const boxCls = (newBox.className || "").trim();
+        const sel = boxCls ? ("." + boxCls.split(/\s+/).join(".")) : "";
+        const curBox = (sel ? card.querySelector(sel) : null) || (card.querySelector(".price-orig") && card.querySelector(".price-orig").parentElement);
+        if (curBox) curBox.innerHTML = newBox.innerHTML;
+      }, 0);
+    }, true);
 
     renderDynamicCategoryBar = function() {
       const wrap = document.getElementById("catFilters");
@@ -518,6 +579,7 @@ V39_INDEX_JS_ADDON = r'''/* === v39: ATH FIRST + FULL BLACK-FRIDAY STYLE PRICE F
         p.section = isAth ? "ATH" : "BF";
         delete p.singlePrice;
         if (r) {
+          if (r.varPrices) p.varPrices = r.varPrices;
           const sp = Number(r.salePrice || p.salePrice || 0);
           const op = Math.max(Number(r.origPrice || 0), Number(p.origPrice || 0), sp);
           if (sp > 0) p.salePrice = sp;
@@ -559,10 +621,14 @@ V39_INDEX_JS_ADDON = r'''/* === v39: ATH FIRST + FULL BLACK-FRIDAY STYLE PRICE F
         cart = cart.filter((c) => {
           const mp = (PRODUCTS || []).find((x) => x.sku === c.sku);
           if (!mp) { adj = true; return false; }
-          if (c.origPrice !== mp.origPrice || c.finalPrice !== getProductSalePrice(mp)) {
-            c.origPrice = mp.origPrice;
-            c.finalPrice = getProductSalePrice(mp);
-            c.discountPct = getProductDiscountPct(mp);
+          const vpPair = v39GetVarPricePair(mp, c.size);
+          const expOrig = vpPair ? Math.max(vpPair[0], vpPair[1]) : mp.origPrice;
+          const expSale = vpPair ? vpPair[1] : _preV39SalePrice(mp);
+          const expPct = (expOrig > expSale && expSale > 0) ? Math.max(1, Math.round((1 - expSale / expOrig) * 100)) : 0;
+          if (c.origPrice !== expOrig || c.finalPrice !== expSale) {
+            c.origPrice = expOrig;
+            c.finalPrice = expSale;
+            c.discountPct = expPct;
             adj = true;
           }
           const mx = getMaxStockForSkuSize(c.sku, c.size);
@@ -753,7 +819,7 @@ def parse_strict_vnd_cell(val):
 
 
 def eval_simple_excel_formula(fml, row_vals):
-    """Tinh gia tri o cong thuc Excel don gian (VD: =C2*0.8, =ROUND(D2*0.8,-3)) neu file chua luu cache."""
+    """Tinh gia tri o cong thuc Excel don gian (VD: =D2*(1-E2)) neu file chua luu cache."""
     if not isinstance(fml, str) or not fml.startswith("="):
         return 0
     expr = fml[1:].strip().upper()
@@ -766,13 +832,18 @@ def eval_simple_excel_formula(fml, row_vals):
             c_idx = c_idx * 26 + (ord(ch) - ord("A") + 1)
         c_idx -= 1
         if 0 <= c_idx < len(row_vals):
-            v = parse_money_col(row_vals[c_idx])
+            raw_v = row_vals[c_idx]
+            if isinstance(raw_v, (int, float)) and not isinstance(raw_v, bool):
+                return str(float(raw_v))
+            s_v = str(raw_v or "").strip()
+            if s_v.endswith("%"):
+                try:
+                    return str(float(s_v[:-1].replace(",", ".").strip()) / 100.0)
+                except Exception:
+                    return "0"
+            v = parse_money_col(raw_v)
             if v > 0:
                 return str(float(v))
-            try:
-                return str(float(row_vals[c_idx] or 0))
-            except Exception:
-                return "0"
         return "0"
 
     expr = re.sub(r"\b([A-Z]{1,2})\d+\b", repl_cell, expr)
@@ -991,7 +1062,16 @@ def load_all_rules_and_excel_products():
             if code in bf_rules:
                 bf_rules[code].update({"origPrice": op, "salePrice": sp, "discountPct": dp})
 
-        # 2. Doc ATH ONL.xlsx / ATH ONL_2.xlsx: Lay DU CA 2 COT GIA GOC & GIA DA GIAM!
+        # 2. Doc ATH ONL.xlsx / ATH ONL_2.xlsx: Uu tien cot hien thi, tach chuan GIA LE & GIA SAU GIAM + gia theo mau (v40_ath_var_prices)
+        extra_sfx = {**SUFFIX_COLOR_MAP, "DE": "Đen", "NN": "Nâu Nhạt", "XAM": "Xám"}
+
+        def _col_let(i):
+            n, s = i + 1, ""
+            while n:
+                n, rem = divmod(n - 1, 26)
+                s = chr(65 + rem) + s
+            return s
+
         for xf in ath_files:
             try:
                 wb_val = openpyxl.load_workbook(xf, data_only=True)
@@ -1004,22 +1084,36 @@ def load_all_rules_and_excel_products():
                 vis_sheets = [wb_val.sheetnames[0]]
 
             file_skus_reset = set()
+            file_sku_rows = {}
 
             for sname in vis_sheets:
                 ws_v = wb_val[sname]
                 ws_f = wb_fml[sname]
                 rows_v = list(ws_v.iter_rows(values_only=True))
                 rows_f = list(ws_f.iter_rows(values_only=True))
-                if not rows_v: continue
+                if not rows_v:
+                    continue
                 h_idx = detect_header_row_idx(rows_v)
                 header = [strip_accents(c) for c in (rows_v[h_idx] or [])] if h_idx >= 0 else []
 
+                hidden_cols = {
+                    idx for idx in range(len(header))
+                    if bool(ws_v.column_dimensions[_col_let(idx)].hidden)
+                }
+                vis_idxs = [i for i in range(len(header)) if i not in hidden_cols]
+                hid_idxs = [i for i in range(len(header)) if i in hidden_cols]
+                col_order = vis_idxs + hid_idxs
+
                 c_sku = c_name = c_opt = c_orig = c_sale = c_pct = None
                 skip_money_cols = set()
-                indiv_stock_cols, total_stock_cols = {}, {}
+                vis_indiv_stock, vis_total_stock = {}, {}
+                hid_indiv_stock, hid_total_stock = {}, {}
 
-                for idx, h in enumerate(header):
-                    if not h: continue
+                for idx in col_order:
+                    h = header[idx]
+                    if not h:
+                        continue
+                    is_hid = idx in hidden_cols
                     if any(k in h for k in ("THANH TIEN", "TONG TIEN", "GIA TRI", "DOANH THU", "GIA VON", "GIA NHAP")):
                         skip_money_cols.add(idx)
                         continue
@@ -1029,27 +1123,29 @@ def load_all_rules_and_excel_products():
                         c_name = idx
                     elif c_opt is None and any(k in h for k in ("MAU", "SIZE", "PHAN LOAI", "THUOC TINH")):
                         c_opt = idx
-                    elif c_pct is None and ("%" in h or "PHAN TRAM" in h or h in ("CK", "CHIET KHAU")):
+                    elif c_pct is None and ("%" in h or "PHAN TRAM" in h or h in ("CK", "CHIET KHAU", "GIAM")):
                         c_pct = idx
-                    elif c_sale is None and (any(k in h for k in ("GIA DA GIAM", "GIA GIAM", "GIA SAU GIAM", "GIA SALE", "DONG GIA", "GIA KM", "KHUYEN MAI", "GIA CHIET KHAU", "GIA MOI", "GIA XA", "GIA ATH", "GIA UU DAI", "DE XUAT", "DISCOUNT PRICE", "SALE PRICE")) or h == "SALE"):
+                    elif c_sale is None and (any(k in h for k in ("GIA SAU GIAM", "GIA DA GIAM", "GIA GIAM", "GIA SALE", "DONG GIA", "GIA KM", "KHUYEN MAI", "GIA CHIET KHAU", "GIA MOI", "GIA XA", "GIA ATH", "GIA UU DAI", "DE XUAT", "DISCOUNT PRICE", "SALE PRICE")) or h == "SALE"):
                         c_sale = idx
-                    elif c_orig is None and any(k in h for k in ("GIA GOC", "GIA CU", "NIEM YET", "GIA TRUOC", "RETAIL")):
+                    elif c_orig is None and (any(k in h for k in ("GIA LE", "GIA GOC", "GIA CU", "NIEM YET", "GIA TRUOC", "GIA BAN", "DON GIA", "RETAIL", "SELLING PRICE")) or h == "GIA"):
                         c_orig = idx
-                    elif "GIA BAN" in h or "GIA LE" in h or "DON GIA" in h or "SELLING PRICE" in h or h == "GIA":
-                        if c_orig is None:
-                            c_orig = idx
-                        elif c_sale is None:
-                            c_sale = idx
                     elif "DAU KY" not in h and "BAN RA" not in h and "STT" not in h and "NGAY" not in h:
-                        if "PCT" in h or "PHAN CHAU" in h or "PHAN CHU" in h: indiv_stock_cols[idx] = "wh_pct"
-                        elif "AU CO" in h or h in ("AC", "TON AC", "SL TON AC"): indiv_stock_cols[idx] = "wh_auco"
-                        elif "LE DUAN" in h or h in ("LD", "TON LD", "SL TON LD"): indiv_stock_cols[idx] = "wh_leduan"
-                        elif "HO PHI TICH" in h: indiv_stock_cols[idx] = "wh_havana"
-                        elif any(k in h for k in ("ONLINE", "ONL", "CO THE BAN")): indiv_stock_cols[idx] = "wh_online"
+                        indiv_t = hid_indiv_stock if is_hid else vis_indiv_stock
+                        total_t = hid_total_stock if is_hid else vis_total_stock
+                        if "PCT" in h or "PHAN CHAU" in h or "PHAN CHU" in h:
+                            indiv_t[idx] = "wh_pct"
+                        elif "AU CO" in h or h in ("AC", "TON AC", "SL TON AC"):
+                            indiv_t[idx] = "wh_auco"
+                        elif "LE DUAN" in h or h in ("LD", "TON LD", "SL TON LD"):
+                            indiv_t[idx] = "wh_leduan"
+                        elif "HO PHI TICH" in h:
+                            indiv_t[idx] = "wh_havana"
+                        elif any(k in h for k in ("ONLINE", "ONL", "CO THE BAN")):
+                            indiv_t[idx] = "wh_online"
                         elif any(k in h for k in ("TON", "SO LUONG", "SL", "CUOI KY", "SAN CO", "TONG")):
-                            total_stock_cols[idx] = "wh_online"
+                            total_t[idx] = "wh_online"
 
-                stock_cols = indiv_stock_cols if indiv_stock_cols else total_stock_cols
+                stock_cols = vis_indiv_stock or vis_total_stock or hid_indiv_stock or hid_total_stock
                 last_code, last_orig, last_sale, last_title = "", 0, 0, ""
 
                 for row_offset, r in enumerate(rows_v[h_idx + 1:], start=h_idx + 1):
@@ -1070,14 +1166,17 @@ def load_all_rules_and_excel_products():
                     norm_name_up = re.sub(r"(?i)\bATH\s+(\d+)", r"ATH\1", raw_name.upper())
                     name_toks = [t for t in reversed(re.findall(r"\b([A-Z]{1,5}\d{1,5})\b", norm_name_up)) if not t.startswith("PVN")]
                     base = clean_base_code(raw_sku.split("-")[0])
-                    if base.startswith("PVN"): base = ""
-                    if not base and name_toks: base = name_toks[0]
+                    if base.startswith("PVN"):
+                        base = ""
+                    if not base and name_toks:
+                        base = name_toks[0]
                     if not base:
                         for cell_v in r[:5]:
                             cand_c = clean_base_code(str(cell_v or "").split("-")[0])
                             if cand_c and not cand_c.startswith("PVN") and re.search(r"\d{2,}", cand_c):
                                 base = cand_c
-                                if not raw_sku: raw_sku = str(cell_v or "").strip()
+                                if not raw_sku:
+                                    raw_sku = str(cell_v or "").strip()
                                 break
                     if not base or base in EXCLUDED_SKUS:
                         continue
@@ -1092,11 +1191,10 @@ def load_all_rules_and_excel_products():
 
                     pct_v = parse_pct(r[c_pct]) if (c_pct is not None and c_pct < len(r)) else 0.0
 
-                    # Quet cac cot tien VND tren dong neu ten cot khong chuan hoac chi bat duoc 1 cot
                     if p_orig <= 0 or p_sale <= 0:
                         row_prices = []
                         for ci, cv in enumerate(r):
-                            if ci in stock_cols or ci in skip_money_cols or ci in (c_sku, c_name, c_opt, c_pct):
+                            if ci in hidden_cols or ci in stock_cols or ci in skip_money_cols or ci in (c_sku, c_name, c_opt, c_pct):
                                 continue
                             svnd = parse_strict_vnd_cell(cv)
                             if svnd <= 0 and ci < len(rf):
@@ -1105,8 +1203,10 @@ def load_all_rules_and_excel_products():
                                 row_prices.append(svnd)
                         uniq_p = sorted(set(row_prices), reverse=True)
                         if len(uniq_p) >= 2:
-                            if p_orig <= 0: p_orig = uniq_p[0]
-                            if p_sale <= 0: p_sale = uniq_p[-1]
+                            if p_orig <= 0:
+                                p_orig = uniq_p[0]
+                            if p_sale <= 0:
+                                p_sale = uniq_p[-1]
                         elif len(uniq_p) == 1:
                             if p_sale <= 0 and p_orig <= 0:
                                 p_sale = uniq_p[0]
@@ -1115,28 +1215,30 @@ def load_all_rules_and_excel_products():
                             elif p_orig <= 0 and uniq_p[0] > p_sale:
                                 p_orig = uniq_p[0]
 
-                    if p_sale <= 0 and p_orig > 0 and 0 < pct_v < 100:
+                    if (p_sale <= 0 or p_sale >= p_orig) and p_orig > 0 and 0 < pct_v < 100:
                         p_sale = int(round(p_orig * (100.0 - pct_v) / 100.0))
-                    if p_orig <= 0 and p_sale > 0 and 0 < pct_v < 100:
+                    elif p_orig <= 0 and p_sale > 0 and 0 < pct_v < 100:
                         p_orig = int(round(p_sale / (1.0 - pct_v / 100.0) / 1000.0) * 1000)
 
-                    # Ke thua tu dong cha neu Excel gop o (merged cells)
                     if base == last_code:
-                        if p_orig <= 0: p_orig = last_orig
-                        if p_sale <= 0: p_sale = last_sale
-                        if not raw_name: raw_name = last_title
+                        if p_orig <= 0:
+                            p_orig = last_orig
+                        if p_sale <= 0:
+                            p_sale = last_sale
+                        if not raw_name:
+                            raw_name = last_title
 
-                    # Dam bao p_orig luon la Gia goc (>= p_sale) va p_sale luon la Gia da giam
                     if p_orig > 0 and p_sale > 0 and p_orig < p_sale:
                         p_orig, p_sale = p_sale, p_orig
 
-                    # Neu file ATH ONL chi dien Gia da giam, lay Gia goc tu bang cu hoac Sapo (TUYET DOI khong lay gia sale Black Friday!)
                     if p_orig <= 0 and base in bf_rules:
                         cand_op = bf_rules[base].get("origPrice") or 0
-                        if cand_op > p_sale: p_orig = cand_op
+                        if cand_op > p_sale:
+                            p_orig = cand_op
                     if p_orig <= 0 and base in ath_rules:
                         cand_op = ath_rules[base].get("origPrice") or 0
-                        if cand_op > p_sale: p_orig = cand_op
+                        if cand_op > p_sale:
+                            p_orig = cand_op
 
                     if p_sale <= 0 and p_orig > 0:
                         p_sale = p_orig
@@ -1144,24 +1246,30 @@ def load_all_rules_and_excel_products():
                         p_orig = p_sale
 
                     last_code, last_orig, last_sale = base, p_orig, p_sale
-
-                    # LOAI BO MA TRUNG KHOI BLACK FRIDAY VA LUU DU CAP (ORIG_PRICE + SALE_PRICE) CUA ATH!
                     bf_rules.pop(base, None)
 
-                    prev_ath = ath_rules.get(base, {})
-                    best_op = max(p_orig, prev_ath.get("origPrice") or 0) if p_orig > 0 else (prev_ath.get("origPrice") or 0)
-                    best_sp = p_sale if p_sale > 0 else (prev_ath.get("salePrice") or best_op)
-                    if best_op < best_sp:
-                        best_op = best_sp
-                    disc_pct = max(1, round((1.0 - best_sp / best_op) * 100)) if (best_op > best_sp > 0) else 0
+                    clean_title = raw_name
+                    sz_lbl = norm_nfc(r[c_opt]) if (c_opt is not None and c_opt < len(r) and r[c_opt]) else ""
+                    if not sz_lbl and " - " in raw_name:
+                        p_head, p_tail = raw_name.rsplit(" - ", 1)
+                        if len(p_tail) <= 28:
+                            sz_lbl = p_tail.strip()
+                            clean_title = p_head.strip()
+                    sfx_lbl = ""
+                    if "-" in raw_sku:
+                        sfx = raw_sku.split("-", 1)[1].strip()
+                        sfx_lbl = extra_sfx.get(sfx.upper(), sfx)
+                    if not sz_lbl:
+                        sz_lbl = sfx_lbl or "Freesize"
 
-                    ath_rules[base] = {
-                        "origPrice": best_op,
-                        "salePrice": best_sp,
-                        "discountPct": disc_pct,
-                        "subType": "Áo thun",
-                        "section": "ATH",
+                    last_title = clean_title
+                    var_keys = {
+                        re.sub(r"[^A-Z0-9]+", " ", strip_accents(k)).strip()
+                        for k in (sz_lbl, sfx_lbl)
+                        if k and k.lower() != "freesize"
                     }
+                    if p_orig > 0 and p_sale > 0:
+                        file_sku_rows.setdefault(base, []).append((var_keys, p_orig, p_sale))
 
                     st_row = {}
                     for sc_i, wid in stock_cols.items():
@@ -1172,49 +1280,49 @@ def load_all_rules_and_excel_products():
                                 qv = 0
                             st_row[wid] = st_row.get(wid, 0) + qv
 
-                    clean_title = raw_name
-                    sz_lbl = norm_nfc(r[c_opt]) if (c_opt is not None and c_opt < len(r) and r[c_opt]) else ""
-                    if not sz_lbl and " - " in raw_name:
-                        p_head, p_tail = raw_name.rsplit(" - ", 1)
-                        if len(p_tail) <= 28:
-                            sz_lbl = p_tail.strip()
-                            clean_title = p_head.strip()
-                    if not sz_lbl and "-" in raw_sku:
-                        sfx = raw_sku.split("-", 1)[1].strip()
-                        sz_lbl = SUFFIX_COLOR_MAP.get(sfx.upper(), sfx)
-                    if not sz_lbl:
-                        sz_lbl = "Freesize"
-
-                    last_title = clean_title
-                    default_name = f"Áo thun nữ Havana {base}"
-
-                    # Chong nhan doi ton kho neu tren repo co ca ATH ONL.xlsx va ATH ONL_2.xlsx
                     if st_row and base not in file_skus_reset and base in ath_excel_products:
                         ath_excel_products[base]["variants"] = []
                         file_skus_reset.add(base)
                     elif st_row:
                         file_skus_reset.add(base)
 
+                    default_name = f"Áo thun nữ Havana {base}"
                     ent = ath_excel_products.setdefault(base, {
-                        "sku": base,
-                        "name": clean_title or default_name,
-                        "subType": "Áo thun",
-                        "category": "AO_THUN",
-                        "section": "ATH",
-                        "origPrice": best_op,
-                        "salePrice": best_sp,
-                        "discountPct": disc_pct,
+                        "sku": base, "name": clean_title or default_name, "subType": "Áo thun",
+                        "category": "AO_THUN", "section": "ATH",
+                        "origPrice": p_orig, "salePrice": p_sale,
+                        "discountPct": max(1, round((1.0 - p_sale / p_orig) * 100)) if (p_orig > p_sale > 0) else 0,
                         "image": "", "images": [], "sapoImages": [], "video": "", "sizeChart": "",
-                        "excel_override": True,
-                        "variants": [],
+                        "excel_override": True, "variants": [],
                     })
                     if clean_title and ent["name"].startswith("Áo thun nữ Havana"):
                         ent["name"] = clean_title
-                    ent["origPrice"] = best_op
-                    ent["salePrice"] = best_sp
-                    ent["discountPct"] = disc_pct
                     if st_row:
                         ent["variants"].append({"size": sz_lbl, "stocks": st_row})
+
+            for base, vrows in file_sku_rows.items():
+                freq = {}
+                for _, op_i, sp_i in vrows:
+                    freq[(op_i, sp_i)] = freq.get((op_i, sp_i), 0) + 1
+                best_op, best_sp = max(freq.keys(), key=lambda pair: (freq[pair], -pair[1]))
+                disc_pct = max(1, round((1.0 - best_sp / best_op) * 100)) if (best_op > best_sp > 0) else 0
+                rule_obj = {
+                    "origPrice": best_op, "salePrice": best_sp, "discountPct": disc_pct,
+                    "subType": "Áo thun", "section": "ATH",
+                }
+                if len(freq) > 1:
+                    vp_map = {}
+                    for vkeys, op_i, sp_i in vrows:
+                        for vk in vkeys:
+                            if vk:
+                                vp_map[vk] = [op_i, sp_i]
+                    if vp_map:
+                        rule_obj["varPrices"] = vp_map
+                ath_rules[base] = rule_obj
+                if base in ath_excel_products:
+                    ath_excel_products[base].update({"origPrice": best_op, "salePrice": best_sp, "discountPct": disc_pct})
+                    if "varPrices" in rule_obj:
+                        ath_excel_products[base]["varPrices"] = rule_obj["varPrices"]
 
             print(f"[+] Da nap Ao Thun ATH tu {xf}: {len(ath_rules)} ma (du Gia goc & Gia da giam)!")
 
@@ -1260,6 +1368,8 @@ def merge_ath_excel_into_grouped(grouped, ath_excel_prods, sale_rules):
         r["origPrice"] = op
         r["salePrice"] = sp
         r["discountPct"] = gp["discountPct"]
+        if r.get("varPrices"):
+            gp["varPrices"] = r["varPrices"]
 
         xp_vars = xp.get("variants") or []
         if not xp_vars:
@@ -1622,4 +1732,4 @@ def main():
 if __name__ == "__main__":
     main()
     sys.exit(0)
-# === HET FILE V39 ===
+# === HET FILE V40 ===
