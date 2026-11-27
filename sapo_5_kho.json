@@ -1,8 +1,8 @@
 {
   "min_stock_rule": 3,
   "min_variant_stock_rule": 3,
-  "synced_at": "09:35 27/11",
-  "synced_epoch": 1795746956,
+  "synced_at": "09:47 27/11",
+  "synced_epoch": 1795747661,
   "sapo_cookie_expired": false,
   "warehouses": [
     {
@@ -418,7 +418,7 @@
         {
           "size": "Be",
           "stocks": {
-            "wh_havana": 31,
+            "wh_havana": 30,
             "wh_pct": 1,
             "wh_auco": 11,
             "wh_leduan": 6,
@@ -4742,7 +4742,7 @@
           "stocks": {
             "wh_havana": 0,
             "wh_pct": 1,
-            "wh_auco": 3,
+            "wh_auco": 2,
             "wh_leduan": 0,
             "wh_online": 0,
             "wh_790054": 0
@@ -7089,40 +7089,6 @@
             "wh_auco": 2,
             "wh_leduan": 0,
             "wh_online": 3,
-            "wh_790054": 0
-          }
-        }
-      ]
-    },
-    {
-      "sku": "AO953",
-      "name": "Áo babydoll tay chun phối 3 cúc đỏ #11216 (3) AO953",
-      "subType": "",
-      "category": "AO_KIEU",
-      "origPrice": 169000,
-      "salePrice": 79000,
-      "discountPct": 53,
-      "image": "./images/AO953_16a951f0ae6e40f6bafcb92a319284ed~tplv-aphluv4xwc-origin-jpeg.jpeg",
-      "images": [
-        "./images/AO953_16a951f0ae6e40f6bafcb92a319284ed~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./images/AO953_41ed615e23fb403c853907c604c5a46e~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./AO953/16a951f0ae6e40f6bafcb92a319284ed~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./AO953/41ed615e23fb403c853907c604c5a46e~tplv-aphluv4xwc-origin-jpeg.jpeg"
-      ],
-      "sapoImages": [
-        "https://sapo.dktcdn.net/100/618/480/variants/d420eb3a-b19b-4170-a8e6-c08732508edd.jpg"
-      ],
-      "video": "",
-      "sizeChart": "",
-      "variants": [
-        {
-          "size": "Trắng",
-          "stocks": {
-            "wh_havana": 0,
-            "wh_pct": 0,
-            "wh_auco": 3,
-            "wh_leduan": 0,
-            "wh_online": 0,
             "wh_790054": 0
           }
         }
@@ -9903,44 +9869,6 @@
             "wh_pct": 0,
             "wh_auco": 0,
             "wh_leduan": 3,
-            "wh_online": 0,
-            "wh_790054": 0
-          }
-        }
-      ]
-    },
-    {
-      "sku": "AO499",
-      "name": "Áo ống dáng bí bo chun (12/4/25)(24) AO499",
-      "subType": "",
-      "category": "AO_KIEU",
-      "origPrice": 119000,
-      "salePrice": 39000,
-      "discountPct": 67,
-      "image": "./images/AO499_6ff916b8ed7c4c5793bebada2082a155~tplv-aphluv4xwc-origin-jpeg.jpeg",
-      "images": [
-        "./images/AO499_6ff916b8ed7c4c5793bebada2082a155~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./images/AO499_96d2044c46464b489da29ddd6fcdca9d~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./images/AO499_c85eaad0ae744e6296f517fbaa6a86f7~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./AO499/6ff916b8ed7c4c5793bebada2082a155~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./AO499/96d2044c46464b489da29ddd6fcdca9d~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./AO499/c85eaad0ae744e6296f517fbaa6a86f7~tplv-aphluv4xwc-origin-jpeg.jpeg"
-      ],
-      "sapoImages": [
-        "https://sapo.dktcdn.net/100/618/480/variants/1b5a659c-c68d-4490-8540-306ec8c0699d.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/5a026354-61e5-4c86-9a5c-e8d1a99b3bed.jpg",
-        "https://sapo.dktcdn.net/100/618/480/variants/19d5a88f-2e44-4053-8357-2b9e98206f47.jpg"
-      ],
-      "video": "",
-      "sizeChart": "",
-      "variants": [
-        {
-          "size": "Đen",
-          "stocks": {
-            "wh_havana": 0,
-            "wh_pct": 0,
-            "wh_auco": 2,
-            "wh_leduan": 1,
             "wh_online": 0,
             "wh_790054": 0
           }
