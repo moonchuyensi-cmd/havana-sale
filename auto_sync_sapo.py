@@ -3,8 +3,8 @@ import urllib.error, urllib.parse, urllib.request
 import zipfile as zf_mod
 
 # ==============================================================================
-# AUTO_SYNC_SAPO.PY (v37 - 2 MUC CHINH: BLACK FRIDAY & AO THUN ATH + 1 GIA ATH)
-# Ma trong ATH ONL.xlsx: xoa gia Black Friday, chuyen sang tab ATH, giu 1 gia ATH
+# AUTO_SYNC_SAPO.PY (v38 - DAY AO THUN ATH LEN TRUOC NOI BAT + GON LOC MUC GIA)
+# Mo mac dinh tab ATH dau tien, an nut gia le o ATH, gom 1 hop chon gon o BF
 # ==============================================================================
 
 MIN_TOTAL_STOCK = 3
@@ -34,7 +34,7 @@ PK_KNOWN_SUBTYPES = {
     "PK997": "Túi xách", "PK999": "Túi xách", "PK1006": "Giày", "PK1027": "Túi xách", "PK1032": "Giày",
 }
 
-CF_STOCK_JS_V37 = r'''// Cloudflare Pages Function: /api/stock (v37 Dual Main Sections: BF & ATH Single-Price)
+CF_STOCK_JS_V38 = r'''// Cloudflare Pages Function: /api/stock (v38 ATH Priority + Single ATH Price)
 const MIN_TOTAL_STOCK = 3;
 const MIN_VARIANT_STOCK = 3;
 const EXCLUDED_SKUS = new Set(["LEN374", "QJ358"]);
@@ -79,7 +79,7 @@ export async function onRequestGet(context) {
 
   try {
     const ghRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO_SLUG}/releases/tags/live-stock`, {
-      headers: { "Accept": "application/vnd.github+json", "User-Agent": "havana-cf-v37" }
+      headers: { "Accept": "application/vnd.github+json", "User-Agent": "havana-cf-v38" }
     });
     if (ghRes.ok) {
       const rel = await ghRes.json();
@@ -163,142 +163,188 @@ export async function onRequestGet(context) {
       return p.variants.length > 0 && calcTot(p) >= MIN_TOTAL_STOCK;
     });
   }
-  payload.sync_source = "v37_dual_sections";
+  payload.sync_source = "v38_ath_first";
   return new Response(JSON.stringify(payload), {
     headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store, max-age=0" }
   });
 }
 '''
 
-V37_INDEX_JS_ADDON = r'''/* === v37: 2 MAIN TABS (BLACK FRIDAY vs AO THUN ATH) + SINGLE ATH PRICE OVERRIDE === */
-    const MIN_STOCK_V37 = 3;
-    const FORCE_SAPO_V37 = new Set(["SAT532", "CV538"]);
-    const FINAL_DEADLINE_V37 = new Date("2026-11-27T23:59:59+07:00").getTime();
-    const BILL_NOTE_VI_V37 = "📌 Lưu ý: Chương trình chỉ áp dụng cho Online. Hàng số lượng ít nên có thể lệch so với tồn thực tế, mong quý khách hàng thông cảm ạ!";
-    const BILL_NOTE_EN_V37 = "📌 Note: Valid for Online orders only. Limited stock may slightly differ from actual inventory.";
-    let currentMainSection = (location.hash.toLowerCase() === "#ath" || location.search.toLowerCase().includes("tab=ath")) ? "ATH" : "BF";
-    let v37SyncBusy = false;
+V38_INDEX_JS_ADDON = r'''/* === v38: ATH FIRST & PROMINENT + ULTRA-CLEAN PRICE FILTER === */
+    const MIN_STOCK_V38 = 3;
+    const FORCE_SAPO_V38 = new Set(["SAT532", "CV538"]);
+    const FINAL_DEADLINE_V38 = new Date("2026-11-27T23:59:59+07:00").getTime();
+    const BILL_NOTE_VI_V38 = "📌 Lưu ý: Chương trình chỉ áp dụng cho Online. Hàng số lượng ít nên có thể lệch so với tồn thực tế, mong quý khách hàng thông cảm ạ!";
+    const BILL_NOTE_EN_V38 = "📌 Note: Valid for Online orders only. Limited stock may slightly differ from actual inventory.";
+    // Day muc AO THUN ATH len truoc va mo mac dinh ngay khi khach vao link
+    let currentMainSection = (location.hash.toLowerCase() === "#bf" || location.search.toLowerCase().includes("tab=bf")) ? "BF" : "ATH";
+    let v38SyncBusy = false;
 
-    if (!document.getElementById("v37DualTabStyle")) {
+    if (!document.getElementById("v38CleanUiStyle")) {
       const st = document.createElement("style");
-      st.id = "v37DualTabStyle";
+      st.id = "v38CleanUiStyle";
       st.textContent = `
-        .v37-title-wrap{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:3px}
+        .v38-title-wrap{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:3px}
         #mainBrandTitle,#subBrandText{color:#be123c!important;font-weight:800!important}
-        .v37-countdown-pill{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#e11d48 0%,#9f1239 100%);color:#fff;padding:4px 10px;border-radius:999px;box-shadow:0 4px 14px rgba(225,29,72,.38);border:1px solid rgba(255,255,255,.35);font-variant-numeric:tabular-nums;animation:v37Pulse 1.9s ease-in-out infinite;white-space:nowrap}
-        .v37-cd-label{font-size:11px;font-weight:800;letter-spacing:.02em;color:#ffe4e6;text-transform:uppercase}
-        .v37-cd-digits{display:inline-flex;align-items:center;gap:3px}
-        .v37-cd-box{background:rgba(15,23,42,.44);color:#fff;font-weight:800;font-size:12.5px;min-width:24px;height:21px;padding:0 4px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.24);font-variant-numeric:tabular-nums}
-        .v37-cd-sep{font-weight:800;font-size:12px;color:#fecdd3}
-        @keyframes v37Pulse{0%,100%{transform:scale(1);box-shadow:0 4px 14px rgba(225,29,72,.34)}50%{transform:scale(1.025);box-shadow:0 6px 20px rgba(225,29,72,.58)}}
+        .v38-countdown-pill{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#e11d48 0%,#9f1239 100%);color:#fff;padding:4px 10px;border-radius:999px;box-shadow:0 4px 14px rgba(225,29,72,.38);border:1px solid rgba(255,255,255,.35);font-variant-numeric:tabular-nums;animation:v38Pulse 1.9s ease-in-out infinite;white-space:nowrap}
+        .v38-cd-label{font-size:11px;font-weight:800;letter-spacing:.02em;color:#ffe4e6;text-transform:uppercase}
+        .v38-cd-digits{display:inline-flex;align-items:center;gap:3px}
+        .v38-cd-box{background:rgba(15,23,42,.44);color:#fff;font-weight:800;font-size:12.5px;min-width:24px;height:21px;padding:0 4px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.24);font-variant-numeric:tabular-nums}
+        .v38-cd-sep{font-weight:800;font-size:12px;color:#fecdd3}
+        @keyframes v38Pulse{0%,100%{transform:scale(1);box-shadow:0 4px 14px rgba(225,29,72,.34)}50%{transform:scale(1.025);box-shadow:0 6px 20px rgba(225,29,72,.58)}}
 
-        .v37-main-tabs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0 8px;padding:6px;border-radius:18px;background:rgba(255,255,255,.92);border:1.5px solid rgba(145,210,206,.8);box-shadow:0 10px 26px rgba(22,89,84,.08)}
-        .v37-main-tab{border:1.5px solid transparent;border-radius:13px;padding:12px 14px;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--havana-mint-soft);color:var(--havana-teal-dark);transition:all .18s ease;white-space:nowrap;font-variant-numeric:tabular-nums}
-        .v37-main-tab:hover{border-color:var(--havana-mint);transform:translateY(-1px)}
-        .v37-main-tab.active-bf{background:linear-gradient(135deg,#e11d48,#be123c);color:#fff;box-shadow:0 6px 18px rgba(190,18,60,.28)}
-        .v37-main-tab.active-ath{background:linear-gradient(135deg,#247c76,#165954);color:#fff;box-shadow:0 6px 18px rgba(22,89,84,.28)}
-        .v37-tab-cnt{display:inline-flex;align-items:center;justify-content:center;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:800;background:rgba(22,89,84,.12);color:var(--havana-teal-dark);font-variant-numeric:tabular-nums}
-        .v37-main-tab.active-bf .v37-tab-cnt,.v37-main-tab.active-ath .v37-tab-cnt{background:rgba(255,255,255,.24);color:#fff}
+        /* Thanh 2 Muc Chinh: ATH dung dau va noi bat ruc ro */
+        .v38-main-tabs{display:grid;grid-template-columns:1.12fr 0.88fr;gap:10px;margin:16px 0 10px;padding:6px;border-radius:20px;background:rgba(255,255,255,.95);border:1.5px solid rgba(145,210,206,.85);box-shadow:0 12px 28px rgba(22,89,84,.09)}
+        .v38-main-tab{position:relative;overflow:hidden;border:1.5px solid transparent;border-radius:14px;padding:13px 16px;font-size:15.5px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--havana-mint-soft);color:var(--havana-teal-dark);transition:all .2s ease;white-space:nowrap;font-variant-numeric:tabular-nums}
+        .v38-main-tab:hover{transform:translateY(-1px)}
+
+        /* Tab AO THUN ATH luon noi bat ke ca khi dang o trang thai cho */
+        #tabBtnATH{border-color:rgba(225,29,72,.36);background:linear-gradient(135deg,#fff1f2 0%,#ffe4e6 100%);color:#9f1239;box-shadow:0 4px 14px rgba(225,29,72,.12)}
+        #tabBtnATH.active-ath{border-color:#fda4af;background:linear-gradient(135deg,#f43f5e 0%,#e11d48 52%,#be123c 100%);color:#fff;box-shadow:0 8px 24px rgba(225,29,72,.38);transform:translateY(-1px)}
+        #tabBtnATH::after{content:"";position:absolute;top:0;left:-120%;width:65%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.36),transparent);transform:skewX(-22deg);animation:v38Sheen 3.4s ease-in-out infinite;pointer-events:none}
+        @keyframes v38Sheen{0%{left:-120%}48%,100%{left:160%}}
+
+        .v38-hot-badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:900;letter-spacing:.04em;background:#e11d48;color:#fff;text-transform:uppercase;box-shadow:0 2px 6px rgba(225,29,72,.28)}
+        #tabBtnATH.active-ath .v38-hot-badge{background:#fef08a;color:#9f1239;box-shadow:0 2px 8px rgba(0,0,0,.16)}
+
+        #tabBtnBF.active-bf{background:linear-gradient(135deg,#247c76,#165954);color:#fff;border-color:#247c76;box-shadow:0 7px 20px rgba(22,89,84,.28)}
+
+        .v38-tab-cnt{display:inline-flex;align-items:center;justify-content:center;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:800;background:rgba(15,23,42,.09);color:inherit;font-variant-numeric:tabular-nums}
+        #tabBtnATH.active-ath .v38-tab-cnt,#tabBtnBF.active-bf .v38-tab-cnt{background:rgba(255,255,255,.24);color:#fff}
+
+        /* Gon gang tuyet doi khu vuc loc gia: 1 hang duy nhat, khong bao gio ep o tim kiem */
+        #tierFilters.v38-tier-hidden{display:none!important}
+        #tierFilters.v38-tier-compact{display:inline-flex!important;flex:0 0 auto!important;width:auto!important;order:2!important;padding:0!important;overflow:visible!important}
+        .toolbar-top-row>.filter-group:last-child{order:3!important;margin-left:0!important}
+        .v38-price-select{appearance:none;-webkit-appearance:none;height:39px;padding:0 32px 0 12px;border-radius:12px;border:1.5px solid rgba(36,124,118,.28);background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23165954' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 10px center;color:var(--havana-teal-dark);font-size:13px;font-weight:800;cursor:pointer;outline:none;font-variant-numeric:tabular-nums;box-shadow:0 2px 6px rgba(22,89,84,.05);transition:border-color .18s,box-shadow .18s}
+        .v38-price-select.is-filtered{background-color:var(--havana-mint-soft);border-color:var(--havana-teal);color:#0d3b38}
+        .v38-price-select:focus{border-color:var(--havana-teal);box-shadow:0 0 0 3px rgba(145,210,206,.35)}
 
         @media(max-width:768px){
           .brand>div>div:last-child{flex-wrap:wrap!important;row-gap:3px!important}
           .brand-title{font-size:14.5px!important}
-          .v37-title-wrap{gap:6px}
-          .v37-countdown-pill{padding:3px 8px;gap:4px}
-          .v37-cd-label{font-size:10px}
-          .v37-cd-box{font-size:11px;min-width:20px;height:18px;padding:0 3px;border-radius:5px}
-          .v37-main-tabs{margin:10px 0 6px;padding:5px;gap:6px;border-radius:15px}
-          .v37-main-tab{padding:10px 8px;font-size:13px;gap:5px;border-radius:11px}
-          .v37-tab-cnt{padding:1px 7px;font-size:11px}
+          .v38-title-wrap{gap:6px}
+          .v38-countdown-pill{padding:3px 8px;gap:4px}
+          .v38-cd-label{font-size:10px}
+          .v38-cd-box{font-size:11px;min-width:20px;height:18px;padding:0 3px;border-radius:5px}
+          .v38-main-tabs{grid-template-columns:1.08fr 0.92fr;margin:10px 0 6px;padding:5px;gap:6px;border-radius:16px}
+          .v38-main-tab{padding:10px 8px;font-size:12.5px;gap:5px;border-radius:11px}
+          .v38-hot-badge{padding:1px 5px;font-size:9px}
+          .v38-tab-cnt{padding:1px 6px;font-size:11px}
+          .v38-price-select{height:35px!important;padding:0 26px 0 9px!important;font-size:16px!important;border-radius:10px!important}
+          .toolbar{padding-bottom:8px!important}
         }
       `;
       document.head.appendChild(st);
     }
 
-    const v37IsAthItem = (p) => {
+    const v38IsAthItem = (p) => {
       if (!p) return false;
       const code = normalizeBaseCode(String(p.sku || "").split("-")[0]);
       const r = SALE_RULES_MASTER && SALE_RULES_MASTER[code];
       return Boolean(p.section === "ATH" || p.singlePrice || (r && (r.section === "ATH" || r.singlePrice)));
     };
 
-    const v37EnsureMainTabsDOM = () => {
+    const v38EnsureMainTabsDOM = () => {
       const toolbarEl = document.querySelector("main .toolbar");
       if (!toolbarEl) return;
-      if (!document.getElementById("mainCatalogTabs")) {
-        const navDiv = document.createElement("div");
+      let navDiv = document.getElementById("mainCatalogTabs");
+      if (!navDiv || navDiv.dataset.ver !== "38") {
+        if (navDiv) navDiv.remove();
+        navDiv = document.createElement("div");
         navDiv.id = "mainCatalogTabs";
-        navDiv.className = "v37-main-tabs";
+        navDiv.dataset.ver = "38";
+        navDiv.className = "v38-main-tabs";
         navDiv.innerHTML = `
-          <button type="button" class="v37-main-tab" id="tabBtnBF" onclick="setMainCatalogSection('BF')">
-            <span id="tabLblBF">🔥 BLACK FRIDAY</span>
-            <span class="v37-tab-cnt" id="tabCntBF">0</span>
+          <button type="button" class="v38-main-tab" id="tabBtnATH" onclick="setMainCatalogSection('ATH')">
+            <span class="v38-hot-badge" id="tabHotATH">MỚI</span>
+            <span id="tabLblATH">✨ ÁO THUN ATH</span>
+            <span class="v38-tab-cnt" id="tabCntATH">0</span>
           </button>
-          <button type="button" class="v37-main-tab" id="tabBtnATH" onclick="setMainCatalogSection('ATH')">
-            <span id="tabLblATH">👕 ÁO THUN ATH</span>
-            <span class="v37-tab-cnt" id="tabCntATH">0</span>
+          <button type="button" class="v38-main-tab" id="tabBtnBF" onclick="setMainCatalogSection('BF')">
+            <span id="tabLblBF">🔥 BLACK FRIDAY</span>
+            <span class="v38-tab-cnt" id="tabCntBF">0</span>
           </button>
         `;
         toolbarEl.parentNode.insertBefore(navDiv, toolbarEl);
       }
-      const pool = (PRODUCTS || []).filter((p) => !onlyInStock || getProductTotal(p) >= MIN_STOCK_V37);
-      const athCount = pool.filter((p) => v37IsAthItem(p)).length;
+
+      const pool = (PRODUCTS || []).filter((p) => !onlyInStock || getProductTotal(p) >= MIN_STOCK_V38);
+      const athCount = pool.filter((p) => v38IsAthItem(p)).length;
       const bfCount = pool.length - athCount;
 
-      const btnBF = document.getElementById("tabBtnBF"), btnATH = document.getElementById("tabBtnATH");
-      const cntBF = document.getElementById("tabCntBF"), cntATH = document.getElementById("tabCntATH");
-      const lblBF = document.getElementById("tabLblBF"), lblATH = document.getElementById("tabLblATH");
+      const btnATH = document.getElementById("tabBtnATH"), btnBF = document.getElementById("tabBtnBF");
+      const cntATH = document.getElementById("tabCntATH"), cntBF = document.getElementById("tabCntBF");
+      const lblATH = document.getElementById("tabLblATH"), lblBF = document.getElementById("tabLblBF");
+      const hotATH = document.getElementById("tabHotATH");
+      if (hotATH) hotATH.textContent = currentLang === "EN" ? "NEW" : "MỚI";
+      if (lblATH) lblATH.textContent = currentLang === "EN" ? "✨ ATH T-SHIRTS" : "✨ ÁO THUN ATH";
       if (lblBF) lblBF.textContent = currentLang === "EN" ? "🔥 BLACK FRIDAY" : "🔥 BLACK FRIDAY";
-      if (lblATH) lblATH.textContent = currentLang === "EN" ? "👕 ATH T-SHIRTS" : "👕 ÁO THUN ATH";
-      if (cntBF) cntBF.textContent = String(bfCount);
       if (cntATH) cntATH.textContent = String(athCount);
-      if (btnBF) btnBF.classList.toggle("active-bf", currentMainSection === "BF");
+      if (cntBF) cntBF.textContent = String(bfCount);
       if (btnATH) btnATH.classList.toggle("active-ath", currentMainSection === "ATH");
+      if (btnBF) btnBF.classList.toggle("active-bf", currentMainSection === "BF");
 
       const catRow = document.getElementById("catFilters");
       if (catRow) catRow.style.display = currentMainSection === "ATH" ? "none" : "";
+
+      const searchEl = document.getElementById("searchInput");
+      if (searchEl) {
+        const compact = window.innerWidth <= 768;
+        if (currentMainSection === "ATH") {
+          searchEl.placeholder = currentLang === "EN"
+            ? (compact ? "Search ATH SKU or name..." : "Search ATH T-Shirts (e.g. ATH977, ATH945, ATH941)...")
+            : (compact ? "Tìm mã ATH (ATH977, ATH945...)..." : "Tìm nhanh mã Áo Thun ATH (VD: ATH977, ATH945, ATH941...) hoặc tên mẫu...");
+        } else {
+          searchEl.placeholder = currentLang === "EN"
+            ? (compact ? "Search SKU or name..." : "Search Black Friday SKU (e.g. CV589, LEN389, AO1016)...")
+            : (compact ? "Tìm mã (CV589, LEN389...)..." : "Tìm theo mã Black Friday (VD: CV589, LEN389, AO1016, PK...) hoặc tên mẫu...");
+        }
+      }
     };
 
     window.setMainCatalogSection = function(sec) {
-      currentMainSection = sec === "ATH" ? "ATH" : "BF";
+      currentMainSection = sec === "BF" ? "BF" : "ATH";
       currentCategory = "ALL";
       currentPriceTier = "ALL";
       try {
-        history.replaceState(null, "", currentMainSection === "ATH" ? "#ath" : location.pathname + location.search);
+        history.replaceState(null, "", currentMainSection === "BF" ? "#bf" : location.pathname + location.search);
       } catch (_) {}
       renderCatalog();
     };
 
-    const v37EnsureCountdown = () => {
+    const v38EnsureCountdown = () => {
       const mainT = document.getElementById("mainBrandTitle");
       if (!mainT) return;
       let wrap = mainT.parentElement;
-      if (!wrap || !wrap.classList.contains("v37-title-wrap")) {
+      if (!wrap || !wrap.classList.contains("v38-title-wrap")) {
         wrap = document.createElement("div");
-        wrap.className = "v37-title-wrap";
+        wrap.className = "v38-title-wrap";
         mainT.parentNode.insertBefore(wrap, mainT);
         wrap.appendChild(mainT);
       }
-      if (!document.getElementById("v37CountdownBadge")) {
+      if (!document.getElementById("v38CountdownBadge")) {
+        const old37 = document.getElementById("v37CountdownBadge");
+        if (old37) old37.remove();
         const b = document.createElement("div");
-        b.id = "v37CountdownBadge";
-        b.className = "v37-countdown-pill";
-        b.innerHTML = `<span class="v37-cd-label" id="v37CdLabel">⏳ Kết thúc sau</span><span class="v37-cd-digits"><span class="v37-cd-box" id="v37CdH">00</span><span class="v37-cd-sep">:</span><span class="v37-cd-box" id="v37CdM">00</span><span class="v37-cd-sep">:</span><span class="v37-cd-box" id="v37CdS">00</span></span>`;
+        b.id = "v38CountdownBadge";
+        b.className = "v38-countdown-pill";
+        b.innerHTML = `<span class="v38-cd-label" id="v38CdLabel">⏳ Kết thúc sau</span><span class="v38-cd-digits"><span class="v38-cd-box" id="v38CdH">00</span><span class="v38-cd-sep">:</span><span class="v38-cd-box" id="v38CdM">00</span><span class="v38-cd-sep">:</span><span class="v38-cd-box" id="v38CdS">00</span></span>`;
         wrap.appendChild(b);
       }
     };
 
-    const v37TickCountdown = () => {
-      v37EnsureCountdown();
+    const v38TickCountdown = () => {
+      v38EnsureCountdown();
       const now = Date.now();
-      let targetMs = FINAL_DEADLINE_V37;
+      let targetMs = FINAL_DEADLINE_V38;
       if (now > targetMs) {
         const vn = new Date(now + 7 * 3600000);
         targetMs = Date.UTC(vn.getUTCFullYear(), vn.getUTCMonth(), vn.getUTCDate(), 23, 59, 59) - 7 * 3600000;
       }
       const diff = Math.max(0, Math.floor((targetMs - now) / 1000));
       const pad = (n) => String(n).padStart(2, "0");
-      const hEl = document.getElementById("v37CdH"), mEl = document.getElementById("v37CdM"), sEl = document.getElementById("v37CdS"), lEl = document.getElementById("v37CdLabel");
+      const hEl = document.getElementById("v38CdH"), mEl = document.getElementById("v38CdM"), sEl = document.getElementById("v38CdS"), lEl = document.getElementById("v38CdLabel");
       if (hEl) hEl.textContent = pad(Math.floor(diff / 3600));
       if (mEl) mEl.textContent = pad(Math.floor((diff % 3600) / 60));
       if (sEl) sEl.textContent = pad(diff % 60);
@@ -309,12 +355,12 @@ V37_INDEX_JS_ADDON = r'''/* === v37: 2 MAIN TABS (BLACK FRIDAY vs AO THUN ATH) +
       RESET_TO_SAPO_SKUS_V21.add("CV538");
       RESET_TO_SAPO_SKUS_V21.add("SAT532");
     }
-    try { ["havana_gh_tree_v13","havana_live_rel_v35","havana_live_rel_v36"].forEach((k) => sessionStorage.removeItem(k)); } catch (_) {}
-    if (typeof MEDIA_CACHE_VERSION !== "undefined" && MEDIA_CACHE_VERSION < 37) MEDIA_CACHE_VERSION = 37;
+    try { ["havana_gh_tree_v13","havana_live_rel_v36","havana_live_rel_v37"].forEach((k) => sessionStorage.removeItem(k)); } catch (_) {}
+    if (typeof MEDIA_CACHE_VERSION !== "undefined" && MEDIA_CACHE_VERSION < 38) MEDIA_CACHE_VERSION = 38;
 
-    const v37ApplyBranding = () => {
-      v37EnsureCountdown();
-      v37EnsureMainTabsDOM();
+    const v38ApplyBranding = () => {
+      v38EnsureCountdown();
+      v38EnsureMainTabsDOM();
       const en = currentLang === "EN";
       const mainT = document.getElementById("mainBrandTitle"), subT = document.getElementById("subBrandText");
       const badgeEl = document.querySelector("#billModal .bill-head-badge"), titleEl = document.getElementById("billModalTitle");
@@ -325,26 +371,24 @@ V37_INDEX_JS_ADDON = r'''/* === v37: 2 MAIN TABS (BLACK FRIDAY vs AO THUN ATH) +
       if (titleEl) titleEl.textContent = en ? "Provisional Order Slip" : "Phiếu Lên Đơn Tạm";
       if (openBtn) openBtn.textContent = en ? "Draft Order & Send" : "Xem Đơn Tạm & Gửi Zalo";
       if (noteInp) noteInp.placeholder = en ? "Shipping address & order note (Online only)..." : "Địa chỉ nhận ship & Ghi chú đơn hàng (Chỉ áp dụng cho Online)...";
-      document.title = "HAVANA — Sale Black Friday & Áo Thun ATH (Online)";
-      v37TickCountdown();
+      document.title = "HAVANA — Áo Thun ATH & Sale Black Friday (Online)";
+      v38TickCountdown();
     };
 
-    // Card UI: Ma ATH (1 gia duy nhat) -> An huy hieu -%, an gia gach ngang trung lap, an Tiet kiem 0d
-    const _preV37BuildCard = buildCardInnerHtml;
+    const _preV38BuildCard = buildCardInnerHtml;
     buildCardInnerHtml = function(p, idxInList) {
-      let html = _preV37BuildCard(p, idxInList);
+      let html = _preV38BuildCard(p, idxInList);
       const finalPrice = getProductSalePrice(p);
-      const isSingle = Boolean(v37IsAthItem(p) || !(Number(p.origPrice) > finalPrice));
+      const isSingle = Boolean(v38IsAthItem(p) || !(Number(p.origPrice) > finalPrice));
       if (isSingle) {
-        html = html.replace(/<span class="discount-badge">[^<]*<\/span>/, "");
+        html = html.replace(/<span class="discount-badge">[^<]*<\/span>/, `<span class="discount-badge" style="background:linear-gradient(135deg,#165954,#247c76);font-size:11.5px;box-shadow:0 4px 10px rgba(22,89,84,.25);">ÁO THUN ATH</span>`);
         html = html.replace(/<span class="price-orig">[^<]*<\/span>/, "");
-        const tagLbl = currentLang === "EN" ? "ATH Price" : "Giá ATH";
-        html = html.replace(/<span class="save-tag">[^<]*<\/span>/, `<span class="save-tag" style="color:var(--havana-teal-dark);background:#eef8f7;">${tagLbl}</span>`);
+        const tagLbl = currentLang === "EN" ? "Online Price" : "Giá ATH";
+        html = html.replace(/<span class="save-tag">[^<]*<\/span>/, `<span class="save-tag" style="color:var(--havana-teal-dark);background:#fff;">${tagLbl}</span>`);
       }
       return html;
     };
 
-    // Tach rieng thanh loc Danh muc & thanh loc Muc gia theo tung Muc chinh (BF vs ATH)
     renderDynamicCategoryBar = function() {
       const wrap = document.getElementById("catFilters");
       if (!wrap) return;
@@ -353,7 +397,7 @@ V37_INDEX_JS_ADDON = r'''/* === v37: 2 MAIN TABS (BLACK FRIDAY vs AO THUN ATH) +
         return;
       }
       wrap.style.display = "";
-      const basePool = PRODUCTS.filter((p) => !v37IsAthItem(p) && (!onlyInStock || getProductTotal(p) >= MIN_STOCK_V37));
+      const basePool = PRODUCTS.filter((p) => !v38IsAthItem(p) && (!onlyInStock || getProductTotal(p) >= MIN_STOCK_V38));
       const counts = {};
       basePool.forEach((p) => {
         const cid = classifyProduct(p);
@@ -370,39 +414,62 @@ V37_INDEX_JS_ADDON = r'''/* === v37: 2 MAIN TABS (BLACK FRIDAY vs AO THUN ATH) +
       wrap.innerHTML = html;
     };
 
+    // Thiet ke lai khu vuc Moi muc gia: Loai bo hoan toan ben tab ATH, va gom 1 hop chon gon nhe ben tab BF!
     renderDynamicPriceTierBar = function() {
       const wrap = document.getElementById("tierFilters");
       if (!wrap) return;
-      const wantAth = (currentMainSection === "ATH");
+      if (currentMainSection === "ATH") {
+        currentPriceTier = "ALL";
+        wrap.className = "filter-group v38-tier-hidden";
+        wrap.innerHTML = "";
+        return;
+      }
+
       const pool = PRODUCTS.filter((p) => {
-        if (v37IsAthItem(p) !== wantAth) return false;
-        if (onlyInStock && getProductTotal(p) < MIN_STOCK_V37) return false;
-        if (!wantAth && currentCategory !== "ALL" && classifyProduct(p) !== currentCategory) return false;
+        if (v38IsAthItem(p)) return false;
+        if (onlyInStock && getProductTotal(p) < MIN_STOCK_V38) return false;
+        if (currentCategory !== "ALL" && classifyProduct(p) !== currentCategory) return false;
         return true;
       });
+
       const tierCounts = {};
       pool.forEach((p) => {
         const sp = getProductSalePrice(p);
         tierCounts[sp] = (tierCounts[sp] || 0) + 1;
       });
       const sortedPrices = Object.keys(tierCounts).map(Number).filter((n) => n > 0).sort((a, b) => a - b);
+
+      if (sortedPrices.length <= 1) {
+        currentPriceTier = "ALL";
+        wrap.className = "filter-group v38-tier-hidden";
+        wrap.innerHTML = "";
+        return;
+      }
+
       if (currentPriceTier !== "ALL" && String(currentPriceTier).startsWith("EXACT_")) {
         const targetP = Number(String(currentPriceTier).slice(6));
         if (!tierCounts[targetP]) currentPriceTier = "ALL";
       }
-      const allTxt = currentLang === "EN" ? "All Prices" : "Mọi mức giá";
-      let html = `<button type="button" class="pill-btn ${currentPriceTier === "ALL" ? "active" : ""}" onclick="setPriceTier('ALL')">${allTxt}<span class="cat-count-chip">${pool.length}</span></button>`;
+
+      wrap.className = "filter-group v38-tier-compact";
+      const allTxt = currentLang === "EN" ? `💰 Price: All (${pool.length})` : `💰 Mọi mức giá (${pool.length})`;
+      const isFiltered = currentPriceTier !== "ALL" ? "is-filtered" : "";
+      let opts = `<option value="ALL" ${currentPriceTier === "ALL" ? "selected" : ""}>${allTxt}</option>`;
       sortedPrices.forEach((priceVal) => {
         const kLabel = Math.round(priceVal / 1000) + "K";
         const tierKey = "EXACT_" + priceVal;
-        html += `<button type="button" class="pill-btn ${currentPriceTier === tierKey ? "active" : ""}" onclick="setPriceTier('${tierKey}')">${kLabel}<span class="cat-count-chip">${tierCounts[priceVal] || 0}</span></button>`;
+        const sel = currentPriceTier === tierKey ? "selected" : "";
+        const optTxt = currentLang === "EN"
+          ? `💰 ${kLabel} (${tierCounts[priceVal]} items)`
+          : `💰 Đồng giá ${kLabel} (${tierCounts[priceVal]} mẫu)`;
+        opts += `<option value="${tierKey}" ${sel}>${optTxt}</option>`;
       });
-      wrap.innerHTML = html;
+      wrap.innerHTML = `<select class="v38-price-select ${isFiltered}" onchange="setPriceTier(this.value)" aria-label="Lọc theo mức giá">${opts}</select>`;
     };
 
-    const _preV37CartBar = updateCartBar;
+    const _preV38CartBar = updateCartBar;
     updateCartBar = function() {
-      _preV37CartBar();
+      _preV38CartBar();
       const sumTitle = document.getElementById("cartSummaryTitle");
       const savTxt = document.getElementById("cartSavingsText");
       const { totalSaved } = getCartTotals();
@@ -410,16 +477,15 @@ V37_INDEX_JS_ADDON = r'''/* === v37: 2 MAIN TABS (BLACK FRIDAY vs AO THUN ATH) +
         sumTitle.textContent = sumTitle.textContent.replace("Phiếu Bill:", "Đơn tạm:");
       }
       if (savTxt && totalSaved <= 0) {
-        savTxt.textContent = currentLang === "EN" ? "Online Order Slip" : " Bấm xem chi tiết & gửi chốt Zalo";
+        savTxt.textContent = currentLang === "EN" ? "Online Order Slip" : "Bấm xem chi tiết & gửi chốt Zalo";
       }
-      v37ApplyBranding();
+      v38ApplyBranding();
     };
 
-    const _preV37RenderBill = renderBillModal;
+    const _preV38RenderBill = renderBillModal;
     renderBillModal = function() {
-      _preV37RenderBill();
-      v37ApplyBranding();
-      // An gia gach ngang trung lap cho cac dong ma ATH 1 gia trong Phieu Len Don Tam
+      _preV38RenderBill();
+      v38ApplyBranding();
       const itemRows = document.querySelectorAll("#billItemsContainer .bill-item-row");
       itemRows.forEach((row, idx) => {
         const cItem = cart[idx];
@@ -427,8 +493,7 @@ V37_INDEX_JS_ADDON = r'''/* === v37: 2 MAIN TABS (BLACK FRIDAY vs AO THUN ATH) +
           const metaEl = row.querySelector(".bill-item-meta");
           if (metaEl) {
             metaEl.innerHTML = metaEl.innerHTML.replace("Đơn giá Sale:", "Đơn giá:");
-            const strikeSpans = metaEl.querySelectorAll("span");
-            strikeSpans.forEach((sp) => {
+            metaEl.querySelectorAll("span").forEach((sp) => {
               if ((sp.getAttribute("style") || "").includes("line-through")) sp.remove();
             });
           }
@@ -443,29 +508,24 @@ V37_INDEX_JS_ADDON = r'''/* === v37: 2 MAIN TABS (BLACK FRIDAY vs AO THUN ATH) +
           nd.style.cssText = "margin-top:8px;padding:9px 12px;border-radius:11px;background:#fffbeb;border:1px dashed #f59e0b;color:#92400e;font-size:12.5px;line-height:1.45;font-weight:600;";
           sumEl.appendChild(nd);
         }
-        nd.textContent = currentLang === "EN" ? BILL_NOTE_EN_V37 : BILL_NOTE_VI_V37;
+        nd.textContent = currentLang === "EN" ? BILL_NOTE_EN_V38 : BILL_NOTE_VI_V38;
       }
     };
 
-    const _preV37BillTxt = buildFormattedBillText;
+    const _preV38BillTxt = buildFormattedBillText;
     buildFormattedBillText = function() {
-      let txt = _preV37BuildBillSafe(_preV37BillTxt());
-      return txt;
+      let txt = _preV38BillTxt().replace(/🧾 PHIẾU [^\n]+/, "🧾 PHIẾU LÊN ĐƠN TẠM — HAVANA (CHỈ ÁP DỤNG CHO ONLINE)");
+      txt = txt.replace(/\n--------------------------\n📌 [^\n]+$/, "");
+      return txt + "\n--------------------------\n" + (currentLang === "EN" ? BILL_NOTE_EN_V38 : BILL_NOTE_VI_V38);
     };
 
-    function _preV37BuildBillSafe(rawTxt) {
-      let txt = rawTxt.replace(/🧾 PHIẾU [^\n]+/, "🧾 PHIẾU LÊN ĐƠN TẠM — HAVANA (CHỈ ÁP DỤNG CHO ONLINE)");
-      txt = txt.replace(/\n--------------------------\n📌 [^\n]+$/, "");
-      return txt + "\n--------------------------\n" + (currentLang === "EN" ? BILL_NOTE_EN_V37 : BILL_NOTE_VI_V37);
-    }
-
-    const v37Prices = (rm) => {
+    const v38Prices = (rm) => {
       if (!rm || typeof rm !== "object") return;
       const fx = { AO1010: { origPrice: 194000, salePrice: 79000, discountPct: 59 }, AO726: { origPrice: 225000, salePrice: 39000, discountPct: 83 }, AO1016: { origPrice: 214000, salePrice: 79000, discountPct: 63 } };
       Object.keys(fx).forEach((k) => { if (rm[k] && rm[k].section !== "ATH") Object.assign(rm[k], fx[k]); });
     };
 
-    const v37Vars = (arr) => {
+    const v38Vars = (arr) => {
       if (!Array.isArray(arr)) return [];
       const ord = [], mp = {};
       arr.forEach((v) => {
@@ -474,10 +534,10 @@ V37_INDEX_JS_ADDON = r'''/* === v37: 2 MAIN TABS (BLACK FRIDAY vs AO THUN ATH) +
         if (!mp[sz]) { ord.push(sz); mp[sz] = {}; }
         Object.entries(v.stocks || {}).forEach(([w, q]) => { mp[sz][w] = (mp[sz][w] || 0) + Math.max(0, Number(q) || 0); });
       });
-      return ord.filter((sz) => Object.values(mp[sz]).reduce((a, b) => a + b, 0) >= MIN_STOCK_V37).map((sz) => ({ size: sz, stocks: mp[sz] }));
+      return ord.filter((sz) => Object.values(mp[sz]).reduce((a, b) => a + b, 0) >= MIN_STOCK_V38).map((sz) => ({ size: sz, stocks: mp[sz] }));
     };
 
-    const v37Sanitize = (list) => {
+    const v38Sanitize = (list) => {
       if (!Array.isArray(list)) return [];
       const out = [];
       list.forEach((p) => {
@@ -497,15 +557,15 @@ V37_INDEX_JS_ADDON = r'''/* === v37: 2 MAIN TABS (BLACK FRIDAY vs AO THUN ATH) +
           if (r.salePrice > 0) p.salePrice = Number(r.salePrice);
           p.discountPct = getProductDiscountPct(p);
         }
-        if (FORCE_SAPO_V37.has(code) && !(typeof sessionFreshUploadedSkus !== "undefined" && sessionFreshUploadedSkus && sessionFreshUploadedSkus.has(code))) {
+        if (FORCE_SAPO_V38.has(code) && !(typeof sessionFreshUploadedSkus !== "undefined" && sessionFreshUploadedSkus && sessionFreshUploadedSkus.has(code))) {
           if (typeof repoLiveMediaBySku === "object" && repoLiveMediaBySku) delete repoLiveMediaBySku[code];
           const urls = [...(p.sapoImages || []), ...(p.images || []), p.image].map((u) => String(u || "").trim()).filter((s) => s && isSapoImageUrl(s) && !(code === "SAT532" && s.toLowerCase().includes("sat533")));
           const uniq = [...new Set(urls)];
           p.sapoImages = uniq; p.images = uniq; p.image = uniq[0] || ""; p.video = ""; p.sizeChart = ""; p.hasCustomMedia = false;
         }
-        p.variants = v37Vars(p.variants);
+        p.variants = v38Vars(p.variants);
         const tot = p.variants.reduce((s, v) => s + Object.values(v.stocks || {}).reduce((a, b) => a + b, 0), 0);
-        if (p.variants.length > 0 && tot >= MIN_STOCK_V37) out.push(p);
+        if (p.variants.length > 0 && tot >= MIN_STOCK_V38) out.push(p);
       });
       return out;
     };
@@ -515,16 +575,16 @@ V37_INDEX_JS_ADDON = r'''/* === v37: 2 MAIN TABS (BLACK FRIDAY vs AO THUN ATH) +
       PRODUCTS.forEach((p) => {
         if (!p.variants || !p.variants.length) { delete selectedVariantBySku[p.sku]; return; }
         const cur = p.variants.find((v) => v.size === selectedVariantBySku[p.sku]);
-        if (!cur || getVariantTotal(cur) < MIN_STOCK_V37) selectedVariantBySku[p.sku] = p.variants[0].size;
+        if (!cur || getVariantTotal(cur) < MIN_STOCK_V38) selectedVariantBySku[p.sku] = p.variants[0].size;
       });
     };
 
-    const v37Enforce = () => {
-      v37Prices(SALE_RULES_MASTER);
-      if (Array.isArray(BASELINE_PRODUCTS)) BASELINE_PRODUCTS = v37Sanitize(BASELINE_PRODUCTS);
-      if (Array.isArray(PRODUCTS)) PRODUCTS = v37Sanitize(PRODUCTS);
+    const v38Enforce = () => {
+      v38Prices(SALE_RULES_MASTER);
+      if (Array.isArray(BASELINE_PRODUCTS)) BASELINE_PRODUCTS = v38Sanitize(BASELINE_PRODUCTS);
+      if (Array.isArray(PRODUCTS)) PRODUCTS = v38Sanitize(PRODUCTS);
       ensureDefaultSelectedSizes();
-      v37ApplyBranding();
+      v38ApplyBranding();
       const stTxt = document.getElementById("onlyInStockText");
       if (stTxt) stTxt.textContent = currentLang === "VI" ? "Tồn ≥ 3" : "Stock ≥ 3";
       if (Array.isArray(cart) && cart.length) {
@@ -535,31 +595,31 @@ V37_INDEX_JS_ADDON = r'''/* === v37: 2 MAIN TABS (BLACK FRIDAY vs AO THUN ATH) +
           if (c.origPrice !== mp.origPrice || c.finalPrice !== getProductSalePrice(mp)) {
             c.origPrice = mp.origPrice;
             c.finalPrice = getProductSalePrice(mp);
-            c.discountPct = v37IsAthItem(mp) ? 0 : getProductDiscountPct(mp);
+            c.discountPct = v38IsAthItem(mp) ? 0 : getProductDiscountPct(mp);
             adj = true;
           }
           const mx = getMaxStockForSkuSize(c.sku, c.size);
-          if (mx < MIN_STOCK_V37) { adj = true; return false; }
+          if (mx < MIN_STOCK_V38) { adj = true; return false; }
           if (c.qty > mx) { c.qty = mx; adj = true; }
           return true;
         });
-        if (adj) { persistCart(); _preV37CartBar(); }
+        if (adj) { persistCart(); _preV38CartBar(); }
       }
     };
 
-    const _preV37Merge = mergeAndApplySaleRules;
+    const _preV38Merge = mergeAndApplySaleRules;
     mergeAndApplySaleRules = function(liveList, rulesObj) {
-      v37Prices(SALE_RULES_MASTER); v37Prices(rulesObj);
-      const cl = v37Sanitize(Array.isArray(liveList) ? liveList : []);
+      v38Prices(SALE_RULES_MASTER); v38Prices(rulesObj);
+      const cl = v38Sanitize(Array.isArray(liveList) ? liveList : []);
       const br = (rulesObj && Object.keys(rulesObj).length) ? rulesObj : SALE_RULES_MASTER;
       const sc = {};
       if (br) { const ks = new Set(cl.map((x) => normalizeBaseCode(String(x?.sku || "").split("-")[0]))); Object.keys(br).forEach((k) => { if (ks.has(k)) sc[k] = br[k]; }); }
-      return v37Sanitize(_preV37Merge(cl, sc));
+      return v38Sanitize(_preV38Merge(cl, sc));
     };
 
     renderCatalog = function() {
       if (typeof purgeExcludedSkusEverywhere === "function") purgeExcludedSkusEverywhere();
-      v37Enforce();
+      v38Enforce();
       syncMobileGridClass();
       renderDynamicCategoryBar();
       renderDynamicPriceTierBar();
@@ -572,18 +632,18 @@ V37_INDEX_JS_ADDON = r'''/* === v37: 2 MAIN TABS (BLACK FRIDAY vs AO THUN ATH) +
       const wantAth = (currentMainSection === "ATH");
 
       filteredProductsCache = PRODUCTS.filter((p) => {
-        if (v37IsAthItem(p) !== wantAth) return false;
+        if (v38IsAthItem(p) !== wantAth) return false;
         if (document.body.classList.contains("is-admin")) {
           if (adminMediaFilter === "MISSING" && hasCustomProductMedia(p)) return false;
           if (adminMediaFilter === "HAS_MEDIA" && !hasCustomProductMedia(p)) return false;
         }
         if (!wantAth && currentCategory !== "ALL" && classifyProduct(p) !== currentCategory) return false;
         const sPrice = getProductSalePrice(p);
-        if (currentPriceTier !== "ALL" && String(currentPriceTier).startsWith("EXACT_")) {
+        if (!wantAth && currentPriceTier !== "ALL" && String(currentPriceTier).startsWith("EXACT_")) {
           if (sPrice !== Number(String(currentPriceTier).slice(6))) return false;
         }
         if (q && !p.sku.toLowerCase().includes(q) && !p.name.toLowerCase().includes(q)) return false;
-        if (onlyInStock && getProductTotal(p) < MIN_STOCK_V37) return false;
+        if (onlyInStock && getProductTotal(p) < MIN_STOCK_V38) return false;
         return true;
       });
 
@@ -593,10 +653,10 @@ V37_INDEX_JS_ADDON = r'''/* === v37: 2 MAIN TABS (BLACK FRIDAY vs AO THUN ATH) +
       }
 
       if (!filteredProductsCache.length) {
-        const otherTabMatches = q ? PRODUCTS.filter((p) => (v37IsAthItem(p) !== !wantAth ? false : true) && (p.sku.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)) && (!onlyInStock || getProductTotal(p) >= MIN_STOCK_V37)).length : 0;
+        const otherTabMatches = q ? PRODUCTS.filter((p) => (v38IsAthItem(p) !== !wantAth ? false : true) && (p.sku.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)) && (!onlyInStock || getProductTotal(p) >= MIN_STOCK_V38)).length : 0;
         if (otherTabMatches > 0) {
           const targetSec = wantAth ? "BF" : "ATH";
-          const targetName = wantAth ? "🔥 BLACK FRIDAY" : "👕 ÁO THUN ATH";
+          const targetName = wantAth ? "🔥 BLACK FRIDAY" : "✨ ÁO THUN ATH";
           grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:42px 16px;color:var(--text-main);"><div style="margin-bottom:12px;font-weight:700;">Tìm thấy <strong>${otherTabMatches} mẫu</strong> khớp từ khóa bên mục <strong>${targetName}</strong></div><button type="button" class="pill-btn active" onclick="setMainCatalogSection('${targetSec}')">Chuyển sang xem ${targetName} ngay</button></div>`;
         } else {
           grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted);">Không tìm thấy mẫu nào khớp bộ lọc hiện tại.</div>`;
@@ -611,19 +671,19 @@ V37_INDEX_JS_ADDON = r'''/* === v37: 2 MAIN TABS (BLACK FRIDAY vs AO THUN ATH) +
       ensureScrollObserver();
     };
 
-    const _preV37Lang = setLang;
-    setLang = function(l) { _preV37Lang(l); v37Enforce(); if (document.getElementById("billModal")?.classList.contains("open")) renderBillModal(); };
+    const _preV38Lang = setLang;
+    setLang = function(l) { _preV38Lang(l); v38Enforce(); if (document.getElementById("billModal")?.classList.contains("open")) renderBillModal(); };
 
     refreshLiveSapoStock = async function(silent = true) {
-      if (v37SyncBusy) return false;
-      v37SyncBusy = true;
+      if (v38SyncBusy) return false;
+      v38SyncBusy = true;
       const timeEl = document.getElementById("liveSyncTimeText"), badgeEl = document.getElementById("liveSyncBadge");
       const dotEl = badgeEl ? badgeEl.querySelector(".live-sync-dot") : null;
       try {
         let data = null;
         try {
           const sr = await fetch("./sale_rules.json?t=" + Date.now(), { cache: "no-store" });
-          if (sr.ok) { const rr = await sr.json(); if (rr && Object.keys(rr).length >= 10) { v37Prices(rr); SALE_RULES_MASTER = rr; } }
+          if (sr.ok) { const rr = await sr.json(); if (rr && Object.keys(rr).length >= 10) { v38Prices(rr); SALE_RULES_MASTER = rr; } }
         } catch (_) {}
         try {
           const r = await fetch("./sapo_5_kho.json?t=" + Date.now(), { cache: "no-store" });
@@ -637,10 +697,10 @@ V37_INDEX_JS_ADDON = r'''/* === v37: 2 MAIN TABS (BLACK FRIDAY vs AO THUN ATH) +
         }
         if (data && Array.isArray(data.products)) {
           if (Array.isArray(data.warehouses) && data.warehouses.length) WAREHOUSE_CONFIG = data.warehouses;
-          const cleanLive = v37Sanitize(data.products);
+          const cleanLive = v38Sanitize(data.products);
           stripSapoImagesFromProducts(cleanLive);
           PRODUCTS = mergeAndApplySaleRules(cleanLive, SALE_RULES_MASTER);
-          v37Enforce();
+          v38Enforce();
           const exp = Boolean(data.sapo_cookie_expired);
           if (timeEl) {
             timeEl.textContent = exp
@@ -655,15 +715,16 @@ V37_INDEX_JS_ADDON = r'''/* === v37: 2 MAIN TABS (BLACK FRIDAY vs AO THUN ATH) +
           updateCartBar();
           return true;
         }
-      } catch (_) {} finally { v37SyncBusy = false; }
+      } catch (_) {} finally { v38SyncBusy = false; }
       return false;
     };
 
-    v37Enforce();
+    window.addEventListener("resize", v38EnsureMainTabsDOM, { passive: true });
+    v38Enforce();
     renderCatalog();
     updateCartBar();
-    setTimeout(v37ApplyBranding, 10);
-    setInterval(v37TickCountdown, 1000);
+    setTimeout(v38ApplyBranding, 10);
+    setInterval(v38TickCountdown, 1000);
     setInterval(() => { if (document.visibilityState === "visible") refreshLiveSapoStock(true); }, 45000);
     window.addEventListener("focus", () => refreshLiveSapoStock(true), { passive: true });
     refreshLiveSapoStock(true);'''
@@ -703,7 +764,6 @@ def parse_money_col(val):
 
 
 def parse_strict_vnd_cell(val):
-    """Chi nhan so tien VND thuc su (>= 35,000d hoac co chu k/d), KHONG nhan 1000 voi cot so luong ton."""
     if val is None: return 0
     if isinstance(val, (int, float)):
         n = int(round(float(val)))
@@ -868,7 +928,6 @@ def load_all_rules_and_excel_products():
             subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl", "-q"])
             import openpyxl
 
-        # 1. Doc danh sach Black Friday.xlsx (Muc chinh 1: BLACK FRIDAY)
         for xf in bf_files:
             try:
                 wb = openpyxl.load_workbook(xf, data_only=True)
@@ -921,7 +980,6 @@ def load_all_rules_and_excel_products():
             if code in bf_rules:
                 bf_rules[code].update({"origPrice": op, "salePrice": sp, "discountPct": dp})
 
-        # 2. Doc danh sach ATH ONL.xlsx (Muc chinh 2: AO THUN ATH -> Xoa gia BF, chi giu 1 gia ATH!)
         for xf in ath_files:
             try:
                 wb = openpyxl.load_workbook(xf, data_only=True)
@@ -943,8 +1001,7 @@ def load_all_rules_and_excel_products():
                 indiv_stock_cols, total_stock_cols = {}, {}
 
                 for idx, h in enumerate(header):
-                    if not h: continue
-                    if "THANH TIEN" in h or "GIA TRI" in h:
+                    if not h or "THANH TIEN" in h or "GIA TRI" in h:
                         continue
                     if c_sku is None and (h in ("MA", "MA MOI", "SKU", "MA SKU", "MA HANG", "MA SP", "MA PHIEN BAN", "MA CON") or "MA SKU" in h):
                         c_sku = idx
@@ -996,7 +1053,6 @@ def load_all_rules_and_excel_products():
                     if not base or base in EXCLUDED_SKUS:
                         continue
 
-                    # Lay DUY NHAT 1 GIA la GIA ATH (uu tien cot gia trong ATH ONL.xlsx -> gia goc cu -> Sapo)
                     p_sale = parse_money_col(r[c_sale]) if (c_sale is not None and c_sale < len(r)) else 0
                     p_orig = parse_money_col(r[c_orig]) if (c_orig is not None and c_orig < len(r)) else 0
                     ath_p = p_sale if p_sale > 0 else (p_orig if p_orig > 0 else 0)
@@ -1014,15 +1070,12 @@ def load_all_rules_and_excel_products():
                         if ath_p <= 0: ath_p = last_ath_p
                         if not raw_name: raw_name = last_title
 
-                    # Neu ATH ONL.xlsx khong ghi gia o dong nay, tam lay gia GOC (origPrice) tren Sapo/BF (KHONG BAO GIO lay gia sale Black Friday!)
                     if ath_p <= 0 and base in bf_rules:
                         ath_p = bf_rules[base].get("origPrice") or 0
                     if ath_p <= 0 and base in ath_rules:
                         ath_p = ath_rules[base].get("salePrice") or 0
 
                     last_code, last_ath_p = base, ath_p
-
-                    # LOAI BO HOAN TOAN MA NAY KHOI BLACK FRIDAY VA XOA GIA BLACK FRIDAY!
                     bf_rules.pop(base, None)
 
                     ath_rules[base] = {
@@ -1080,7 +1133,7 @@ def load_all_rules_and_excel_products():
                     if st_row:
                         ent["variants"].append({"size": sz_lbl, "stocks": st_row})
 
-            print(f"[+] Da nap danh sach Ao Thun ATH tu {xf}: {len(ath_rules)} ma (da tach khoi Black Friday)!")
+            print(f"[+] Da nap Ao Thun ATH tu {xf}: {len(ath_rules)} ma!")
 
     sale_rules = {**bf_rules, **ath_rules}
     for ex in EXCLUDED_SKUS:
@@ -1194,20 +1247,20 @@ def apply_media_to_products(prods_list, repo_media, preserved):
         p["sizeChart"] = "" if c in FORCE_RESET_TO_SAPO_SKUS else (rm.get("sizeChart") or pr.get("sz") or cur_sz or "")
 
 
-def upgrade_repo_files_v37():
+def upgrade_repo_files_v38():
     changed = False
     os.makedirs(os.path.join("functions", "api"), exist_ok=True)
     sjs_path = os.path.join("functions", "api", "stock.js")
     old_js = open(sjs_path, "r", encoding="utf-8").read() if os.path.exists(sjs_path) else ""
-    if old_js.strip() != CF_STOCK_JS_V37.strip():
+    if old_js.strip() != CF_STOCK_JS_V38.strip():
         with open(sjs_path, "w", encoding="utf-8") as f:
-            f.write(CF_STOCK_JS_V37)
+            f.write(CF_STOCK_JS_V38)
         changed = True
 
     if os.path.exists("index.html"):
         with open("index.html", "r", encoding="utf-8") as f: orig = f.read()
         html = orig
-        html = re.sub(r'(<title>)[^<]*(</title>)', r'\1HAVANA — Sale Black Friday &amp; Áo Thun ATH (Online)\2', html, count=1)
+        html = re.sub(r'(<title>)[^<]*(</title>)', r'\1HAVANA — Áo Thun ATH &amp; Sale Black Friday (Online)\2', html, count=1)
         html = re.sub(r'(<div class="brand-title" id="mainBrandTitle">)[^<]*(</div>)', r'\1XẢ NGÀY CUỐI\2', html, count=1)
         html = re.sub(r'(<span id="subBrandText">)[^<]*(</span>)', r'\1(Chỉ áp dụng cho Online)\2', html, count=1)
         html = re.sub(r'(<span class="bill-head-badge">)[^<]*(</span>)', r'\1HAVANA ONLINE • CHỈ ÁP DỤNG CHO ONLINE\2', html, count=1)
@@ -1216,10 +1269,10 @@ def upgrade_repo_files_v37():
         html = html.replace('📋 Sao chép nội dung Bill', '📋 Sao chép Đơn tạm').replace('🖼️ Tải ảnh Bill gửi Zalo', '🖼️ Tải ảnh Đơn tạm gửi Zalo')
         end_m = html.rfind("/* [BLOCK:APP_LOGIC_END] */")
         if end_m != -1:
-            cuts = [html.find(k, 0, end_m) for k in ("/* === v22:", "/* === v23:", "/* === v25:", "/* === v26:", "/* === v27:", "/* === v28:", "/* === v29:", "/* === v30:", "/* === v31:", "/* === v32:", "/* === v33:", "/* === v34:", "/* === v35:", "/* === v36:", "/* === v37:")]
+            cuts = [html.find(k, 0, end_m) for k in ("/* === v22:", "/* === v23:", "/* === v25:", "/* === v26:", "/* === v27:", "/* === v28:", "/* === v29:", "/* === v30:", "/* === v31:", "/* === v32:", "/* === v33:", "/* === v34:", "/* === v35:", "/* === v36:", "/* === v37:", "/* === v38:")]
             valid = [p for p in cuts if p != -1]
             cut_at = min(valid) if valid else end_m
-            html = html[:cut_at].rstrip() + "\n\n    " + V37_INDEX_JS_ADDON.strip() + "\n    /* [BLOCK:APP_LOGIC_END] */" + html[end_m + len("/* [BLOCK:APP_LOGIC_END] */"):]
+            html = html[:cut_at].rstrip() + "\n\n    " + V38_INDEX_JS_ADDON.strip() + "\n    /* [BLOCK:APP_LOGIC_END] */" + html[end_m + len("/* [BLOCK:APP_LOGIC_END] */"):]
         html = re.sub(r'(<span id="onlyInStockText">)(?:Còn tồn|In Stock)(</span>)', r'\1Tồn ≥ 3\2', html, count=1)
         if html != orig:
             with open("index.html", "w", encoding="utf-8") as f: f.write(html)
@@ -1273,12 +1326,12 @@ def publish_live_release(wh_list, prods, synced_at, epoch, expired):
         if vv and p.get("name"): ent["n"] = p["name"]
         if c in FORCE_RESET_TO_SAPO_SKUS and p.get("sapoImages"): ent["si"] = list(p["sapoImages"])[:5]
         items[c] = ent
-    body = json.dumps({"v": 37, "full": 1, "cookie_expired": bool(expired), "synced_at": synced_at, "synced_epoch": int(epoch or 0), "warehouses": wh_list, "items": items}, ensure_ascii=False, separators=(",", ":"))
+    body = json.dumps({"v": 38, "full": 1, "cookie_expired": bool(expired), "synced_at": synced_at, "synced_epoch": int(epoch or 0), "warehouses": wh_list, "items": items}, ensure_ascii=False, separators=(",", ":"))
     if len(body) > 120000:
         tmp = json.loads(body)
         for v in tmp["items"].values(): v.pop("n", None)
         body = json.dumps(tmp, ensure_ascii=False, separators=(",", ":"))
-    hdrs = {"Authorization": f"Bearer {gh_token}", "Accept": "application/vnd.github+json", "Content-Type": "application/json", "User-Agent": "havana-v37"}
+    hdrs = {"Authorization": f"Bearer {gh_token}", "Accept": "application/vnd.github+json", "Content-Type": "application/json", "User-Agent": "havana-v38"}
     rel_id = None
     try:
         with urllib.request.urlopen(urllib.request.Request(f"https://api.github.com/repos/{repo}/releases/tags/live-stock", headers=hdrs), timeout=15) as r:
@@ -1298,6 +1351,8 @@ def write_outputs(wh_list, prods, synced_at, rules, epoch, expired):
         cv = filter_variants_min_stock(p.get("variants"), MIN_VARIANT_STOCK)
         if cv and sum(sum(v["stocks"].values()) for v in cv) >= MIN_TOTAL_STOCK:
             filtered.append(dict(p, variants=cv))
+    # Sap xep uu tien dua cac ma ATH len dau danh sach va ma moi nhat len truoc
+    filtered.sort(key=lambda x: (0 if x.get("section") == "ATH" else 1, x.get("sku") or ""))
     with open("sapo_5_kho.json", "w", encoding="utf-8") as f:
         json.dump({"min_stock_rule": MIN_TOTAL_STOCK, "min_variant_stock_rule": MIN_VARIANT_STOCK, "synced_at": synced_at, "synced_epoch": int(epoch or 0), "sapo_cookie_expired": bool(expired), "warehouses": wh_list, "products": filtered}, f, ensure_ascii=False, indent=2)
     if os.path.exists("index.html"):
@@ -1311,11 +1366,11 @@ def write_outputs(wh_list, prods, synced_at, rules, epoch, expired):
 
 
 def main():
-    upgrade_repo_files_v37()
+    upgrade_repo_files_v38()
     sale_rules, ath_excel_prods, found_xlsx = load_all_rules_and_excel_products()
     repo_media = scan_repo_media(list(sale_rules.keys()))
 
-    old_wh, old_prods, old_stamp, old_epoch = [], [], "11:30 27/11", 0
+    old_wh, old_prods, old_stamp, old_epoch = [], [], "11:50 27/11", 0
     if os.path.exists("sapo_5_kho.json"):
         try:
             with open("sapo_5_kho.json", "r", encoding="utf-8") as f: od = json.load(f)
@@ -1386,7 +1441,7 @@ def main():
         publish_live_release(wh_out, final_list, old_stamp, old_epoch, expired=True)
         if os.path.exists(".skip_git_commit"): os.remove(".skip_git_commit")
         kept = write_outputs(wh_out, final_list, old_stamp, sale_rules, old_epoch, expired=True)
-        print(f"[+] Hoan tat v37 (Offline): {len(kept)} ma!")
+        print(f"[+] Hoan tat v38 (Offline): {len(kept)} ma!")
         return
 
     grouped = {}
@@ -1458,7 +1513,7 @@ def main():
     kept = write_outputs(wh_sorted, prods_all, now_st, sale_rules, now_ep, expired=False)
     bf_cnt = sum(1 for x in kept if x.get("section") != "ATH")
     ath_cnt = sum(1 for x in kept if x.get("section") == "ATH")
-    summary_md = f"### ✅ Đồng bộ v37 — 2 Mục Chính ({now_st})\n- **🔥 BLACK FRIDAY:** `{bf_cnt}` mẫu\n- **👕 ÁO THUN ATH (1 giá ATH):** `{ath_cnt}` mẫu\n- **File Excel đã nạp:** `{', '.join(found_xlsx) or 'Không có'}`"
+    summary_md = f"### ✅ Đồng bộ v38 — Ưu tiên Áo Thun ATH lên đầu ({now_st})\n- **✨ ÁO THUN ATH (mở đầu tiên):** `{ath_cnt}` mẫu\n- **🔥 BLACK FRIDAY:** `{bf_cnt}` mẫu"
     print(summary_md)
     sp_sum = os.environ.get("GITHUB_STEP_SUMMARY", "").strip()
     if sp_sum:
@@ -1468,4 +1523,4 @@ def main():
 if __name__ == "__main__":
     main()
     sys.exit(0)
-# === HET FILE V37 ===
+# === HET FILE V38 ===
