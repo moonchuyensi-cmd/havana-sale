@@ -3,8 +3,8 @@ import urllib.error, urllib.parse, urllib.request
 import zipfile as zf_mod
 
 # ==============================================================================
-# AUTO_SYNC_SAPO.PY (v36 - GOP TON "ATH ONL.xlsx" VAO SAPO LIVE + CHONG GHI DE)
-# Giu nguyen Xa Ngay Cuoi + Dong ho dem nguoc + Dong bo functions/api/stock.js
+# AUTO_SYNC_SAPO.PY (v37 - 2 MUC CHINH: BLACK FRIDAY & AO THUN ATH + 1 GIA ATH)
+# Ma trong ATH ONL.xlsx: xoa gia Black Friday, chuyen sang tab ATH, giu 1 gia ATH
 # ==============================================================================
 
 MIN_TOTAL_STOCK = 3
@@ -13,7 +13,7 @@ DOMAIN = os.environ.get("SAPO_DOMAIN", "havanago.mysapogo.com").strip()
 SKU_REGEX = re.compile(r"^([A-Z]{1,5}\d{1,5})", re.I)
 EXCLUDED_SKUS = {"LEN374", "QJ358"}
 FORCE_RESET_TO_SAPO_SKUS = {"SAT532", "CV538"}
-PRICE_PATCH_V36 = {
+PRICE_PATCH_BF = {
     "AO1010": (194000, 79000, 59),
     "AO726":  (225000, 39000, 83),
     "AO1016": (214000, 79000, 63),
@@ -34,7 +34,7 @@ PK_KNOWN_SUBTYPES = {
     "PK997": "Túi xách", "PK999": "Túi xách", "PK1006": "Giày", "PK1027": "Túi xách", "PK1032": "Giày",
 }
 
-CF_STOCK_JS_V36 = r'''// Cloudflare Pages Function: /api/stock (v36 Preserve ATH ONL Excel Stock + Live Release Sync)
+CF_STOCK_JS_V37 = r'''// Cloudflare Pages Function: /api/stock (v37 Dual Main Sections: BF & ATH Single-Price)
 const MIN_TOTAL_STOCK = 3;
 const MIN_VARIANT_STOCK = 3;
 const EXCLUDED_SKUS = new Set(["LEN374", "QJ358"]);
@@ -79,7 +79,7 @@ export async function onRequestGet(context) {
 
   try {
     const ghRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO_SLUG}/releases/tags/live-stock`, {
-      headers: { "Accept": "application/vnd.github+json", "User-Agent": "havana-cf-v36" }
+      headers: { "Accept": "application/vnd.github+json", "User-Agent": "havana-cf-v37" }
     });
     if (ghRes.ok) {
       const rel = await ghRes.json();
@@ -109,6 +109,9 @@ export async function onRequestGet(context) {
             for (const [c, fe] of Object.entries(feed.items)) {
               if (!seen.has(c) && saleRules[c] && !EXCLUDED_SKUS.has(c) && Array.isArray(fe.v) && fe.v.length) {
                 const r = saleRules[c];
+                const isAth = r.section === "ATH" || Boolean(r.singlePrice);
+                const sp = r.salePrice || r.origPrice || 159000;
+                const op = isAth ? sp : (r.origPrice || sp);
                 const built = fe.v.map(([sz, qa]) => {
                   const st = {};
                   whIds.forEach((w, i) => { st[w] = Number((qa && qa[i]) || 0); });
@@ -116,7 +119,8 @@ export async function onRequestGet(context) {
                 });
                 payload.products.push({
                   sku: c, name: fe.n || ("Áo thun Havana " + c), subType: r.subType || "",
-                  origPrice: r.origPrice || 199000, salePrice: r.salePrice || 79000, discountPct: r.discountPct || 50,
+                  section: isAth ? "ATH" : "BF", singlePrice: isAth,
+                  origPrice: op, salePrice: sp, discountPct: isAth ? 0 : (r.discountPct || 30),
                   image: "", images: [], sapoImages: fe.si || [], video: "", sizeChart: "", variants: built
                 });
               }
@@ -135,10 +139,20 @@ export async function onRequestGet(context) {
       const c = String(p.sku || "").trim().toUpperCase().split("-")[0];
       if (!c || EXCLUDED_SKUS.has(c)) return false;
       if (saleRules && saleRules[c]) {
-        if (saleRules[c].origPrice > 0) p.origPrice = saleRules[c].origPrice;
-        if (saleRules[c].salePrice > 0) p.salePrice = saleRules[c].salePrice;
-        if (p.origPrice > p.salePrice && p.salePrice > 0) {
-          p.discountPct = Math.max(1, Math.round((1 - p.salePrice / p.origPrice) * 100));
+        const r = saleRules[c];
+        const isAth = r.section === "ATH" || Boolean(r.singlePrice);
+        p.section = isAth ? "ATH" : "BF";
+        p.singlePrice = isAth;
+        if (isAth) {
+          const athP = Number(r.salePrice || r.origPrice || p.salePrice || p.origPrice || 0);
+          if (athP > 0) { p.origPrice = athP; p.salePrice = athP; }
+          p.discountPct = 0;
+        } else {
+          if (r.origPrice > 0) p.origPrice = r.origPrice;
+          if (r.salePrice > 0) p.salePrice = r.salePrice;
+          if (p.origPrice > p.salePrice && p.salePrice > 0) {
+            p.discountPct = Math.max(1, Math.round((1 - p.salePrice / p.origPrice) * 100));
+          }
         }
       }
       if (FORCE_SAPO_SKUS.has(c)) {
@@ -149,75 +163,142 @@ export async function onRequestGet(context) {
       return p.variants.length > 0 && calcTot(p) >= MIN_TOTAL_STOCK;
     });
   }
-  payload.sync_source = "v36_hybrid_live";
+  payload.sync_source = "v37_dual_sections";
   return new Response(JSON.stringify(payload), {
     headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store, max-age=0" }
   });
 }
 '''
 
-V36_INDEX_JS_ADDON = r'''/* === v36: "XA NGAY CUOI" + LIVE COUNTDOWN + ATH ONL HYBRID SYNC === */
-    const MIN_STOCK_V36 = 3;
-    const FORCE_SAPO_V36 = new Set(["SAT532", "CV538"]);
-    const FINAL_DEADLINE_V36 = new Date("2026-11-27T23:59:59+07:00").getTime();
-    const BILL_NOTE_VI_V36 = "📌 Lưu ý: Chương trình xả ngày cuối chỉ áp dụng cho Online. Hàng sale số lượng ít nên có thể lệch so với tồn thực tế, mong quý khách hàng thông cảm ạ!";
-    const BILL_NOTE_EN_V36 = "📌 Note: Final day clearance is valid for Online orders only. Sale items have limited stock and may slightly differ from actual inventory.";
-    let v36SyncBusy = false, v36LastRelMs = 0;
+V37_INDEX_JS_ADDON = r'''/* === v37: 2 MAIN TABS (BLACK FRIDAY vs AO THUN ATH) + SINGLE ATH PRICE OVERRIDE === */
+    const MIN_STOCK_V37 = 3;
+    const FORCE_SAPO_V37 = new Set(["SAT532", "CV538"]);
+    const FINAL_DEADLINE_V37 = new Date("2026-11-27T23:59:59+07:00").getTime();
+    const BILL_NOTE_VI_V37 = "📌 Lưu ý: Chương trình chỉ áp dụng cho Online. Hàng số lượng ít nên có thể lệch so với tồn thực tế, mong quý khách hàng thông cảm ạ!";
+    const BILL_NOTE_EN_V37 = "📌 Note: Valid for Online orders only. Limited stock may slightly differ from actual inventory.";
+    let currentMainSection = (location.hash.toLowerCase() === "#ath" || location.search.toLowerCase().includes("tab=ath")) ? "ATH" : "BF";
+    let v37SyncBusy = false;
 
-    if (!document.getElementById("v36CountdownStyle")) {
+    if (!document.getElementById("v37DualTabStyle")) {
       const st = document.createElement("style");
-      st.id = "v36CountdownStyle";
+      st.id = "v37DualTabStyle";
       st.textContent = `
-        .v36-title-wrap{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:3px}
+        .v37-title-wrap{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:3px}
         #mainBrandTitle,#subBrandText{color:#be123c!important;font-weight:800!important}
-        .v36-countdown-pill{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#e11d48 0%,#9f1239 100%);color:#fff;padding:4px 10px;border-radius:999px;box-shadow:0 4px 14px rgba(225,29,72,.38);border:1px solid rgba(255,255,255,.35);font-variant-numeric:tabular-nums;animation:v36Pulse 1.9s ease-in-out infinite;white-space:nowrap}
-        .v36-cd-label{font-size:11px;font-weight:800;letter-spacing:.02em;color:#ffe4e6;text-transform:uppercase}
-        .v36-cd-digits{display:inline-flex;align-items:center;gap:3px}
-        .v36-cd-box{background:rgba(15,23,42,.44);color:#fff;font-weight:800;font-size:12.5px;min-width:24px;height:21px;padding:0 4px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.24);font-variant-numeric:tabular-nums}
-        .v36-cd-sep{font-weight:800;font-size:12px;color:#fecdd3}
-        @keyframes v36Pulse{0%,100%{transform:scale(1);box-shadow:0 4px 14px rgba(225,29,72,.34)}50%{transform:scale(1.025);box-shadow:0 6px 20px rgba(225,29,72,.58)}}
+        .v37-countdown-pill{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#e11d48 0%,#9f1239 100%);color:#fff;padding:4px 10px;border-radius:999px;box-shadow:0 4px 14px rgba(225,29,72,.38);border:1px solid rgba(255,255,255,.35);font-variant-numeric:tabular-nums;animation:v37Pulse 1.9s ease-in-out infinite;white-space:nowrap}
+        .v37-cd-label{font-size:11px;font-weight:800;letter-spacing:.02em;color:#ffe4e6;text-transform:uppercase}
+        .v37-cd-digits{display:inline-flex;align-items:center;gap:3px}
+        .v37-cd-box{background:rgba(15,23,42,.44);color:#fff;font-weight:800;font-size:12.5px;min-width:24px;height:21px;padding:0 4px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.24);font-variant-numeric:tabular-nums}
+        .v37-cd-sep{font-weight:800;font-size:12px;color:#fecdd3}
+        @keyframes v37Pulse{0%,100%{transform:scale(1);box-shadow:0 4px 14px rgba(225,29,72,.34)}50%{transform:scale(1.025);box-shadow:0 6px 20px rgba(225,29,72,.58)}}
+
+        .v37-main-tabs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0 8px;padding:6px;border-radius:18px;background:rgba(255,255,255,.92);border:1.5px solid rgba(145,210,206,.8);box-shadow:0 10px 26px rgba(22,89,84,.08)}
+        .v37-main-tab{border:1.5px solid transparent;border-radius:13px;padding:12px 14px;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--havana-mint-soft);color:var(--havana-teal-dark);transition:all .18s ease;white-space:nowrap;font-variant-numeric:tabular-nums}
+        .v37-main-tab:hover{border-color:var(--havana-mint);transform:translateY(-1px)}
+        .v37-main-tab.active-bf{background:linear-gradient(135deg,#e11d48,#be123c);color:#fff;box-shadow:0 6px 18px rgba(190,18,60,.28)}
+        .v37-main-tab.active-ath{background:linear-gradient(135deg,#247c76,#165954);color:#fff;box-shadow:0 6px 18px rgba(22,89,84,.28)}
+        .v37-tab-cnt{display:inline-flex;align-items:center;justify-content:center;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:800;background:rgba(22,89,84,.12);color:var(--havana-teal-dark);font-variant-numeric:tabular-nums}
+        .v37-main-tab.active-bf .v37-tab-cnt,.v37-main-tab.active-ath .v37-tab-cnt{background:rgba(255,255,255,.24);color:#fff}
+
         @media(max-width:768px){
           .brand>div>div:last-child{flex-wrap:wrap!important;row-gap:3px!important}
           .brand-title{font-size:14.5px!important}
-          .v36-title-wrap{gap:6px}
-          .v36-countdown-pill{padding:3px 8px;gap:4px}
-          .v36-cd-label{font-size:10px}
-          .v36-cd-box{font-size:11px;min-width:20px;height:18px;padding:0 3px;border-radius:5px}
+          .v37-title-wrap{gap:6px}
+          .v37-countdown-pill{padding:3px 8px;gap:4px}
+          .v37-cd-label{font-size:10px}
+          .v37-cd-box{font-size:11px;min-width:20px;height:18px;padding:0 3px;border-radius:5px}
+          .v37-main-tabs{margin:10px 0 6px;padding:5px;gap:6px;border-radius:15px}
+          .v37-main-tab{padding:10px 8px;font-size:13px;gap:5px;border-radius:11px}
+          .v37-tab-cnt{padding:1px 7px;font-size:11px}
         }
       `;
       document.head.appendChild(st);
     }
 
-    const v36EnsureCountdown = () => {
+    const v37IsAthItem = (p) => {
+      if (!p) return false;
+      const code = normalizeBaseCode(String(p.sku || "").split("-")[0]);
+      const r = SALE_RULES_MASTER && SALE_RULES_MASTER[code];
+      return Boolean(p.section === "ATH" || p.singlePrice || (r && (r.section === "ATH" || r.singlePrice)));
+    };
+
+    const v37EnsureMainTabsDOM = () => {
+      const toolbarEl = document.querySelector("main .toolbar");
+      if (!toolbarEl) return;
+      if (!document.getElementById("mainCatalogTabs")) {
+        const navDiv = document.createElement("div");
+        navDiv.id = "mainCatalogTabs";
+        navDiv.className = "v37-main-tabs";
+        navDiv.innerHTML = `
+          <button type="button" class="v37-main-tab" id="tabBtnBF" onclick="setMainCatalogSection('BF')">
+            <span id="tabLblBF">🔥 BLACK FRIDAY</span>
+            <span class="v37-tab-cnt" id="tabCntBF">0</span>
+          </button>
+          <button type="button" class="v37-main-tab" id="tabBtnATH" onclick="setMainCatalogSection('ATH')">
+            <span id="tabLblATH">👕 ÁO THUN ATH</span>
+            <span class="v37-tab-cnt" id="tabCntATH">0</span>
+          </button>
+        `;
+        toolbarEl.parentNode.insertBefore(navDiv, toolbarEl);
+      }
+      const pool = (PRODUCTS || []).filter((p) => !onlyInStock || getProductTotal(p) >= MIN_STOCK_V37);
+      const athCount = pool.filter((p) => v37IsAthItem(p)).length;
+      const bfCount = pool.length - athCount;
+
+      const btnBF = document.getElementById("tabBtnBF"), btnATH = document.getElementById("tabBtnATH");
+      const cntBF = document.getElementById("tabCntBF"), cntATH = document.getElementById("tabCntATH");
+      const lblBF = document.getElementById("tabLblBF"), lblATH = document.getElementById("tabLblATH");
+      if (lblBF) lblBF.textContent = currentLang === "EN" ? "🔥 BLACK FRIDAY" : "🔥 BLACK FRIDAY";
+      if (lblATH) lblATH.textContent = currentLang === "EN" ? "👕 ATH T-SHIRTS" : "👕 ÁO THUN ATH";
+      if (cntBF) cntBF.textContent = String(bfCount);
+      if (cntATH) cntATH.textContent = String(athCount);
+      if (btnBF) btnBF.classList.toggle("active-bf", currentMainSection === "BF");
+      if (btnATH) btnATH.classList.toggle("active-ath", currentMainSection === "ATH");
+
+      const catRow = document.getElementById("catFilters");
+      if (catRow) catRow.style.display = currentMainSection === "ATH" ? "none" : "";
+    };
+
+    window.setMainCatalogSection = function(sec) {
+      currentMainSection = sec === "ATH" ? "ATH" : "BF";
+      currentCategory = "ALL";
+      currentPriceTier = "ALL";
+      try {
+        history.replaceState(null, "", currentMainSection === "ATH" ? "#ath" : location.pathname + location.search);
+      } catch (_) {}
+      renderCatalog();
+    };
+
+    const v37EnsureCountdown = () => {
       const mainT = document.getElementById("mainBrandTitle");
       if (!mainT) return;
       let wrap = mainT.parentElement;
-      if (!wrap || !wrap.classList.contains("v36-title-wrap")) {
+      if (!wrap || !wrap.classList.contains("v37-title-wrap")) {
         wrap = document.createElement("div");
-        wrap.className = "v36-title-wrap";
+        wrap.className = "v37-title-wrap";
         mainT.parentNode.insertBefore(wrap, mainT);
         wrap.appendChild(mainT);
       }
-      if (!document.getElementById("v36CountdownBadge")) {
+      if (!document.getElementById("v37CountdownBadge")) {
         const b = document.createElement("div");
-        b.id = "v36CountdownBadge";
-        b.className = "v36-countdown-pill";
-        b.innerHTML = `<span class="v36-cd-label" id="v36CdLabel">⏳ Kết thúc sau</span><span class="v36-cd-digits"><span class="v36-cd-box" id="v36CdH">00</span><span class="v36-cd-sep">:</span><span class="v36-cd-box" id="v36CdM">00</span><span class="v36-cd-sep">:</span><span class="v36-cd-box" id="v36CdS">00</span></span>`;
+        b.id = "v37CountdownBadge";
+        b.className = "v37-countdown-pill";
+        b.innerHTML = `<span class="v37-cd-label" id="v37CdLabel">⏳ Kết thúc sau</span><span class="v37-cd-digits"><span class="v37-cd-box" id="v37CdH">00</span><span class="v37-cd-sep">:</span><span class="v37-cd-box" id="v37CdM">00</span><span class="v37-cd-sep">:</span><span class="v37-cd-box" id="v37CdS">00</span></span>`;
         wrap.appendChild(b);
       }
     };
 
-    const v36TickCountdown = () => {
-      v36EnsureCountdown();
+    const v37TickCountdown = () => {
+      v37EnsureCountdown();
       const now = Date.now();
-      let targetMs = FINAL_DEADLINE_V36;
+      let targetMs = FINAL_DEADLINE_V37;
       if (now > targetMs) {
         const vn = new Date(now + 7 * 3600000);
         targetMs = Date.UTC(vn.getUTCFullYear(), vn.getUTCMonth(), vn.getUTCDate(), 23, 59, 59) - 7 * 3600000;
       }
       const diff = Math.max(0, Math.floor((targetMs - now) / 1000));
       const pad = (n) => String(n).padStart(2, "0");
-      const hEl = document.getElementById("v36CdH"), mEl = document.getElementById("v36CdM"), sEl = document.getElementById("v36CdS"), lEl = document.getElementById("v36CdLabel");
+      const hEl = document.getElementById("v37CdH"), mEl = document.getElementById("v37CdM"), sEl = document.getElementById("v37CdS"), lEl = document.getElementById("v37CdLabel");
       if (hEl) hEl.textContent = pad(Math.floor(diff / 3600));
       if (mEl) mEl.textContent = pad(Math.floor((diff % 3600) / 60));
       if (sEl) sEl.textContent = pad(diff % 60);
@@ -228,39 +309,131 @@ V36_INDEX_JS_ADDON = r'''/* === v36: "XA NGAY CUOI" + LIVE COUNTDOWN + ATH ONL H
       RESET_TO_SAPO_SKUS_V21.add("CV538");
       RESET_TO_SAPO_SKUS_V21.add("SAT532");
     }
-    try { ["havana_gh_tree_v13","havana_live_rel_v34","havana_live_rel_v35"].forEach((k) => sessionStorage.removeItem(k)); } catch (_) {}
-    if (typeof MEDIA_CACHE_VERSION !== "undefined" && MEDIA_CACHE_VERSION < 36) MEDIA_CACHE_VERSION = 36;
+    try { ["havana_gh_tree_v13","havana_live_rel_v35","havana_live_rel_v36"].forEach((k) => sessionStorage.removeItem(k)); } catch (_) {}
+    if (typeof MEDIA_CACHE_VERSION !== "undefined" && MEDIA_CACHE_VERSION < 37) MEDIA_CACHE_VERSION = 37;
 
-    const v36ApplyBranding = () => {
-      v36EnsureCountdown();
+    const v37ApplyBranding = () => {
+      v37EnsureCountdown();
+      v37EnsureMainTabsDOM();
       const en = currentLang === "EN";
       const mainT = document.getElementById("mainBrandTitle"), subT = document.getElementById("subBrandText");
       const badgeEl = document.querySelector("#billModal .bill-head-badge"), titleEl = document.getElementById("billModalTitle");
       const openBtn = document.getElementById("openBillBtn"), noteInp = document.getElementById("custNoteInput");
       if (mainT) mainT.textContent = en ? "FINAL DAY CLEARANCE" : "XẢ NGÀY CUỐI";
       if (subT) subT.textContent = en ? "(Online Exclusive Only)" : "(Chỉ áp dụng cho Online)";
-      if (badgeEl) badgeEl.textContent = en ? "FINAL DAY SALE • ONLINE ONLY" : "XẢ NGÀY CUỐI • CHỈ ÁP DỤNG CHO ONLINE";
+      if (badgeEl) badgeEl.textContent = en ? "HAVANA ONLINE • ORDER SLIP" : "HAVANA ONLINE • CHỈ ÁP DỤNG CHO ONLINE";
       if (titleEl) titleEl.textContent = en ? "Provisional Order Slip" : "Phiếu Lên Đơn Tạm";
       if (openBtn) openBtn.textContent = en ? "Draft Order & Send" : "Xem Đơn Tạm & Gửi Zalo";
       if (noteInp) noteInp.placeholder = en ? "Shipping address & order note (Online only)..." : "Địa chỉ nhận ship & Ghi chú đơn hàng (Chỉ áp dụng cho Online)...";
-      document.title = "HAVANA — Xả Ngày Cuối (Chỉ Áp Dụng Cho Online)";
-      v36TickCountdown();
+      document.title = "HAVANA — Sale Black Friday & Áo Thun ATH (Online)";
+      v37TickCountdown();
     };
 
-    const _preV36CartBar = updateCartBar;
+    // Card UI: Ma ATH (1 gia duy nhat) -> An huy hieu -%, an gia gach ngang trung lap, an Tiet kiem 0d
+    const _preV37BuildCard = buildCardInnerHtml;
+    buildCardInnerHtml = function(p, idxInList) {
+      let html = _preV37BuildCard(p, idxInList);
+      const finalPrice = getProductSalePrice(p);
+      const isSingle = Boolean(v37IsAthItem(p) || !(Number(p.origPrice) > finalPrice));
+      if (isSingle) {
+        html = html.replace(/<span class="discount-badge">[^<]*<\/span>/, "");
+        html = html.replace(/<span class="price-orig">[^<]*<\/span>/, "");
+        const tagLbl = currentLang === "EN" ? "ATH Price" : "Giá ATH";
+        html = html.replace(/<span class="save-tag">[^<]*<\/span>/, `<span class="save-tag" style="color:var(--havana-teal-dark);background:#eef8f7;">${tagLbl}</span>`);
+      }
+      return html;
+    };
+
+    // Tach rieng thanh loc Danh muc & thanh loc Muc gia theo tung Muc chinh (BF vs ATH)
+    renderDynamicCategoryBar = function() {
+      const wrap = document.getElementById("catFilters");
+      if (!wrap) return;
+      if (currentMainSection === "ATH") {
+        wrap.style.display = "none";
+        return;
+      }
+      wrap.style.display = "";
+      const basePool = PRODUCTS.filter((p) => !v37IsAthItem(p) && (!onlyInStock || getProductTotal(p) >= MIN_STOCK_V37));
+      const counts = {};
+      basePool.forEach((p) => {
+        const cid = classifyProduct(p);
+        counts[cid] = (counts[cid] || 0) + 1;
+      });
+      if (currentCategory !== "ALL" && !counts[currentCategory]) currentCategory = "ALL";
+      const activeDefs = CATEGORY_DEFS.filter((d) => (counts[d.id] || 0) > 0);
+      const allLabel = currentLang === "EN" ? "All" : "Tất cả";
+      let html = `<button type="button" class="pill-btn ${currentCategory === "ALL" ? "active" : ""}" onclick="setCategory('ALL')">${allLabel}<span class="cat-count-chip">${basePool.length}</span></button>`;
+      html += activeDefs.map((d) => {
+        const lbl = currentLang === "EN" ? d.en : d.vi;
+        return `<button type="button" class="pill-btn ${currentCategory === d.id ? "active" : ""}" onclick="setCategory('${d.id}')">${lbl}<span class="cat-count-chip">${counts[d.id] || 0}</span></button>`;
+      }).join("");
+      wrap.innerHTML = html;
+    };
+
+    renderDynamicPriceTierBar = function() {
+      const wrap = document.getElementById("tierFilters");
+      if (!wrap) return;
+      const wantAth = (currentMainSection === "ATH");
+      const pool = PRODUCTS.filter((p) => {
+        if (v37IsAthItem(p) !== wantAth) return false;
+        if (onlyInStock && getProductTotal(p) < MIN_STOCK_V37) return false;
+        if (!wantAth && currentCategory !== "ALL" && classifyProduct(p) !== currentCategory) return false;
+        return true;
+      });
+      const tierCounts = {};
+      pool.forEach((p) => {
+        const sp = getProductSalePrice(p);
+        tierCounts[sp] = (tierCounts[sp] || 0) + 1;
+      });
+      const sortedPrices = Object.keys(tierCounts).map(Number).filter((n) => n > 0).sort((a, b) => a - b);
+      if (currentPriceTier !== "ALL" && String(currentPriceTier).startsWith("EXACT_")) {
+        const targetP = Number(String(currentPriceTier).slice(6));
+        if (!tierCounts[targetP]) currentPriceTier = "ALL";
+      }
+      const allTxt = currentLang === "EN" ? "All Prices" : "Mọi mức giá";
+      let html = `<button type="button" class="pill-btn ${currentPriceTier === "ALL" ? "active" : ""}" onclick="setPriceTier('ALL')">${allTxt}<span class="cat-count-chip">${pool.length}</span></button>`;
+      sortedPrices.forEach((priceVal) => {
+        const kLabel = Math.round(priceVal / 1000) + "K";
+        const tierKey = "EXACT_" + priceVal;
+        html += `<button type="button" class="pill-btn ${currentPriceTier === tierKey ? "active" : ""}" onclick="setPriceTier('${tierKey}')">${kLabel}<span class="cat-count-chip">${tierCounts[priceVal] || 0}</span></button>`;
+      });
+      wrap.innerHTML = html;
+    };
+
+    const _preV37CartBar = updateCartBar;
     updateCartBar = function() {
-      _preV36CartBar();
+      _preV37CartBar();
       const sumTitle = document.getElementById("cartSummaryTitle");
+      const savTxt = document.getElementById("cartSavingsText");
+      const { totalSaved } = getCartTotals();
       if (sumTitle && currentLang === "VI" && sumTitle.textContent.startsWith("Phiếu Bill:")) {
         sumTitle.textContent = sumTitle.textContent.replace("Phiếu Bill:", "Đơn tạm:");
       }
-      v36ApplyBranding();
+      if (savTxt && totalSaved <= 0) {
+        savTxt.textContent = currentLang === "EN" ? "Online Order Slip" : " Bấm xem chi tiết & gửi chốt Zalo";
+      }
+      v37ApplyBranding();
     };
 
-    const _preV36RenderBill = renderBillModal;
+    const _preV37RenderBill = renderBillModal;
     renderBillModal = function() {
-      _preV36RenderBill();
-      v36ApplyBranding();
+      _preV37RenderBill();
+      v37ApplyBranding();
+      // An gia gach ngang trung lap cho cac dong ma ATH 1 gia trong Phieu Len Don Tam
+      const itemRows = document.querySelectorAll("#billItemsContainer .bill-item-row");
+      itemRows.forEach((row, idx) => {
+        const cItem = cart[idx];
+        if (cItem && !(Number(cItem.origPrice) > Number(cItem.finalPrice))) {
+          const metaEl = row.querySelector(".bill-item-meta");
+          if (metaEl) {
+            metaEl.innerHTML = metaEl.innerHTML.replace("Đơn giá Sale:", "Đơn giá:");
+            const strikeSpans = metaEl.querySelectorAll("span");
+            strikeSpans.forEach((sp) => {
+              if ((sp.getAttribute("style") || "").includes("line-through")) sp.remove();
+            });
+          }
+        }
+      });
       const sumEl = document.getElementById("billSummaryBox");
       if (sumEl) {
         let nd = sumEl.querySelector(".bill-stock-disclaimer");
@@ -270,24 +443,29 @@ V36_INDEX_JS_ADDON = r'''/* === v36: "XA NGAY CUOI" + LIVE COUNTDOWN + ATH ONL H
           nd.style.cssText = "margin-top:8px;padding:9px 12px;border-radius:11px;background:#fffbeb;border:1px dashed #f59e0b;color:#92400e;font-size:12.5px;line-height:1.45;font-weight:600;";
           sumEl.appendChild(nd);
         }
-        nd.textContent = currentLang === "EN" ? BILL_NOTE_EN_V36 : BILL_NOTE_VI_V36;
+        nd.textContent = currentLang === "EN" ? BILL_NOTE_EN_V37 : BILL_NOTE_VI_V37;
       }
     };
 
-    const _preV36BillTxt = buildFormattedBillText;
+    const _preV37BillTxt = buildFormattedBillText;
     buildFormattedBillText = function() {
-      let txt = _preV36BillTxt().replace(/🧾 PHIẾU [^\n]+/, "🧾 PHIẾU LÊN ĐƠN TẠM — XẢ NGÀY CUỐI (CHỈ ÁP DỤNG CHO ONLINE)");
-      txt = txt.replace(/\n--------------------------\n📌 [^\n]+$/, "");
-      return txt + "\n--------------------------\n" + (currentLang === "EN" ? BILL_NOTE_EN_V36 : BILL_NOTE_VI_V36);
+      let txt = _preV37BuildBillSafe(_preV37BillTxt());
+      return txt;
     };
 
-    const v36Prices = (rm) => {
+    function _preV37BuildBillSafe(rawTxt) {
+      let txt = rawTxt.replace(/🧾 PHIẾU [^\n]+/, "🧾 PHIẾU LÊN ĐƠN TẠM — HAVANA (CHỈ ÁP DỤNG CHO ONLINE)");
+      txt = txt.replace(/\n--------------------------\n📌 [^\n]+$/, "");
+      return txt + "\n--------------------------\n" + (currentLang === "EN" ? BILL_NOTE_EN_V37 : BILL_NOTE_VI_V37);
+    }
+
+    const v37Prices = (rm) => {
       if (!rm || typeof rm !== "object") return;
       const fx = { AO1010: { origPrice: 194000, salePrice: 79000, discountPct: 59 }, AO726: { origPrice: 225000, salePrice: 39000, discountPct: 83 }, AO1016: { origPrice: 214000, salePrice: 79000, discountPct: 63 } };
-      Object.keys(fx).forEach((k) => { if (rm[k]) Object.assign(rm[k], fx[k]); });
+      Object.keys(fx).forEach((k) => { if (rm[k] && rm[k].section !== "ATH") Object.assign(rm[k], fx[k]); });
     };
 
-    const v36Vars = (arr) => {
+    const v37Vars = (arr) => {
       if (!Array.isArray(arr)) return [];
       const ord = [], mp = {};
       arr.forEach((v) => {
@@ -296,10 +474,10 @@ V36_INDEX_JS_ADDON = r'''/* === v36: "XA NGAY CUOI" + LIVE COUNTDOWN + ATH ONL H
         if (!mp[sz]) { ord.push(sz); mp[sz] = {}; }
         Object.entries(v.stocks || {}).forEach(([w, q]) => { mp[sz][w] = (mp[sz][w] || 0) + Math.max(0, Number(q) || 0); });
       });
-      return ord.filter((sz) => Object.values(mp[sz]).reduce((a, b) => a + b, 0) >= MIN_STOCK_V36).map((sz) => ({ size: sz, stocks: mp[sz] }));
+      return ord.filter((sz) => Object.values(mp[sz]).reduce((a, b) => a + b, 0) >= MIN_STOCK_V37).map((sz) => ({ size: sz, stocks: mp[sz] }));
     };
 
-    const v36Sanitize = (list) => {
+    const v37Sanitize = (list) => {
       if (!Array.isArray(list)) return [];
       const out = [];
       list.forEach((p) => {
@@ -307,16 +485,27 @@ V36_INDEX_JS_ADDON = r'''/* === v36: "XA NGAY CUOI" + LIVE COUNTDOWN + ATH ONL H
         const code = normalizeBaseCode(String(p.sku || "").split("-")[0]);
         if (!code) return;
         const r = SALE_RULES_MASTER && SALE_RULES_MASTER[code];
-        if (r) { if (r.origPrice > 0) p.origPrice = Number(r.origPrice); if (r.salePrice > 0) p.salePrice = Number(r.salePrice); p.discountPct = getProductDiscountPct(p); }
-        if (FORCE_SAPO_V36.has(code) && !(typeof sessionFreshUploadedSkus !== "undefined" && sessionFreshUploadedSkus && sessionFreshUploadedSkus.has(code))) {
+        const isAth = Boolean(p.section === "ATH" || p.singlePrice || (r && (r.section === "ATH" || r.singlePrice)));
+        p.section = isAth ? "ATH" : "BF";
+        p.singlePrice = isAth;
+        if (isAth) {
+          const athP = Number((r && (r.salePrice || r.origPrice)) || p.salePrice || p.origPrice || 0);
+          if (athP > 0) { p.origPrice = athP; p.salePrice = athP; }
+          p.discountPct = 0;
+        } else if (r) {
+          if (r.origPrice > 0) p.origPrice = Number(r.origPrice);
+          if (r.salePrice > 0) p.salePrice = Number(r.salePrice);
+          p.discountPct = getProductDiscountPct(p);
+        }
+        if (FORCE_SAPO_V37.has(code) && !(typeof sessionFreshUploadedSkus !== "undefined" && sessionFreshUploadedSkus && sessionFreshUploadedSkus.has(code))) {
           if (typeof repoLiveMediaBySku === "object" && repoLiveMediaBySku) delete repoLiveMediaBySku[code];
           const urls = [...(p.sapoImages || []), ...(p.images || []), p.image].map((u) => String(u || "").trim()).filter((s) => s && isSapoImageUrl(s) && !(code === "SAT532" && s.toLowerCase().includes("sat533")));
           const uniq = [...new Set(urls)];
           p.sapoImages = uniq; p.images = uniq; p.image = uniq[0] || ""; p.video = ""; p.sizeChart = ""; p.hasCustomMedia = false;
         }
-        p.variants = v36Vars(p.variants);
+        p.variants = v37Vars(p.variants);
         const tot = p.variants.reduce((s, v) => s + Object.values(v.stocks || {}).reduce((a, b) => a + b, 0), 0);
-        if (p.variants.length > 0 && tot >= MIN_STOCK_V36) out.push(p);
+        if (p.variants.length > 0 && tot >= MIN_STOCK_V37) out.push(p);
       });
       return out;
     };
@@ -326,46 +515,115 @@ V36_INDEX_JS_ADDON = r'''/* === v36: "XA NGAY CUOI" + LIVE COUNTDOWN + ATH ONL H
       PRODUCTS.forEach((p) => {
         if (!p.variants || !p.variants.length) { delete selectedVariantBySku[p.sku]; return; }
         const cur = p.variants.find((v) => v.size === selectedVariantBySku[p.sku]);
-        if (!cur || getVariantTotal(cur) < MIN_STOCK_V36) selectedVariantBySku[p.sku] = p.variants[0].size;
+        if (!cur || getVariantTotal(cur) < MIN_STOCK_V37) selectedVariantBySku[p.sku] = p.variants[0].size;
       });
     };
 
-    const v36Enforce = () => {
-      v36Prices(SALE_RULES_MASTER);
-      if (Array.isArray(BASELINE_PRODUCTS)) BASELINE_PRODUCTS = v36Sanitize(BASELINE_PRODUCTS);
-      if (Array.isArray(PRODUCTS)) PRODUCTS = v36Sanitize(PRODUCTS);
+    const v37Enforce = () => {
+      v37Prices(SALE_RULES_MASTER);
+      if (Array.isArray(BASELINE_PRODUCTS)) BASELINE_PRODUCTS = v37Sanitize(BASELINE_PRODUCTS);
+      if (Array.isArray(PRODUCTS)) PRODUCTS = v37Sanitize(PRODUCTS);
       ensureDefaultSelectedSizes();
-      v36ApplyBranding();
+      v37ApplyBranding();
       const stTxt = document.getElementById("onlyInStockText");
       if (stTxt) stTxt.textContent = currentLang === "VI" ? "Tồn ≥ 3" : "Stock ≥ 3";
+      if (Array.isArray(cart) && cart.length) {
+        let adj = false;
+        cart = cart.filter((c) => {
+          const mp = (PRODUCTS || []).find((x) => x.sku === c.sku);
+          if (!mp) { adj = true; return false; }
+          if (c.origPrice !== mp.origPrice || c.finalPrice !== getProductSalePrice(mp)) {
+            c.origPrice = mp.origPrice;
+            c.finalPrice = getProductSalePrice(mp);
+            c.discountPct = v37IsAthItem(mp) ? 0 : getProductDiscountPct(mp);
+            adj = true;
+          }
+          const mx = getMaxStockForSkuSize(c.sku, c.size);
+          if (mx < MIN_STOCK_V37) { adj = true; return false; }
+          if (c.qty > mx) { c.qty = mx; adj = true; }
+          return true;
+        });
+        if (adj) { persistCart(); _preV37CartBar(); }
+      }
     };
 
-    const _preV36Merge = mergeAndApplySaleRules;
+    const _preV37Merge = mergeAndApplySaleRules;
     mergeAndApplySaleRules = function(liveList, rulesObj) {
-      v36Prices(SALE_RULES_MASTER); v36Prices(rulesObj);
-      const cl = v36Sanitize(Array.isArray(liveList) ? liveList : []);
+      v37Prices(SALE_RULES_MASTER); v37Prices(rulesObj);
+      const cl = v37Sanitize(Array.isArray(liveList) ? liveList : []);
       const br = (rulesObj && Object.keys(rulesObj).length) ? rulesObj : SALE_RULES_MASTER;
       const sc = {};
       if (br) { const ks = new Set(cl.map((x) => normalizeBaseCode(String(x?.sku || "").split("-")[0]))); Object.keys(br).forEach((k) => { if (ks.has(k)) sc[k] = br[k]; }); }
-      return v36Sanitize(_preV36Merge(cl, sc));
+      return v37Sanitize(_preV37Merge(cl, sc));
     };
 
-    const _preV36Render = renderCatalog;
-    renderCatalog = function() { v36Enforce(); _preV36Render(); };
+    renderCatalog = function() {
+      if (typeof purgeExcludedSkusEverywhere === "function") purgeExcludedSkusEverywhere();
+      v37Enforce();
+      syncMobileGridClass();
+      renderDynamicCategoryBar();
+      renderDynamicPriceTierBar();
+      stripSapoImagesFromProducts(PRODUCTS);
+      updateAdminMediaStats();
 
-    const _preV36Lang = setLang;
-    setLang = function(l) { _preV36Lang(l); v36Enforce(); if (document.getElementById("billModal")?.classList.contains("open")) renderBillModal(); };
+      const q = (document.getElementById("searchInput")?.value || "").trim().toLowerCase();
+      const grid = document.getElementById("productGrid");
+      const sentinel = document.getElementById("scrollSentinel");
+      const wantAth = (currentMainSection === "ATH");
+
+      filteredProductsCache = PRODUCTS.filter((p) => {
+        if (v37IsAthItem(p) !== wantAth) return false;
+        if (document.body.classList.contains("is-admin")) {
+          if (adminMediaFilter === "MISSING" && hasCustomProductMedia(p)) return false;
+          if (adminMediaFilter === "HAS_MEDIA" && !hasCustomProductMedia(p)) return false;
+        }
+        if (!wantAth && currentCategory !== "ALL" && classifyProduct(p) !== currentCategory) return false;
+        const sPrice = getProductSalePrice(p);
+        if (currentPriceTier !== "ALL" && String(currentPriceTier).startsWith("EXACT_")) {
+          if (sPrice !== Number(String(currentPriceTier).slice(6))) return false;
+        }
+        if (q && !p.sku.toLowerCase().includes(q) && !p.name.toLowerCase().includes(q)) return false;
+        if (onlyInStock && getProductTotal(p) < MIN_STOCK_V37) return false;
+        return true;
+      });
+
+      const badgeCnt = document.getElementById("countResultBadge");
+      if (badgeCnt) {
+        badgeCnt.textContent = currentLang === "EN" ? `${filteredProductsCache.length} items` : `${filteredProductsCache.length} mẫu`;
+      }
+
+      if (!filteredProductsCache.length) {
+        const otherTabMatches = q ? PRODUCTS.filter((p) => (v37IsAthItem(p) !== !wantAth ? false : true) && (p.sku.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)) && (!onlyInStock || getProductTotal(p) >= MIN_STOCK_V37)).length : 0;
+        if (otherTabMatches > 0) {
+          const targetSec = wantAth ? "BF" : "ATH";
+          const targetName = wantAth ? "🔥 BLACK FRIDAY" : "👕 ÁO THUN ATH";
+          grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:42px 16px;color:var(--text-main);"><div style="margin-bottom:12px;font-weight:700;">Tìm thấy <strong>${otherTabMatches} mẫu</strong> khớp từ khóa bên mục <strong>${targetName}</strong></div><button type="button" class="pill-btn active" onclick="setMainCatalogSection('${targetSec}')">Chuyển sang xem ${targetName} ngay</button></div>`;
+        } else {
+          grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted);">Không tìm thấy mẫu nào khớp bộ lọc hiện tại.</div>`;
+        }
+        if (sentinel) sentinel.textContent = "";
+        return;
+      }
+
+      grid.innerHTML = "";
+      renderedCount = 0;
+      appendNextBatch();
+      ensureScrollObserver();
+    };
+
+    const _preV37Lang = setLang;
+    setLang = function(l) { _preV37Lang(l); v37Enforce(); if (document.getElementById("billModal")?.classList.contains("open")) renderBillModal(); };
 
     refreshLiveSapoStock = async function(silent = true) {
-      if (v36SyncBusy) return false;
-      v36SyncBusy = true;
+      if (v37SyncBusy) return false;
+      v37SyncBusy = true;
       const timeEl = document.getElementById("liveSyncTimeText"), badgeEl = document.getElementById("liveSyncBadge");
       const dotEl = badgeEl ? badgeEl.querySelector(".live-sync-dot") : null;
       try {
         let data = null;
         try {
           const sr = await fetch("./sale_rules.json?t=" + Date.now(), { cache: "no-store" });
-          if (sr.ok) { const rr = await sr.json(); if (rr && Object.keys(rr).length >= 10) { v36Prices(rr); SALE_RULES_MASTER = rr; } }
+          if (sr.ok) { const rr = await sr.json(); if (rr && Object.keys(rr).length >= 10) { v37Prices(rr); SALE_RULES_MASTER = rr; } }
         } catch (_) {}
         try {
           const r = await fetch("./sapo_5_kho.json?t=" + Date.now(), { cache: "no-store" });
@@ -379,10 +637,10 @@ V36_INDEX_JS_ADDON = r'''/* === v36: "XA NGAY CUOI" + LIVE COUNTDOWN + ATH ONL H
         }
         if (data && Array.isArray(data.products)) {
           if (Array.isArray(data.warehouses) && data.warehouses.length) WAREHOUSE_CONFIG = data.warehouses;
-          const cleanLive = v36Sanitize(data.products);
+          const cleanLive = v37Sanitize(data.products);
           stripSapoImagesFromProducts(cleanLive);
           PRODUCTS = mergeAndApplySaleRules(cleanLive, SALE_RULES_MASTER);
-          v36Enforce();
+          v37Enforce();
           const exp = Boolean(data.sapo_cookie_expired);
           if (timeEl) {
             timeEl.textContent = exp
@@ -397,15 +655,15 @@ V36_INDEX_JS_ADDON = r'''/* === v36: "XA NGAY CUOI" + LIVE COUNTDOWN + ATH ONL H
           updateCartBar();
           return true;
         }
-      } catch (_) {} finally { v36SyncBusy = false; }
+      } catch (_) {} finally { v37SyncBusy = false; }
       return false;
     };
 
-    v36Enforce();
+    v37Enforce();
     renderCatalog();
     updateCartBar();
-    setTimeout(v36ApplyBranding, 10);
-    setInterval(v36TickCountdown, 1000);
+    setTimeout(v37ApplyBranding, 10);
+    setInterval(v37TickCountdown, 1000);
     setInterval(() => { if (document.visibilityState === "visible") refreshLiveSapoStock(true); }, 45000);
     window.addEventListener("focus", () => refreshLiveSapoStock(true), { passive: true });
     refreshLiveSapoStock(true);'''
@@ -425,11 +683,12 @@ def strip_accents(s):
 
 
 def clean_base_code(val):
-    m = SKU_REGEX.match(str(val or "").strip().upper().rstrip("-"))
+    raw = re.sub(r"\s+", "", str(val or "").strip().upper()).rstrip("-")
+    m = SKU_REGEX.match(raw)
     return m.group(1).upper() if m else ""
 
 
-def parse_money(val):
+def parse_money_col(val):
     if val is None: return 0
     if isinstance(val, (int, float)):
         v = float(val)
@@ -441,6 +700,23 @@ def parse_money(val):
     if not d: return 0
     n = int(d)
     return n * 1000 if 0 < n < 1000 else n
+
+
+def parse_strict_vnd_cell(val):
+    """Chi nhan so tien VND thuc su (>= 35,000d hoac co chu k/d), KHONG nhan 1000 voi cot so luong ton."""
+    if val is None: return 0
+    if isinstance(val, (int, float)):
+        n = int(round(float(val)))
+        return n if 35000 <= n <= 950000 else 0
+    s = str(val).strip().lower()
+    if not s or "#n/a" in s: return 0
+    if s.endswith("k"):
+        d = re.sub(r"[^0-9]", "", s)
+        return int(d) * 1000 if d and 35 <= int(d) <= 950 else 0
+    d = re.sub(r"[^0-9]", "", s)
+    if not d: return 0
+    n = int(d)
+    return n if 35000 <= n <= 950000 else 0
 
 
 def parse_pct(val):
@@ -516,12 +792,9 @@ def unpack_any_zip_archives():
         ext_dir = os.path.join("media", "_unzip_" + os.path.splitext(os.path.basename(zp))[0])
         os.makedirs(ext_dir, exist_ok=True)
         try:
-            with zf_mod.ZipFile(zp, "r") as zf:
-                zf.extractall(ext_dir)
+            with zf_mod.ZipFile(zp, "r") as zf: zf.extractall(ext_dir)
             os.remove(zp)
-            print(f"[+] Da giai nen {zp}")
-        except Exception:
-            pass
+        except Exception: pass
     if os.path.isdir("media"):
         for root, _, files in os.walk("media"):
             folder_hint = os.path.basename(root).replace("_unzip_", "").upper()
@@ -544,26 +817,49 @@ def unpack_any_zip_archives():
             if os.path.isdir(fe): shutil.rmtree(fe, ignore_errors=True)
 
 
+def detect_header_row_idx(rows):
+    h_idx = -1
+    best_score = 0
+    for ri in range(min(15, len(rows))):
+        r_vals = rows[ri] or []
+        has_prod_sku = False
+        for v in r_vals[:4]:
+            bc = clean_base_code(str(v or "").split("-")[0])
+            if bc and not bc.startswith("PVN") and re.search(r"\d{2,}", bc):
+                has_prod_sku = True
+                break
+        if has_prod_sku:
+            break
+        norm_cells = [strip_accents(c) for c in r_vals if c is not None and str(c).strip() != ""]
+        score = sum(1 for nc in norm_cells if any(k in nc for k in ("MA", "SKU", "TEN", "GIA", "DONG GIA", "TON", "SO LUONG", "SL", "ONLINE", "ONL", "MAU", "SIZE", "PHAN LOAI")))
+        if score > best_score:
+            best_score = score
+            h_idx = ri
+    return h_idx
+
+
 def load_all_rules_and_excel_products():
-    sale_rules = {}
+    prev_json_rules = {}
     if os.path.exists("sale_rules.json"):
         try:
             with open("sale_rules.json", "r", encoding="utf-8") as f:
-                sale_rules = json.load(f)
+                prev_json_rules = json.load(f)
         except Exception:
             pass
 
-    # Quet toan bo kho (ke ca thu muc con) de tim Black Friday.xlsx, ATH ONL.xlsx...
     xlsx_files = []
     for root, dirs, files in os.walk("."):
         dirs[:] = [d for d in sorted(dirs) if d not in SKIP_DIRS and not d.startswith(".")]
         for fn in sorted(files):
             if fn.lower().endswith(".xlsx") and not fn.startswith("~$"):
                 xlsx_files.append(os.path.join(root, fn))
-    xlsx_files.sort(key=lambda x: (0 if "black" in os.path.basename(x).lower() else 1, x.lower()))
 
-    excel_products = {}
-    unpriced_extra = set()
+    bf_files = sorted([x for x in xlsx_files if "ath" not in os.path.basename(x).lower()])
+    ath_files = sorted([x for x in xlsx_files if "ath" in os.path.basename(x).lower()])
+
+    bf_rules = {}
+    ath_rules = {}
+    ath_excel_products = {}
 
     if xlsx_files:
         try:
@@ -572,70 +868,105 @@ def load_all_rules_and_excel_products():
             subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl", "-q"])
             import openpyxl
 
-        for xf in xlsx_files:
-            bname_low = os.path.basename(xf).lower()
-            is_bf_master = ("black" in bname_low and "ath" not in bname_low)
+        # 1. Doc danh sach Black Friday.xlsx (Muc chinh 1: BLACK FRIDAY)
+        for xf in bf_files:
+            try:
+                wb = openpyxl.load_workbook(xf, data_only=True)
+            except Exception:
+                continue
+            for sname in wb.sheetnames:
+                ws = wb[sname]
+                if ws.sheet_state != "visible" or sname not in ("Tổng CH", "Phụ kiện"):
+                    continue
+                rows = list(ws.iter_rows(values_only=True))
+                if not rows: continue
+                h_idx = detect_header_row_idx(rows)
+                header = [strip_accents(c) for c in (rows[h_idx] or [])] if h_idx >= 0 else []
+                c_sku = c_orig = c_sale = c_pct = c_type = None
+                for idx, h in enumerate(header):
+                    if not h: continue
+                    if c_sku is None and h in ("MA", "MA MOI", "SKU"): c_sku = idx
+                    elif c_orig is None and "GIA BAN" in h: c_orig = idx
+                    elif c_sale is None and ("DONG GIA" in h or "GIA SALE" in h or "GIA GIAM" in h): c_sale = idx
+                    elif c_pct is None and ("%" in h or "GIAM GIA" in h): c_pct = idx
+                    elif c_type is None and h == "LOAI": c_type = idx
+                if c_sku is None: c_sku = 0
+                for r in rows[h_idx + 1:]:
+                    if not r or c_sku >= len(r): continue
+                    code = clean_base_code(str(r[c_sku] or "").split("-")[0])
+                    if not code or code in EXCLUDED_SKUS: continue
+                    op = parse_money_col(r[c_orig]) if (c_orig is not None and c_orig < len(r)) else 0
+                    sp = parse_money_col(r[c_sale]) if (c_sale is not None and c_sale < len(r)) else 0
+                    if sp == -1: continue
+                    pct_v = parse_pct(r[c_pct]) if (c_pct is not None and c_pct < len(r)) else 0.0
+                    if sp <= 0 and op > 0 and pct_v > 0:
+                        sp = int(round(op * (100.0 - pct_v) / 1000.0) * 1000)
+                    if sp > 0:
+                        sub_t = norm_nfc(r[c_type]) if (c_type is not None and c_type < len(r) and r[c_type]) else ""
+                        bf_rules[code] = {
+                            "origPrice": op if op > sp else sp,
+                            "salePrice": sp,
+                            "discountPct": max(1, round((1.0 - sp / op) * 100)) if op > sp else 30,
+                            "subType": sub_t or PK_KNOWN_SUBTYPES.get(code, ""),
+                            "section": "BF",
+                            "singlePrice": False,
+                        }
+
+        if not bf_rules and prev_json_rules:
+            for k, v in prev_json_rules.items():
+                if k not in EXCLUDED_SKUS and v.get("section") != "ATH":
+                    bf_rules[k] = dict(v, section="BF", singlePrice=False)
+
+        for code, (op, sp, dp) in PRICE_PATCH_BF.items():
+            if code in bf_rules:
+                bf_rules[code].update({"origPrice": op, "salePrice": sp, "discountPct": dp})
+
+        # 2. Doc danh sach ATH ONL.xlsx (Muc chinh 2: AO THUN ATH -> Xoa gia BF, chi giu 1 gia ATH!)
+        for xf in ath_files:
             try:
                 wb = openpyxl.load_workbook(xf, data_only=True)
             except Exception as e:
                 print(f"[!] Loi mo {xf}: {e}")
                 continue
+            vis_sheets = [sn for sn in wb.sheetnames if wb[sn].sheet_state == "visible" and "RUT" not in strip_accents(sn)]
+            if not vis_sheets and wb.sheetnames:
+                vis_sheets = [wb.sheetnames[0]]
 
-            for sname in wb.sheetnames:
+            for sname in vis_sheets:
                 ws = wb[sname]
-                if ws.sheet_state != "visible" or "RÚT" in sname.upper() or "RUT" in strip_accents(sname):
-                    continue
-                if is_bf_master and sname not in ("Tổng CH", "Phụ kiện"):
-                    continue
-
                 rows = list(ws.iter_rows(values_only=True))
-                if not rows:
-                    continue
-
-                # Nhan dien dong tieu de hoac file khong co tieu de (dong 0 da chua ma SKU)
-                first_row_has_sku = any(
-                    clean_base_code(str(v or "").split("-")[0]) and not clean_base_code(str(v or "").split("-")[0]).startswith("PVN")
-                    for v in (rows[0] or [])[:3]
-                )
-                h_idx = -1 if first_row_has_sku else 0
-                if not first_row_has_sku:
-                    for ri in range(min(10, len(rows))):
-                        cand_h = [strip_accents(c) for c in (rows[ri] or []) if c is not None]
-                        joined = " | ".join(cand_h)
-                        if len(cand_h) >= 2 and any(k in joined for k in ("MA", "SKU", "GIA", "DONG GIA", "SALE", "TON", "SO LUONG")):
-                            h_idx = ri
-                            break
-
+                if not rows: continue
+                h_idx = detect_header_row_idx(rows)
                 header = [strip_accents(c) for c in (rows[h_idx] or [])] if h_idx >= 0 else []
-                c_sku = c_name = c_opt = c_orig = c_sale = c_pct = c_type = None
-                stock_cols = {}
+
+                c_sku = c_name = c_opt = c_sale = c_orig = None
+                indiv_stock_cols, total_stock_cols = {}, {}
 
                 for idx, h in enumerate(header):
                     if not h: continue
+                    if "THANH TIEN" in h or "GIA TRI" in h:
+                        continue
                     if c_sku is None and (h in ("MA", "MA MOI", "SKU", "MA SKU", "MA HANG", "MA SP", "MA PHIEN BAN", "MA CON") or "MA SKU" in h):
                         c_sku = idx
                     elif c_name is None and ("TEN" in h):
                         c_name = idx
                     elif c_opt is None and any(k in h for k in ("MAU", "SIZE", "PHAN LOAI", "THUOC TINH")):
                         c_opt = idx
-                    elif c_sale is None and (any(k in h for k in ("DONG GIA", "GIA SALE", "GIA GIAM", "GIA KM", "KHUYEN MAI", "GIA XA", "GIA MOI", "GIA SAU GIAM", "DE XUAT", "39 - 79")) or h == "SALE"):
+                    elif c_sale is None and (any(k in h for k in ("GIA ATH", "DONG GIA", "GIA SALE", "GIA GIAM", "GIA KM", "KHUYEN MAI", "GIA XA", "GIA MOI", "GIA SAU GIAM", "DE XUAT")) or h == "SALE"):
                         c_sale = idx
-                    elif c_orig is None and any(k in h for k in ("GIA BAN", "GIA GOC", "GIA LE", "GIA CU", "NIEM YET")):
+                    elif c_orig is None and (any(k in h for k in ("GIA BAN", "GIA GOC", "GIA LE", "DON GIA", "NIEM YET")) or h == "GIA"):
                         c_orig = idx
-                    elif c_pct is None and ("%" in h or "GIAM GIA" in h):
-                        c_pct = idx
-                    elif c_type is None and h == "LOAI":
-                        c_type = idx
-                    elif "DAU KY" not in h and "BAN RA" not in h and "TONG TON CU" not in h:
-                        if "PCT" in h or "PHAN CHAU" in h or "PHAN CHU" in h: stock_cols[idx] = "wh_pct"
-                        elif "AU CO" in h or h in ("AC", "TON AC", "SL TON AC"): stock_cols[idx] = "wh_auco"
-                        elif "LE DUAN" in h or h in ("LD", "TON LD", "SL TON LD"): stock_cols[idx] = "wh_leduan"
-                        elif "HO PHI TICH" in h: stock_cols[idx] = "wh_havana"
-                        elif any(k in h for k in ("TON", "SO LUONG", "SL", "CO THE BAN", "ONLINE", "ONL", "CUOI KY")):
-                            if "wh_online" not in stock_cols.values():
-                                stock_cols[idx] = "wh_online"
+                    elif "DAU KY" not in h and "BAN RA" not in h and "STT" not in h and "NGAY" not in h:
+                        if "PCT" in h or "PHAN CHAU" in h or "PHAN CHU" in h: indiv_stock_cols[idx] = "wh_pct"
+                        elif "AU CO" in h or h in ("AC", "TON AC", "SL TON AC"): indiv_stock_cols[idx] = "wh_auco"
+                        elif "LE DUAN" in h or h in ("LD", "TON LD", "SL TON LD"): indiv_stock_cols[idx] = "wh_leduan"
+                        elif "HO PHI TICH" in h: indiv_stock_cols[idx] = "wh_havana"
+                        elif any(k in h for k in ("ONLINE", "ONL", "CO THE BAN")): indiv_stock_cols[idx] = "wh_online"
+                        elif any(k in h for k in ("TON", "SO LUONG", "SL", "CUOI KY", "SAN CO", "TONG")):
+                            total_stock_cols[idx] = "wh_online"
 
-                last_code, last_orig, last_sale, last_title = "", 0, 0, ""
+                stock_cols = indiv_stock_cols if indiv_stock_cols else total_stock_cols
+                last_code, last_ath_p, last_title = "", 0, ""
 
                 for r in rows[h_idx + 1:]:
                     if not r or all(x is None or str(x).strip() == "" for x in r):
@@ -646,168 +977,145 @@ def load_all_rules_and_excel_products():
                     if not raw_name and c_name is None:
                         for cell_v in r[:5]:
                             sv = norm_nfc(cell_v)
-                            if len(sv) >= 12 and " " in sv:
+                            if len(sv) >= 10 and " " in sv:
                                 raw_name = sv
                                 break
 
-                    name_toks = [t for t in reversed(re.findall(r"\b([A-Z]{1,5}\d{1,5})\b", raw_name.upper())) if not t.startswith("PVN")]
+                    norm_name_up = re.sub(r"(?i)\bATH\s+(\d+)", r"ATH\1", raw_name.upper())
+                    name_toks = [t for t in reversed(re.findall(r"\b([A-Z]{1,5}\d{1,5})\b", norm_name_up)) if not t.startswith("PVN")]
                     base = clean_base_code(raw_sku.split("-")[0])
-                    if base.startswith("PVN"):
-                        base = ""
-                    if not base and name_toks:
-                        base = name_toks[0]
+                    if base.startswith("PVN"): base = ""
+                    if not base and name_toks: base = name_toks[0]
                     if not base:
-                        for cell_v in r[:4]:
+                        for cell_v in r[:5]:
                             cand_c = clean_base_code(str(cell_v or "").split("-")[0])
-                            if cand_c and not cand_c.startswith("PVN"):
+                            if cand_c and not cand_c.startswith("PVN") and re.search(r"\d{2,}", cand_c):
                                 base = cand_c
                                 if not raw_sku: raw_sku = str(cell_v or "").strip()
                                 break
                     if not base or base in EXCLUDED_SKUS:
                         continue
 
-                    orig_p = parse_money(r[c_orig]) if (c_orig is not None and c_orig < len(r)) else 0
-                    sale_p = parse_money(r[c_sale]) if (c_sale is not None and c_sale < len(r)) else 0
-                    if sale_p == -1:
-                        continue
-                    pct_v = parse_pct(r[c_pct]) if (c_pct is not None and c_pct < len(r)) else 0.0
+                    # Lay DUY NHAT 1 GIA la GIA ATH (uu tien cot gia trong ATH ONL.xlsx -> gia goc cu -> Sapo)
+                    p_sale = parse_money_col(r[c_sale]) if (c_sale is not None and c_sale < len(r)) else 0
+                    p_orig = parse_money_col(r[c_orig]) if (c_orig is not None and c_orig < len(r)) else 0
+                    ath_p = p_sale if p_sale > 0 else (p_orig if p_orig > 0 else 0)
 
-                    # Tu dong nhan dien 2 cot gia neu file phu khong dat ten cot chuan
-                    if not is_bf_master and sale_p <= 0:
-                        price_vals = []
+                    if ath_p <= 0 and c_sale is None and c_orig is None:
                         for ci, cv in enumerate(r):
                             if ci in stock_cols or ci == c_sku or ci == c_name:
                                 continue
-                            pm = parse_money(cv)
-                            if 25000 <= pm <= 950000:
-                                price_vals.append(pm)
-                        if len(price_vals) >= 2:
-                            orig_p = max(price_vals)
-                            sale_p = min(price_vals)
-                        elif len(price_vals) == 1 and price_vals[0] in (39000, 49000, 59000, 69000, 79000, 89000, 99000, 119000, 129000, 159000):
-                            sale_p = price_vals[0]
+                            svnd = parse_strict_vnd_cell(cv)
+                            if svnd > 0:
+                                ath_p = svnd
+                                break
 
                     if base == last_code:
-                        if orig_p <= 0: orig_p = last_orig
-                        if sale_p <= 0: sale_p = last_sale
+                        if ath_p <= 0: ath_p = last_ath_p
                         if not raw_name: raw_name = last_title
 
-                    if orig_p > 0 and sale_p > 0 and orig_p < sale_p:
-                        orig_p, sale_p = sale_p, orig_p
-                    if sale_p <= 0 and orig_p > 0 and pct_v > 0:
-                        sale_p = int(round(orig_p * (100.0 - pct_v) / 1000.0) * 1000)
+                    # Neu ATH ONL.xlsx khong ghi gia o dong nay, tam lay gia GOC (origPrice) tren Sapo/BF (KHONG BAO GIO lay gia sale Black Friday!)
+                    if ath_p <= 0 and base in bf_rules:
+                        ath_p = bf_rules[base].get("origPrice") or 0
+                    if ath_p <= 0 and base in ath_rules:
+                        ath_p = ath_rules[base].get("salePrice") or 0
 
-                    sub_t = norm_nfc(r[c_type]) if (c_type is not None and c_type < len(r) and r[c_type]) else ""
-                    prev_rule = sale_rules.get(base, {})
+                    last_code, last_ath_p = base, ath_p
 
-                    if sale_p > 0:
-                        fin_orig = orig_p if orig_p > sale_p else (prev_rule.get("origPrice") or orig_p or sale_p * 2)
-                        fin_dp = max(1, round((1.0 - sale_p / fin_orig) * 100)) if fin_orig > sale_p else 30
-                        sale_rules[base] = {
-                            "origPrice": fin_orig,
-                            "salePrice": sale_p,
-                            "discountPct": fin_dp,
-                            "subType": sub_t or prev_rule.get("subType", "") or PK_KNOWN_SUBTYPES.get(base, ""),
-                        }
-                    elif base in sale_rules:
-                        sale_p = sale_rules[base]["salePrice"]
-                        if orig_p > sale_p and not sale_rules[base].get("origPrice"):
-                            sale_rules[base]["origPrice"] = orig_p
-                    elif not is_bf_master:
-                        unpriced_extra.add(base)
+                    # LOAI BO HOAN TOAN MA NAY KHOI BLACK FRIDAY VA XOA GIA BLACK FRIDAY!
+                    bf_rules.pop(base, None)
 
-                    last_code, last_orig, last_sale = base, orig_p, sale_p
+                    ath_rules[base] = {
+                        "origPrice": ath_p,
+                        "salePrice": ath_p,
+                        "discountPct": 0,
+                        "subType": "Áo thun",
+                        "section": "ATH",
+                        "singlePrice": True,
+                    }
 
-                    if not is_bf_master and base in sale_rules:
-                        st_row = {}
-                        if stock_cols:
-                            for sc_i, wid in stock_cols.items():
-                                if sc_i < len(r) and r[sc_i] is not None:
-                                    try:
-                                        qv = max(0, int(round(float(str(r[sc_i]).replace(",", "").strip()))))
-                                    except Exception:
-                                        qv = 0
-                                    st_row[wid] = st_row.get(wid, 0) + qv
-                        else:
-                            for ci, cv in enumerate(r):
-                                if ci == 0 and isinstance(cv, (int, float)) and len(r) >= 4:
-                                    continue
-                                if isinstance(cv, (int, float)) and 1 <= cv <= 999 and parse_money(cv) != sale_p and parse_money(cv) != orig_p:
-                                    st_row["wh_online"] = int(round(cv))
-                                    break
+                    st_row = {}
+                    for sc_i, wid in stock_cols.items():
+                        if sc_i < len(r) and r[sc_i] is not None:
+                            try:
+                                qv = max(0, int(round(float(str(r[sc_i]).replace(",", "").strip()))))
+                            except Exception:
+                                qv = 0
+                            st_row[wid] = st_row.get(wid, 0) + qv
 
-                        clean_title = raw_name
-                        sz_lbl = norm_nfc(r[c_opt]) if (c_opt is not None and c_opt < len(r) and r[c_opt]) else ""
-                        if not sz_lbl and " - " in raw_name:
-                            p_head, p_tail = raw_name.rsplit(" - ", 1)
-                            if len(p_tail) <= 28:
-                                sz_lbl = p_tail.strip()
-                                clean_title = p_head.strip()
-                        if not sz_lbl and "-" in raw_sku:
-                            sfx = raw_sku.split("-", 1)[1].strip()
-                            sz_lbl = SUFFIX_COLOR_MAP.get(sfx.upper(), sfx)
-                        if not sz_lbl:
-                            sz_lbl = "Freesize"
+                    clean_title = raw_name
+                    sz_lbl = norm_nfc(r[c_opt]) if (c_opt is not None and c_opt < len(r) and r[c_opt]) else ""
+                    if not sz_lbl and " - " in raw_name:
+                        p_head, p_tail = raw_name.rsplit(" - ", 1)
+                        if len(p_tail) <= 28:
+                            sz_lbl = p_tail.strip()
+                            clean_title = p_head.strip()
+                    if not sz_lbl and "-" in raw_sku:
+                        sfx = raw_sku.split("-", 1)[1].strip()
+                        sz_lbl = SUFFIX_COLOR_MAP.get(sfx.upper(), sfx)
+                    if not sz_lbl:
+                        sz_lbl = "Freesize"
 
-                        last_title = clean_title
-                        default_name = f"Áo thun nữ Havana {base}" if base.startswith("ATH") else f"Sản phẩm Havana {base}"
-                        ent = excel_products.setdefault(base, {
-                            "sku": base,
-                            "name": clean_title or default_name,
-                            "subType": sale_rules[base].get("subType", ""),
-                            "category": infer_category(base, clean_title or default_name, sale_rules[base].get("subType", "")),
-                            "origPrice": sale_rules[base]["origPrice"],
-                            "salePrice": sale_rules[base]["salePrice"],
-                            "discountPct": sale_rules[base]["discountPct"],
-                            "image": "", "images": [], "sapoImages": [], "video": "", "sizeChart": "",
-                            "excel_override": True,
-                            "variants": [],
-                        })
-                        if clean_title and ent["name"].startswith(("Áo thun nữ Havana", "Sản phẩm Havana")):
-                            ent["name"] = clean_title
-                        ent["origPrice"] = sale_rules[base]["origPrice"]
-                        ent["salePrice"] = sale_rules[base]["salePrice"]
-                        ent["discountPct"] = sale_rules[base]["discountPct"]
-                        if st_row:
-                            ent["variants"].append({"size": sz_lbl, "stocks": st_row})
+                    last_title = clean_title
+                    default_name = f"Áo thun nữ Havana {base}"
+                    ent = ath_excel_products.setdefault(base, {
+                        "sku": base,
+                        "name": clean_title or default_name,
+                        "subType": "Áo thun",
+                        "category": "AO_THUN",
+                        "section": "ATH",
+                        "singlePrice": True,
+                        "origPrice": ath_p,
+                        "salePrice": ath_p,
+                        "discountPct": 0,
+                        "image": "", "images": [], "sapoImages": [], "video": "", "sizeChart": "",
+                        "excel_override": True,
+                        "variants": [],
+                    })
+                    if clean_title and ent["name"].startswith("Áo thun nữ Havana"):
+                        ent["name"] = clean_title
+                    if ath_p > 0:
+                        ent["origPrice"] = ath_p
+                        ent["salePrice"] = ath_p
+                    if st_row:
+                        ent["variants"].append({"size": sz_lbl, "stocks": st_row})
 
-            print(f"[+] Da nap file Excel: {xf} (Tong ma Sale: {len(sale_rules)})")
+            print(f"[+] Da nap danh sach Ao Thun ATH tu {xf}: {len(ath_rules)} ma (da tach khoi Black Friday)!")
 
+    sale_rules = {**bf_rules, **ath_rules}
     for ex in EXCLUDED_SKUS:
         sale_rules.pop(ex, None)
-        excel_products.pop(ex, None)
-    for code, (op, sp, dp) in PRICE_PATCH_V36.items():
-        if code in sale_rules:
-            sale_rules[code].update({"origPrice": op, "salePrice": sp, "discountPct": dp})
+        ath_excel_products.pop(ex, None)
 
     if sale_rules:
         with open("sale_rules.json", "w", encoding="utf-8") as f:
             json.dump(sale_rules, f, ensure_ascii=False, indent=2)
 
-    if unpriced_extra:
-        msg = f"### ⚠️ Có {len(unpriced_extra)} mã mới trong file Excel chưa có Giá Sale: `{', '.join(sorted(unpriced_extra))}`\nHãy bổ sung cột `Đồng giá` (hoặc `Giá sale`) vào file Excel để hệ thống đưa lên web."
-        print(msg)
-        sp_summary = os.environ.get("GITHUB_STEP_SUMMARY", "").strip()
-        if sp_summary:
-            with open(sp_summary, "a", encoding="utf-8") as sf: sf.write(msg + "\n")
-
-    return sale_rules, excel_products, [os.path.basename(x) for x in xlsx_files]
+    return sale_rules, ath_excel_products, [os.path.basename(x) for x in xlsx_files]
 
 
-def merge_excel_stock_into_sapo(grouped, excel_prods, sale_rules):
-    """Dam bao cac ma trong ATH ONL.xlsx luon giu duoc ton Online >= 3 ke ca khi tren Sapo bao ton 0."""
-    for c, xp in excel_prods.items():
+def merge_ath_excel_into_grouped(grouped, ath_excel_prods, sale_rules):
+    for c, xp in ath_excel_prods.items():
         if c not in sale_rules or c in EXCLUDED_SKUS:
             continue
+        r = sale_rules[c]
         if c not in grouped:
+            ath_p = r.get("salePrice") or xp.get("salePrice") or 189000
+            xp["origPrice"] = ath_p
+            xp["salePrice"] = ath_p
+            xp["discountPct"] = 0
+            xp["section"] = "ATH"
+            xp["singlePrice"] = True
             grouped[c] = xp
             continue
         gp = grouped[c]
         gp["excel_override"] = True
-        if sale_rules[c].get("origPrice", 0) > sale_rules[c].get("salePrice", 0):
-            gp["origPrice"] = sale_rules[c]["origPrice"]
-        gp["salePrice"] = sale_rules[c]["salePrice"]
-        gp["discountPct"] = max(1, round((1 - gp["salePrice"] / gp["origPrice"]) * 100)) if gp["origPrice"] > gp["salePrice"] else 30
+        gp["section"] = "ATH"
+        gp["singlePrice"] = True
+        ath_p = r.get("salePrice") or gp.get("salePrice") or gp.get("origPrice") or 189000
+        gp["origPrice"] = ath_p
+        gp["salePrice"] = ath_p
+        gp["discountPct"] = 0
 
         xp_vars = xp.get("variants") or []
         if not xp_vars:
@@ -886,32 +1194,32 @@ def apply_media_to_products(prods_list, repo_media, preserved):
         p["sizeChart"] = "" if c in FORCE_RESET_TO_SAPO_SKUS else (rm.get("sizeChart") or pr.get("sz") or cur_sz or "")
 
 
-def upgrade_repo_files_v36():
+def upgrade_repo_files_v37():
     changed = False
     os.makedirs(os.path.join("functions", "api"), exist_ok=True)
     sjs_path = os.path.join("functions", "api", "stock.js")
     old_js = open(sjs_path, "r", encoding="utf-8").read() if os.path.exists(sjs_path) else ""
-    if old_js.strip() != CF_STOCK_JS_V36.strip():
+    if old_js.strip() != CF_STOCK_JS_V37.strip():
         with open(sjs_path, "w", encoding="utf-8") as f:
-            f.write(CF_STOCK_JS_V36)
+            f.write(CF_STOCK_JS_V37)
         changed = True
 
     if os.path.exists("index.html"):
         with open("index.html", "r", encoding="utf-8") as f: orig = f.read()
         html = orig
-        html = re.sub(r'(<title>)[^<]*(</title>)', r'\1HAVANA — Xả Ngày Cuối (Chỉ Áp Dụng Cho Online)\2', html, count=1)
+        html = re.sub(r'(<title>)[^<]*(</title>)', r'\1HAVANA — Sale Black Friday &amp; Áo Thun ATH (Online)\2', html, count=1)
         html = re.sub(r'(<div class="brand-title" id="mainBrandTitle">)[^<]*(</div>)', r'\1XẢ NGÀY CUỐI\2', html, count=1)
         html = re.sub(r'(<span id="subBrandText">)[^<]*(</span>)', r'\1(Chỉ áp dụng cho Online)\2', html, count=1)
-        html = re.sub(r'(<span class="bill-head-badge">)[^<]*(</span>)', r'\1XẢ NGÀY CUỐI • CHỈ ÁP DỤNG CHO ONLINE\2', html, count=1)
+        html = re.sub(r'(<span class="bill-head-badge">)[^<]*(</span>)', r'\1HAVANA ONLINE • CHỈ ÁP DỤNG CHO ONLINE\2', html, count=1)
         html = re.sub(r'(<h2 id="billModalTitle"[^>]*>)[^<]*(</h2>)', r'\1Phiếu Lên Đơn Tạm\2', html, count=1)
         html = re.sub(r'(<input type="text" class="bill-input" id="custNoteInput" placeholder=")[^"]*(")', r'\1Địa chỉ nhận ship &amp; Ghi chú đơn hàng (Chỉ áp dụng cho Online)...\2', html, count=1)
         html = html.replace('📋 Sao chép nội dung Bill', '📋 Sao chép Đơn tạm').replace('🖼️ Tải ảnh Bill gửi Zalo', '🖼️ Tải ảnh Đơn tạm gửi Zalo')
         end_m = html.rfind("/* [BLOCK:APP_LOGIC_END] */")
         if end_m != -1:
-            cuts = [html.find(k, 0, end_m) for k in ("/* === v22:", "/* === v23:", "/* === v25:", "/* === v26:", "/* === v27:", "/* === v28:", "/* === v29:", "/* === v30:", "/* === v31:", "/* === v32:", "/* === v33:", "/* === v34:", "/* === v35:", "/* === v36:")]
+            cuts = [html.find(k, 0, end_m) for k in ("/* === v22:", "/* === v23:", "/* === v25:", "/* === v26:", "/* === v27:", "/* === v28:", "/* === v29:", "/* === v30:", "/* === v31:", "/* === v32:", "/* === v33:", "/* === v34:", "/* === v35:", "/* === v36:", "/* === v37:")]
             valid = [p for p in cuts if p != -1]
             cut_at = min(valid) if valid else end_m
-            html = html[:cut_at].rstrip() + "\n\n    " + V36_INDEX_JS_ADDON.strip() + "\n    /* [BLOCK:APP_LOGIC_END] */" + html[end_m + len("/* [BLOCK:APP_LOGIC_END] */"):]
+            html = html[:cut_at].rstrip() + "\n\n    " + V37_INDEX_JS_ADDON.strip() + "\n    /* [BLOCK:APP_LOGIC_END] */" + html[end_m + len("/* [BLOCK:APP_LOGIC_END] */"):]
         html = re.sub(r'(<span id="onlyInStockText">)(?:Còn tồn|In Stock)(</span>)', r'\1Tồn ≥ 3\2', html, count=1)
         if html != orig:
             with open("index.html", "w", encoding="utf-8") as f: f.write(html)
@@ -965,12 +1273,12 @@ def publish_live_release(wh_list, prods, synced_at, epoch, expired):
         if vv and p.get("name"): ent["n"] = p["name"]
         if c in FORCE_RESET_TO_SAPO_SKUS and p.get("sapoImages"): ent["si"] = list(p["sapoImages"])[:5]
         items[c] = ent
-    body = json.dumps({"v": 36, "full": 1, "cookie_expired": bool(expired), "synced_at": synced_at, "synced_epoch": int(epoch or 0), "warehouses": wh_list, "items": items}, ensure_ascii=False, separators=(",", ":"))
+    body = json.dumps({"v": 37, "full": 1, "cookie_expired": bool(expired), "synced_at": synced_at, "synced_epoch": int(epoch or 0), "warehouses": wh_list, "items": items}, ensure_ascii=False, separators=(",", ":"))
     if len(body) > 120000:
         tmp = json.loads(body)
         for v in tmp["items"].values(): v.pop("n", None)
         body = json.dumps(tmp, ensure_ascii=False, separators=(",", ":"))
-    hdrs = {"Authorization": f"Bearer {gh_token}", "Accept": "application/vnd.github+json", "Content-Type": "application/json", "User-Agent": "havana-v36"}
+    hdrs = {"Authorization": f"Bearer {gh_token}", "Accept": "application/vnd.github+json", "Content-Type": "application/json", "User-Agent": "havana-v37"}
     rel_id = None
     try:
         with urllib.request.urlopen(urllib.request.Request(f"https://api.github.com/repos/{repo}/releases/tags/live-stock", headers=hdrs), timeout=15) as r:
@@ -1003,11 +1311,11 @@ def write_outputs(wh_list, prods, synced_at, rules, epoch, expired):
 
 
 def main():
-    upgraded = upgrade_repo_files_v36()
-    sale_rules, excel_prods, found_xlsx = load_all_rules_and_excel_products()
+    upgrade_repo_files_v37()
+    sale_rules, ath_excel_prods, found_xlsx = load_all_rules_and_excel_products()
     repo_media = scan_repo_media(list(sale_rules.keys()))
 
-    old_wh, old_prods, old_stamp, old_epoch = [], [], "11:13 27/11", 0
+    old_wh, old_prods, old_stamp, old_epoch = [], [], "11:30 27/11", 0
     if os.path.exists("sapo_5_kho.json"):
         try:
             with open("sapo_5_kho.json", "r", encoding="utf-8") as f: od = json.load(f)
@@ -1053,18 +1361,32 @@ def main():
         for ep in old_prods:
             c = clean_base_code(str(ep.get("sku") or "").split("-")[0])
             if not c or c in EXCLUDED_SKUS or c not in sale_rules: continue
-            ep["origPrice"] = sale_rules[c]["origPrice"] or ep.get("origPrice", 299000)
-            ep["salePrice"] = sale_rules[c]["salePrice"] or ep.get("salePrice", 159000)
-            ep["discountPct"] = max(1, round((1 - ep["salePrice"] / ep["origPrice"]) * 100))
+            r = sale_rules[c]
+            is_ath = (r.get("section") == "ATH")
+            ep["section"] = "ATH" if is_ath else "BF"
+            ep["singlePrice"] = is_ath
+            if is_ath:
+                ath_p = r.get("salePrice") or ep.get("origPrice") or ep.get("salePrice") or 189000
+                ep["origPrice"] = ath_p
+                ep["salePrice"] = ath_p
+                ep["discountPct"] = 0
+                sale_rules[c]["origPrice"] = ath_p
+                sale_rules[c]["salePrice"] = ath_p
+            else:
+                ep["origPrice"] = r.get("origPrice") or ep.get("origPrice", 299000)
+                ep["salePrice"] = r.get("salePrice") or ep.get("salePrice", 159000)
+                ep["discountPct"] = max(1, round((1 - ep["salePrice"] / ep["origPrice"]) * 100)) if ep["origPrice"] > ep["salePrice"] else 30
             merged_map[c] = ep
-        merge_excel_stock_into_sapo(merged_map, excel_prods, sale_rules)
+        merge_ath_excel_into_grouped(merged_map, ath_excel_prods, sale_rules)
+        with open("sale_rules.json", "w", encoding="utf-8") as f:
+            json.dump(sale_rules, f, ensure_ascii=False, indent=2)
         final_list = list(merged_map.values())
         apply_media_to_products(final_list, repo_media, preserved)
         wh_out = old_wh or [{"id": "wh_havana", "name": "HAVANA (93-95 Hồ Phi Tích)"}, {"id": "wh_online", "name": "HAVANA ONLINE"}, {"id": "wh_pct", "name": "261 - 263 Phan Châu Trinh"}, {"id": "wh_auco", "name": "101 Âu Cơ"}, {"id": "wh_leduan", "name": "240 Lê Duẩn"}]
         publish_live_release(wh_out, final_list, old_stamp, old_epoch, expired=True)
         if os.path.exists(".skip_git_commit"): os.remove(".skip_git_commit")
         kept = write_outputs(wh_out, final_list, old_stamp, sale_rules, old_epoch, expired=True)
-        print(f"[+] Hoan tat v36 (Offline): {len(kept)} ma!")
+        print(f"[+] Hoan tat v37 (Offline): {len(kept)} ma!")
         return
 
     grouped = {}
@@ -1075,9 +1397,20 @@ def main():
         base = ntoks[0] if ntoks else next((clean_base_code(str(v.get("sku") or "").split("-")[0]) for v in vraw if clean_base_code(str(v.get("sku") or "").split("-")[0]) in sale_rules), "")
         if not base or base in EXCLUDED_SKUS: continue
         rule = sale_rules[base]
-        op = rule.get("origPrice") or parse_money(vraw[0].get("variant_retail_price") or 299000)
-        sp = rule.get("salePrice") or 159000
-        dp = max(1, round((1 - sp / op) * 100)) if op > sp > 0 else 30
+        is_ath = (rule.get("section") == "ATH")
+        sapo_retail = parse_money_col(vraw[0].get("variant_retail_price") or vraw[0].get("price") or 0)
+
+        if is_ath:
+            ath_p = rule.get("salePrice") or sapo_retail or rule.get("origPrice") or 189000
+            op, sp, dp = ath_p, ath_p, 0
+            sale_rules[base]["origPrice"] = ath_p
+            sale_rules[base]["salePrice"] = ath_p
+        else:
+            op = rule.get("origPrice") or sapo_retail or 299000
+            sp = rule.get("salePrice") or 159000
+            if op < sp: op = max(op, sapo_retail, sp)
+            dp = max(1, round((1 - sp / op) * 100)) if op > sp > 0 else 30
+
         s_imgs = []
         im0 = p.get("image")
         for im in ([im0] if im0 else []) + list(p.get("images") or []):
@@ -1104,10 +1437,17 @@ def main():
                 if u not in grouped[base]["sapoImages"]: grouped[base]["sapoImages"].append(u)
         else:
             pname = norm_nfc(p.get("name") or base)
-            grouped[base] = {"sku": base, "name": pname, "subType": rule.get("subType", ""), "category": infer_category(base, pname, rule.get("subType", "")), "origPrice": op, "salePrice": sp, "discountPct": dp, "image": "", "images": [], "sapoImages": s_imgs, "video": "", "sizeChart": "", "variants": v_list}
+            grouped[base] = {
+                "sku": base, "name": pname, "subType": rule.get("subType", ""),
+                "category": infer_category(base, pname, rule.get("subType", "")),
+                "section": "ATH" if is_ath else "BF", "singlePrice": is_ath,
+                "origPrice": op, "salePrice": sp, "discountPct": dp,
+                "image": "", "images": [], "sapoImages": s_imgs, "video": "", "sizeChart": "", "variants": v_list,
+            }
 
-    # Gop truc tiep ton Online & ma moi tu ATH ONL.xlsx vao ket qua Sapo Live
-    merge_excel_stock_into_sapo(grouped, excel_prods, sale_rules)
+    merge_ath_excel_into_grouped(grouped, ath_excel_prods, sale_rules)
+    with open("sale_rules.json", "w", encoding="utf-8") as f:
+        json.dump(sale_rules, f, ensure_ascii=False, indent=2)
 
     prods_all = list(grouped.values())
     apply_media_to_products(prods_all, repo_media, preserved)
@@ -1116,8 +1456,9 @@ def main():
     publish_live_release(wh_sorted, prods_all, now_st, now_ep, expired=False)
     if os.path.exists(".skip_git_commit"): os.remove(".skip_git_commit")
     kept = write_outputs(wh_sorted, prods_all, now_st, sale_rules, now_ep, expired=False)
-    ath_cnt = sum(1 for x in kept if str(x.get("sku", "")).startswith("ATH"))
-    summary_md = f"### ✅ Đồng bộ v36 thành công ({now_st})\n- **File Excel đã đọc:** `{', '.join(found_xlsx) or 'Không có'}`\n- **Tổng mã hiển thị:** `{len(kept)}` mẫu (**Áo Thun `ATH`:** `{ath_cnt}` mẫu)"
+    bf_cnt = sum(1 for x in kept if x.get("section") != "ATH")
+    ath_cnt = sum(1 for x in kept if x.get("section") == "ATH")
+    summary_md = f"### ✅ Đồng bộ v37 — 2 Mục Chính ({now_st})\n- **🔥 BLACK FRIDAY:** `{bf_cnt}` mẫu\n- **👕 ÁO THUN ATH (1 giá ATH):** `{ath_cnt}` mẫu\n- **File Excel đã nạp:** `{', '.join(found_xlsx) or 'Không có'}`"
     print(summary_md)
     sp_sum = os.environ.get("GITHUB_STEP_SUMMARY", "").strip()
     if sp_sum:
@@ -1127,4 +1468,4 @@ def main():
 if __name__ == "__main__":
     main()
     sys.exit(0)
-# === HET FILE V36 ===
+# === HET FILE V37 ===
