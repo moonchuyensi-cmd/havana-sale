@@ -1,8 +1,8 @@
 {
   "min_stock_rule": 3,
   "min_variant_stock_rule": 3,
-  "synced_at": "11:30 27/11",
-  "synced_epoch": 1795753850,
+  "synced_at": "11:46 27/11",
+  "synced_epoch": 1795754817,
   "sapo_cookie_expired": false,
   "warehouses": [
     {
@@ -43,8 +43,8 @@
       "subType": "",
       "category": "AO_THUN",
       "origPrice": 129000,
-      "salePrice": 129000,
-      "discountPct": 30,
+      "salePrice": 116100,
+      "discountPct": 10,
       "image": "https://sapo.dktcdn.net/100/618/480/variants/11f3df61-a7a1-4b4a-9d2d-d9b0f1261b08.jpg",
       "images": [
         "https://sapo.dktcdn.net/100/618/480/variants/11f3df61-a7a1-4b4a-9d2d-d9b0f1261b08.jpg",
@@ -212,6 +212,80 @@
       "hasCustomMedia": true
     },
     {
+      "sku": "ATH945",
+      "name": "Áo thun ôm tay dài #6340 (3) ATH945",
+      "subType": "",
+      "category": "AO_THUN",
+      "origPrice": 175000,
+      "salePrice": 157500,
+      "discountPct": 10,
+      "image": "https://sapo.dktcdn.net/100/618/480/variants/4fa5139b-2225-49ec-b021-6bd8f77e83b8.jpg",
+      "images": [
+        "https://sapo.dktcdn.net/100/618/480/variants/4fa5139b-2225-49ec-b021-6bd8f77e83b8.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/ad0abaf3-e019-4ad8-8ac9-b77f109baf4f.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/3a4d008b-4456-4dd7-abd9-3a4a15f2f2df.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/5a6faa88-7cae-4679-9d1f-652d6cf2a901.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/ba85c276-e4ca-4ead-8124-3e8f9ba73393.jpg"
+      ],
+      "sapoImages": [
+        "https://sapo.dktcdn.net/100/618/480/variants/4fa5139b-2225-49ec-b021-6bd8f77e83b8.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/ad0abaf3-e019-4ad8-8ac9-b77f109baf4f.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/3a4d008b-4456-4dd7-abd9-3a4a15f2f2df.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/5a6faa88-7cae-4679-9d1f-652d6cf2a901.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/ba85c276-e4ca-4ead-8124-3e8f9ba73393.jpg"
+      ],
+      "video": "",
+      "sizeChart": "",
+      "variants": [
+        {
+          "size": "Be",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 0,
+            "wh_auco": 0,
+            "wh_leduan": 0,
+            "wh_online": 3,
+            "wh_790054": 0
+          }
+        },
+        {
+          "size": "Đen",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 0,
+            "wh_auco": 0,
+            "wh_leduan": 0,
+            "wh_online": 3,
+            "wh_790054": 0
+          }
+        },
+        {
+          "size": "Nâu",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 0,
+            "wh_auco": 0,
+            "wh_leduan": 0,
+            "wh_online": 3,
+            "wh_790054": 0
+          }
+        },
+        {
+          "size": "Hồng",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 5,
+            "wh_auco": 0,
+            "wh_leduan": 1,
+            "wh_online": 3,
+            "wh_790054": 0
+          }
+        }
+      ],
+      "excel_override": true,
+      "hasCustomMedia": false
+    },
+    {
       "sku": "ATH944",
       "name": "Áo thun tay ngắn kẻ ngang #135 (3) ATH944",
       "subType": "",
@@ -271,7 +345,6 @@
           }
         }
       ],
-      "excel_override": true,
       "hasCustomMedia": false
     },
     {
@@ -590,8 +663,8 @@
       "subType": "",
       "category": "AO_THUN",
       "origPrice": 339000,
-      "salePrice": 199000,
-      "discountPct": 41,
+      "salePrice": 271200,
+      "discountPct": 20,
       "image": "./images/ATH941_68a5ebac0e654fdab2d8b1c0f3270704~tplv-aphluv4xwc-origin-jpeg.jpeg",
       "images": [
         "./images/ATH941_68a5ebac0e654fdab2d8b1c0f3270704~tplv-aphluv4xwc-origin-jpeg.jpeg",
@@ -1331,8 +1404,8 @@
       "subType": "",
       "category": "AO_THUN",
       "origPrice": 299000,
-      "salePrice": 159000,
-      "discountPct": 47,
+      "salePrice": 239200,
+      "discountPct": 20,
       "image": "./images/Ath940.jpg",
       "images": [
         "./images/Ath940.jpg"
@@ -1573,8 +1646,8 @@
       "subType": "",
       "category": "AO_THUN",
       "origPrice": 149000,
-      "salePrice": 79000,
-      "discountPct": 47,
+      "salePrice": 134100,
+      "discountPct": 10,
       "image": "./images/Ath938.jpg",
       "images": [
         "./images/Ath938.jpg"
@@ -1590,17 +1663,6 @@
       "video": "",
       "sizeChart": "",
       "variants": [
-        {
-          "size": "Đen",
-          "stocks": {
-            "wh_havana": 0,
-            "wh_pct": 0,
-            "wh_auco": 0,
-            "wh_leduan": 0,
-            "wh_online": 3,
-            "wh_790054": 0
-          }
-        },
         {
           "size": "Hồng",
           "stocks": {
@@ -1698,7 +1760,6 @@
           }
         }
       ],
-      "excel_override": true,
       "hasCustomMedia": false
     },
     {
@@ -1782,6 +1843,41 @@
       "hasCustomMedia": true
     },
     {
+      "sku": "ATH936",
+      "name": "Áo thun tay dài ống loe (22) ATH936",
+      "subType": "",
+      "category": "AO_THUN",
+      "origPrice": 275000,
+      "salePrice": 220000,
+      "discountPct": 20,
+      "image": "https://sapo.dktcdn.net/100/618/480/variants/891ff318-00e1-4357-9fba-f73db925654c.jpg",
+      "images": [
+        "https://sapo.dktcdn.net/100/618/480/variants/891ff318-00e1-4357-9fba-f73db925654c.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/5d1da361-b67d-4143-a4ce-2bad362adaaf.jpg"
+      ],
+      "sapoImages": [
+        "https://sapo.dktcdn.net/100/618/480/variants/891ff318-00e1-4357-9fba-f73db925654c.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/5d1da361-b67d-4143-a4ce-2bad362adaaf.jpg"
+      ],
+      "video": "",
+      "sizeChart": "",
+      "variants": [
+        {
+          "size": "Kem",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 5,
+            "wh_auco": 1,
+            "wh_leduan": 0,
+            "wh_online": 0,
+            "wh_790054": 0
+          }
+        }
+      ],
+      "excel_override": true,
+      "hasCustomMedia": false
+    },
+    {
       "sku": "ATH935",
       "name": "Áo thun \"Water color…\" #392743 (17) ATH935",
       "subType": "",
@@ -1833,6 +1929,81 @@
             "wh_havana": 0,
             "wh_pct": 0,
             "wh_auco": 0,
+            "wh_leduan": 0,
+            "wh_online": 3,
+            "wh_790054": 0
+          }
+        }
+      ],
+      "hasCustomMedia": false
+    },
+    {
+      "sku": "ATH929",
+      "name": "Áo thun trơn cổ tròn #2254.12 (3) ATH929",
+      "subType": "",
+      "category": "AO_THUN",
+      "origPrice": 149000,
+      "salePrice": 119200,
+      "discountPct": 20,
+      "image": "https://sapo.dktcdn.net/100/618/480/variants/2f0b5338-21b0-4833-9b75-09f3ae323333.jpg",
+      "images": [
+        "https://sapo.dktcdn.net/100/618/480/variants/2f0b5338-21b0-4833-9b75-09f3ae323333.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/c9c17411-d801-44c5-ae87-57f8f8c96ad9.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/e1fc0c09-de65-491d-8ce9-0eda98fab833.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/dd74cfa0-debd-4e95-9d3b-8ab1445f21b9.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/41feadfd-722c-4308-b8b0-7f560543e87c.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/b4708236-14f4-49e3-86b8-4dc07811c377.jpg"
+      ],
+      "sapoImages": [
+        "https://sapo.dktcdn.net/100/618/480/variants/2f0b5338-21b0-4833-9b75-09f3ae323333.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/c9c17411-d801-44c5-ae87-57f8f8c96ad9.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/e1fc0c09-de65-491d-8ce9-0eda98fab833.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/dd74cfa0-debd-4e95-9d3b-8ab1445f21b9.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/41feadfd-722c-4308-b8b0-7f560543e87c.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/b4708236-14f4-49e3-86b8-4dc07811c377.jpg"
+      ],
+      "video": "",
+      "sizeChart": "",
+      "variants": [
+        {
+          "size": "Đen",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 0,
+            "wh_auco": 0,
+            "wh_leduan": 0,
+            "wh_online": 3,
+            "wh_790054": 0
+          }
+        },
+        {
+          "size": "Xanh Dương",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 0,
+            "wh_auco": 0,
+            "wh_leduan": 0,
+            "wh_online": 3,
+            "wh_790054": 0
+          }
+        },
+        {
+          "size": "Nâu",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 0,
+            "wh_auco": 0,
+            "wh_leduan": 0,
+            "wh_online": 3,
+            "wh_790054": 0
+          }
+        },
+        {
+          "size": "Hồng",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 0,
+            "wh_auco": 2,
             "wh_leduan": 0,
             "wh_online": 3,
             "wh_790054": 0
@@ -1891,8 +2062,8 @@
       "subType": "",
       "category": "AO_THUN",
       "origPrice": 249000,
-      "salePrice": 159000,
-      "discountPct": 36,
+      "salePrice": 199200,
+      "discountPct": 20,
       "image": "https://sapo.dktcdn.net/100/618/480/variants/53f100fb-69d4-4b28-a024-8602b028a663.jpg",
       "images": [
         "https://sapo.dktcdn.net/100/618/480/variants/53f100fb-69d4-4b28-a024-8602b028a663.jpg",
@@ -1930,8 +2101,8 @@
       "subType": "",
       "category": "AO_THUN",
       "origPrice": 329000,
-      "salePrice": 199000,
-      "discountPct": 40,
+      "salePrice": 263200,
+      "discountPct": 20,
       "image": "https://sapo.dktcdn.net/100/618/480/variants/70285943-1953-4d10-98cc-4a8bb4402a80.jpg",
       "images": [
         "https://sapo.dktcdn.net/100/618/480/variants/70285943-1953-4d10-98cc-4a8bb4402a80.jpg",
@@ -2432,8 +2603,8 @@
       "subType": "",
       "category": "AO_THUN",
       "origPrice": 259000,
-      "salePrice": 159000,
-      "discountPct": 39,
+      "salePrice": 207200,
+      "discountPct": 20,
       "image": "./images/Ath923.jpg",
       "images": [
         "./images/Ath923.jpg"
@@ -2456,7 +2627,7 @@
             "wh_pct": 4,
             "wh_auco": 9,
             "wh_leduan": 9,
-            "wh_online": 2,
+            "wh_online": 1,
             "wh_790054": 0
           }
         },
@@ -2791,7 +2962,7 @@
         {
           "size": "Nâu - M",
           "stocks": {
-            "wh_havana": 1,
+            "wh_havana": 0,
             "wh_pct": 0,
             "wh_auco": 1,
             "wh_leduan": 6,
@@ -2905,6 +3076,69 @@
         }
       ],
       "hasCustomMedia": true
+    },
+    {
+      "sku": "ATH920",
+      "name": "Áo thun kẻ sọc in hình mèo Fumyday #392360 (17) ATH920",
+      "subType": "",
+      "category": "AO_THUN",
+      "origPrice": 142000,
+      "salePrice": 127800,
+      "discountPct": 10,
+      "image": "https://sapo.dktcdn.net/100/618/480/variants/d15fbd4f-9011-4611-a9e3-2f8c3a98950e.jpg",
+      "images": [
+        "https://sapo.dktcdn.net/100/618/480/variants/d15fbd4f-9011-4611-a9e3-2f8c3a98950e.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/eddb8e8b-94b9-4c79-abf9-c29755550a46.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/4ffa0f71-8695-41df-805b-d5d695ca1ba7.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/9dc66224-f670-4f03-bd88-eb37fb3f0c16.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/33e2dda1-28cd-4fa5-b898-37736b8ebd43.jpg"
+      ],
+      "sapoImages": [
+        "https://sapo.dktcdn.net/100/618/480/variants/d15fbd4f-9011-4611-a9e3-2f8c3a98950e.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/eddb8e8b-94b9-4c79-abf9-c29755550a46.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/4ffa0f71-8695-41df-805b-d5d695ca1ba7.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/9dc66224-f670-4f03-bd88-eb37fb3f0c16.jpg",
+        "https://sapo.dktcdn.net/100/618/480/variants/33e2dda1-28cd-4fa5-b898-37736b8ebd43.jpg"
+      ],
+      "video": "",
+      "sizeChart": "",
+      "variants": [
+        {
+          "size": "Be",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 5,
+            "wh_auco": 0,
+            "wh_leduan": 9,
+            "wh_online": 0,
+            "wh_790054": 0
+          }
+        },
+        {
+          "size": "Hồng",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 4,
+            "wh_auco": 0,
+            "wh_leduan": 2,
+            "wh_online": 1,
+            "wh_790054": 0
+          }
+        },
+        {
+          "size": "Xanh bơ",
+          "stocks": {
+            "wh_havana": 0,
+            "wh_pct": 11,
+            "wh_auco": 1,
+            "wh_leduan": 9,
+            "wh_online": 0,
+            "wh_790054": 0
+          }
+        }
+      ],
+      "excel_override": true,
+      "hasCustomMedia": false
     },
     {
       "sku": "AK185",
@@ -4221,8 +4455,8 @@
       "subType": "",
       "category": "AO_THUN",
       "origPrice": 209000,
-      "salePrice": 79000,
-      "discountPct": 62,
+      "salePrice": 188100,
+      "discountPct": 10,
       "image": "./images/ATH908_013d297f098445389fbc982042959674~tplv-aphluv4xwc-origin-jpeg.jpeg",
       "images": [
         "./images/ATH908_013d297f098445389fbc982042959674~tplv-aphluv4xwc-origin-jpeg.jpeg",
@@ -5074,8 +5308,8 @@
       "subType": "",
       "category": "AO_THUN",
       "origPrice": 179000,
-      "salePrice": 79000,
-      "discountPct": 56,
+      "salePrice": 161100,
+      "discountPct": 10,
       "image": "./images/ATH877_6cb5c5a369004af8a37576cd48c46cd2~tplv-aphluv4xwc-origin-jpeg.jpeg",
       "images": [
         "./images/ATH877_6cb5c5a369004af8a37576cd48c46cd2~tplv-aphluv4xwc-origin-jpeg.jpeg",
@@ -5094,24 +5328,13 @@
       "sizeChart": "",
       "variants": [
         {
-          "size": "Đen",
-          "stocks": {
-            "wh_havana": 0,
-            "wh_pct": 0,
-            "wh_auco": 0,
-            "wh_leduan": 0,
-            "wh_online": 3,
-            "wh_790054": 0
-          }
-        },
-        {
           "size": "Trắng",
           "stocks": {
             "wh_havana": 0,
             "wh_pct": 1,
             "wh_auco": 2,
             "wh_leduan": 0,
-            "wh_online": 1,
+            "wh_online": 0,
             "wh_790054": 0
           }
         },
@@ -5842,8 +6065,8 @@
       "subType": "",
       "category": "AO_THUN",
       "origPrice": 239000,
-      "salePrice": 79000,
-      "discountPct": 67,
+      "salePrice": 191200,
+      "discountPct": 20,
       "image": "./images/Ath847.jpg",
       "images": [
         "./images/Ath847.jpg"
@@ -5881,8 +6104,8 @@
       "subType": "",
       "category": "AO_THUN",
       "origPrice": 153000,
-      "salePrice": 39000,
-      "discountPct": 75,
+      "salePrice": 122400,
+      "discountPct": 20,
       "image": "./images/ATH844_184e9c8caca14aaca047b3558ef2524c~tplv-aphluv4xwc-origin-jpeg.jpeg",
       "images": [
         "./images/ATH844_184e9c8caca14aaca047b3558ef2524c~tplv-aphluv4xwc-origin-jpeg.jpeg",
@@ -5900,24 +6123,13 @@
       "sizeChart": "",
       "variants": [
         {
-          "size": "Vàng",
-          "stocks": {
-            "wh_havana": 0,
-            "wh_pct": 0,
-            "wh_auco": 0,
-            "wh_leduan": 1,
-            "wh_online": 7,
-            "wh_790054": 0
-          }
-        },
-        {
           "size": "Tím",
           "stocks": {
             "wh_havana": 0,
             "wh_pct": 0,
             "wh_auco": 10,
             "wh_leduan": 0,
-            "wh_online": 4,
+            "wh_online": 0,
             "wh_790054": 0
           }
         }
@@ -7656,7 +7868,7 @@
           "size": "Trắng - M",
           "stocks": {
             "wh_havana": 0,
-            "wh_pct": 10,
+            "wh_pct": 11,
             "wh_auco": 14,
             "wh_leduan": 10,
             "wh_online": 0,
@@ -7829,7 +8041,7 @@
             "wh_pct": 14,
             "wh_auco": 8,
             "wh_leduan": 10,
-            "wh_online": 1,
+            "wh_online": 0,
             "wh_790054": 0
           }
         }
@@ -8237,7 +8449,7 @@
         {
           "size": "Trắng",
           "stocks": {
-            "wh_havana": 1,
+            "wh_havana": 0,
             "wh_pct": 2,
             "wh_auco": 3,
             "wh_leduan": 6,
@@ -8475,17 +8687,6 @@
       "sizeChart": "",
       "variants": [
         {
-          "size": "Be - M",
-          "stocks": {
-            "wh_havana": 3,
-            "wh_pct": 0,
-            "wh_auco": 0,
-            "wh_leduan": 0,
-            "wh_online": 0,
-            "wh_790054": 0
-          }
-        },
-        {
           "size": "Be - L",
           "stocks": {
             "wh_havana": 4,
@@ -8715,7 +8916,7 @@
         {
           "size": "Hồng",
           "stocks": {
-            "wh_havana": 22,
+            "wh_havana": 21,
             "wh_pct": 8,
             "wh_auco": 5,
             "wh_leduan": 15,

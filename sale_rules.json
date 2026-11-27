@@ -757,8 +757,8 @@
   },
   "ATH810": {
     "origPrice": 169000,
-    "salePrice": 39000,
-    "discountPct": 77,
+    "salePrice": 152100,
+    "discountPct": 10,
     "subType": ""
   },
   "ATH821": {
@@ -793,8 +793,8 @@
   },
   "ATH835": {
     "origPrice": 179000,
-    "salePrice": 39000,
-    "discountPct": 78,
+    "salePrice": 161100,
+    "discountPct": 10,
     "subType": ""
   },
   "ATH843": {
@@ -805,14 +805,14 @@
   },
   "ATH844": {
     "origPrice": 153000,
-    "salePrice": 39000,
-    "discountPct": 75,
+    "salePrice": 122400,
+    "discountPct": 20,
     "subType": ""
   },
   "ATH847": {
     "origPrice": 239000,
-    "salePrice": 79000,
-    "discountPct": 67,
+    "salePrice": 191200,
+    "discountPct": 20,
     "subType": ""
   },
   "ATH848": {
@@ -865,8 +865,8 @@
   },
   "ATH877": {
     "origPrice": 179000,
-    "salePrice": 79000,
-    "discountPct": 56,
+    "salePrice": 161100,
+    "discountPct": 10,
     "subType": ""
   },
   "ATH878": {
@@ -901,8 +901,8 @@
   },
   "ATH899": {
     "origPrice": 239000,
-    "salePrice": 159000,
-    "discountPct": 33,
+    "salePrice": 191200,
+    "discountPct": 20,
     "subType": ""
   },
   "ATH900": {
@@ -913,14 +913,14 @@
   },
   "ATH903": {
     "origPrice": 139000,
-    "salePrice": 79000,
-    "discountPct": 43,
+    "salePrice": 125100,
+    "discountPct": 10,
     "subType": ""
   },
   "ATH908": {
     "origPrice": 209000,
-    "salePrice": 79000,
-    "discountPct": 62,
+    "salePrice": 188100,
+    "discountPct": 10,
     "subType": ""
   },
   "ATH909": {
@@ -949,20 +949,20 @@
   },
   "ATH923": {
     "origPrice": 259000,
-    "salePrice": 159000,
-    "discountPct": 39,
+    "salePrice": 207200,
+    "discountPct": 20,
     "subType": ""
   },
   "ATH925": {
     "origPrice": 329000,
-    "salePrice": 199000,
-    "discountPct": 40,
+    "salePrice": 263200,
+    "discountPct": 20,
     "subType": ""
   },
   "ATH928": {
     "origPrice": 249000,
-    "salePrice": 159000,
-    "discountPct": 36,
+    "salePrice": 199200,
+    "discountPct": 20,
     "subType": ""
   },
   "ATH933": {
@@ -973,20 +973,20 @@
   },
   "ATH938": {
     "origPrice": 149000,
-    "salePrice": 79000,
-    "discountPct": 47,
+    "salePrice": 134100,
+    "discountPct": 10,
     "subType": ""
   },
   "ATH940": {
     "origPrice": 299000,
-    "salePrice": 159000,
-    "discountPct": 47,
+    "salePrice": 239200,
+    "discountPct": 20,
     "subType": ""
   },
   "ATH941": {
     "origPrice": 339000,
-    "salePrice": 199000,
-    "discountPct": 41,
+    "salePrice": 271200,
+    "discountPct": 20,
     "subType": ""
   },
   "BE154": {
@@ -2569,8 +2569,8 @@
   },
   "ATH977": {
     "origPrice": 129000,
-    "salePrice": 129000,
-    "discountPct": 30,
+    "salePrice": 116100,
+    "discountPct": 10,
     "subType": ""
   },
   "ATH926": {
@@ -2607,6 +2607,42 @@
     "origPrice": 944000,
     "salePrice": 260000,
     "discountPct": 72,
+    "subType": ""
+  },
+  "ATH970": {
+    "origPrice": 139000,
+    "salePrice": 125100,
+    "discountPct": 10,
+    "subType": ""
+  },
+  "ATH920": {
+    "origPrice": 142000,
+    "salePrice": 127800,
+    "discountPct": 10,
+    "subType": ""
+  },
+  "ATH929": {
+    "origPrice": 149000,
+    "salePrice": 119200,
+    "discountPct": 20,
+    "subType": ""
+  },
+  "ATH945": {
+    "origPrice": 175000,
+    "salePrice": 157500,
+    "discountPct": 10,
+    "subType": ""
+  },
+  "ATH846": {
+    "origPrice": 259000,
+    "salePrice": 207200,
+    "discountPct": 20,
+    "subType": ""
+  },
+  "ATH936": {
+    "origPrice": 275000,
+    "salePrice": 220000,
+    "discountPct": 20,
     "subType": ""
   }
 }
