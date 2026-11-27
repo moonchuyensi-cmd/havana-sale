@@ -1,8 +1,8 @@
 {
   "min_stock_rule": 3,
   "min_variant_stock_rule": 3,
-  "synced_at": "09:59 27/11",
-  "synced_epoch": 1795748397,
+  "synced_at": "10:25 27/11",
+  "synced_epoch": 1795749937,
   "sapo_cookie_expired": false,
   "warehouses": [
     {
@@ -7095,40 +7095,6 @@
       ]
     },
     {
-      "sku": "AO953",
-      "name": "Áo babydoll tay chun phối 3 cúc đỏ #11216 (3) AO953",
-      "subType": "",
-      "category": "AO_KIEU",
-      "origPrice": 169000,
-      "salePrice": 79000,
-      "discountPct": 53,
-      "image": "./images/AO953_16a951f0ae6e40f6bafcb92a319284ed~tplv-aphluv4xwc-origin-jpeg.jpeg",
-      "images": [
-        "./images/AO953_16a951f0ae6e40f6bafcb92a319284ed~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./images/AO953_41ed615e23fb403c853907c604c5a46e~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./AO953/16a951f0ae6e40f6bafcb92a319284ed~tplv-aphluv4xwc-origin-jpeg.jpeg",
-        "./AO953/41ed615e23fb403c853907c604c5a46e~tplv-aphluv4xwc-origin-jpeg.jpeg"
-      ],
-      "sapoImages": [
-        "https://sapo.dktcdn.net/100/618/480/variants/d420eb3a-b19b-4170-a8e6-c08732508edd.jpg"
-      ],
-      "video": "",
-      "sizeChart": "",
-      "variants": [
-        {
-          "size": "Trắng",
-          "stocks": {
-            "wh_havana": 1,
-            "wh_pct": 0,
-            "wh_auco": 2,
-            "wh_leduan": 0,
-            "wh_online": 0,
-            "wh_790054": 0
-          }
-        }
-      ]
-    },
-    {
       "sku": "SAT471",
       "name": "Set áo babydoll nút gài lệch kèm chân váy (25) SAT471",
       "subType": "",
@@ -8461,7 +8427,7 @@
         {
           "size": "Trắng",
           "stocks": {
-            "wh_havana": 1,
+            "wh_havana": 0,
             "wh_pct": 16,
             "wh_auco": 0,
             "wh_leduan": 7,
