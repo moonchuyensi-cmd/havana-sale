@@ -1,4 +1,4 @@
-// Cloudflare Pages Function: /api/stock (v38 ATH Priority + Single ATH Price)
+// Cloudflare Pages Function: /api/stock (v39 ATH Full Orig + Sale Price Frame)
 const MIN_TOTAL_STOCK = 3;
 const MIN_VARIANT_STOCK = 3;
 const EXCLUDED_SKUS = new Set(["LEN374", "QJ358"]);
@@ -43,7 +43,7 @@ export async function onRequestGet(context) {
 
   try {
     const ghRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO_SLUG}/releases/tags/live-stock`, {
-      headers: { "Accept": "application/vnd.github+json", "User-Agent": "havana-cf-v38" }
+      headers: { "Accept": "application/vnd.github+json", "User-Agent": "havana-cf-v39" }
     });
     if (ghRes.ok) {
       const rel = await ghRes.json();
@@ -73,9 +73,10 @@ export async function onRequestGet(context) {
             for (const [c, fe] of Object.entries(feed.items)) {
               if (!seen.has(c) && saleRules[c] && !EXCLUDED_SKUS.has(c) && Array.isArray(fe.v) && fe.v.length) {
                 const r = saleRules[c];
-                const isAth = r.section === "ATH" || Boolean(r.singlePrice);
-                const sp = r.salePrice || r.origPrice || 159000;
-                const op = isAth ? sp : (r.origPrice || sp);
+                const isAth = r.section === "ATH";
+                const sp = Number(r.salePrice || r.origPrice || 159000);
+                const op = Math.max(Number(r.origPrice || sp), sp);
+                const dp = op > sp ? Math.max(1, Math.round((1 - sp / op) * 100)) : 0;
                 const built = fe.v.map(([sz, qa]) => {
                   const st = {};
                   whIds.forEach((w, i) => { st[w] = Number((qa && qa[i]) || 0); });
@@ -83,8 +84,8 @@ export async function onRequestGet(context) {
                 });
                 payload.products.push({
                   sku: c, name: fe.n || ("Áo thun Havana " + c), subType: r.subType || "",
-                  section: isAth ? "ATH" : "BF", singlePrice: isAth,
-                  origPrice: op, salePrice: sp, discountPct: isAth ? 0 : (r.discountPct || 30),
+                  section: isAth ? "ATH" : "BF",
+                  origPrice: op, salePrice: sp, discountPct: dp,
                   image: "", images: [], sapoImages: fe.si || [], video: "", sizeChart: "", variants: built
                 });
               }
@@ -104,20 +105,14 @@ export async function onRequestGet(context) {
       if (!c || EXCLUDED_SKUS.has(c)) return false;
       if (saleRules && saleRules[c]) {
         const r = saleRules[c];
-        const isAth = r.section === "ATH" || Boolean(r.singlePrice);
-        p.section = isAth ? "ATH" : "BF";
-        p.singlePrice = isAth;
-        if (isAth) {
-          const athP = Number(r.salePrice || r.origPrice || p.salePrice || p.origPrice || 0);
-          if (athP > 0) { p.origPrice = athP; p.salePrice = athP; }
-          p.discountPct = 0;
-        } else {
-          if (r.origPrice > 0) p.origPrice = r.origPrice;
-          if (r.salePrice > 0) p.salePrice = r.salePrice;
-          if (p.origPrice > p.salePrice && p.salePrice > 0) {
-            p.discountPct = Math.max(1, Math.round((1 - p.salePrice / p.origPrice) * 100));
-          }
-        }
+        p.section = r.section === "ATH" ? "ATH" : "BF";
+        const sp = Number(r.salePrice || p.salePrice || 0);
+        const op = Math.max(Number(r.origPrice || 0), Number(p.origPrice || 0), sp);
+        if (sp > 0) p.salePrice = sp;
+        if (op > 0) p.origPrice = op;
+        p.discountPct = (p.origPrice > p.salePrice && p.salePrice > 0)
+          ? Math.max(1, Math.round((1 - p.salePrice / p.origPrice) * 100))
+          : 0;
       }
       if (FORCE_SAPO_SKUS.has(c)) {
         const sImgs = Array.isArray(p.sapoImages) ? p.sapoImages : [];
@@ -127,7 +122,7 @@ export async function onRequestGet(context) {
       return p.variants.length > 0 && calcTot(p) >= MIN_TOTAL_STOCK;
     });
   }
-  payload.sync_source = "v38_ath_first";
+  payload.sync_source = "v39_ath_discount_frame";
   return new Response(JSON.stringify(payload), {
     headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store, max-age=0" }
   });
