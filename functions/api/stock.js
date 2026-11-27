@@ -1,4 +1,4 @@
-// Cloudflare Pages Function: /api/stock (v37 Dual Main Sections: BF & ATH Single-Price)
+// Cloudflare Pages Function: /api/stock (v38 ATH Priority + Single ATH Price)
 const MIN_TOTAL_STOCK = 3;
 const MIN_VARIANT_STOCK = 3;
 const EXCLUDED_SKUS = new Set(["LEN374", "QJ358"]);
@@ -43,7 +43,7 @@ export async function onRequestGet(context) {
 
   try {
     const ghRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO_SLUG}/releases/tags/live-stock`, {
-      headers: { "Accept": "application/vnd.github+json", "User-Agent": "havana-cf-v37" }
+      headers: { "Accept": "application/vnd.github+json", "User-Agent": "havana-cf-v38" }
     });
     if (ghRes.ok) {
       const rel = await ghRes.json();
@@ -127,7 +127,7 @@ export async function onRequestGet(context) {
       return p.variants.length > 0 && calcTot(p) >= MIN_TOTAL_STOCK;
     });
   }
-  payload.sync_source = "v37_dual_sections";
+  payload.sync_source = "v38_ath_first";
   return new Response(JSON.stringify(payload), {
     headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store, max-age=0" }
   });
