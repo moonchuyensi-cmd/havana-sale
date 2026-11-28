@@ -2,8 +2,8 @@
   "min_stock_rule": 3,
   "min_variant_stock_rule": 3,
   "only_ath": true,
-  "synced_at": "09:44 28/11",
-  "synced_epoch": 1795833889,
+  "synced_at": "10:37 28/11",
+  "synced_epoch": 1795837059,
   "sapo_cookie_expired": false,
   "warehouses": [
     {
