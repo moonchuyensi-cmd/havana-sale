@@ -1,8 +1,7 @@
-// Cloudflare Pages Function: /api/stock (v39 ATH Full Orig + Sale Price Frame)
+// Cloudflare Pages Function: /api/stock (v41 ONLY ATH T-Shirts Online)
 const MIN_TOTAL_STOCK = 3;
 const MIN_VARIANT_STOCK = 3;
 const EXCLUDED_SKUS = new Set(["LEN374", "QJ358"]);
-const FORCE_SAPO_SKUS = new Set(["SAT532", "CV538"]);
 const GITHUB_REPO_SLUG = "moonchuyensi-cmd/havana-sale";
 
 function filterVars(arr) {
@@ -43,7 +42,7 @@ export async function onRequestGet(context) {
 
   try {
     const ghRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO_SLUG}/releases/tags/live-stock`, {
-      headers: { "Accept": "application/vnd.github+json", "User-Agent": "havana-cf-v39" }
+      headers: { "Accept": "application/vnd.github+json", "User-Agent": "havana-cf-v41" }
     });
     if (ghRes.ok) {
       const rel = await ghRes.json();
@@ -71,9 +70,8 @@ export async function onRequestGet(context) {
           }
           if (saleRules) {
             for (const [c, fe] of Object.entries(feed.items)) {
-              if (!seen.has(c) && saleRules[c] && !EXCLUDED_SKUS.has(c) && Array.isArray(fe.v) && fe.v.length) {
-                const r = saleRules[c];
-                const isAth = r.section === "ATH";
+              const r = saleRules[c];
+              if (!seen.has(c) && r && (r.section === "ATH" || c.startsWith("ATH")) && !EXCLUDED_SKUS.has(c) && Array.isArray(fe.v) && fe.v.length) {
                 const sp = Number(r.salePrice || r.origPrice || 159000);
                 const op = Math.max(Number(r.origPrice || sp), sp);
                 const dp = op > sp ? Math.max(1, Math.round((1 - sp / op) * 100)) : 0;
@@ -82,12 +80,13 @@ export async function onRequestGet(context) {
                   whIds.forEach((w, i) => { st[w] = Number((qa && qa[i]) || 0); });
                   return { size: sz || "Freesize", stocks: st };
                 });
-                payload.products.push({
-                  sku: c, name: fe.n || ("Áo thun Havana " + c), subType: r.subType || "",
-                  section: isAth ? "ATH" : "BF",
-                  origPrice: op, salePrice: sp, discountPct: dp,
+                const itemObj = {
+                  sku: c, name: fe.n || ("Áo thun Havana " + c), subType: "Áo thun",
+                  section: "ATH", origPrice: op, salePrice: sp, discountPct: dp,
                   image: "", images: [], sapoImages: fe.si || [], video: "", sizeChart: "", variants: built
-                });
+                };
+                if (r.varPrices) itemObj.varPrices = r.varPrices;
+                payload.products.push(itemObj);
               }
             }
           }
@@ -103,9 +102,10 @@ export async function onRequestGet(context) {
     payload.products = payload.products.filter((p) => {
       const c = String(p.sku || "").trim().toUpperCase().split("-")[0];
       if (!c || EXCLUDED_SKUS.has(c)) return false;
-      if (saleRules && saleRules[c]) {
+      if (saleRules && Object.keys(saleRules).length > 0) {
         const r = saleRules[c];
-        p.section = r.section === "ATH" ? "ATH" : "BF";
+        if (!r || (r.section && r.section !== "ATH" && !c.startsWith("ATH"))) return false;
+        p.section = "ATH";
         const sp = Number(r.salePrice || p.salePrice || 0);
         const op = Math.max(Number(r.origPrice || 0), Number(p.origPrice || 0), sp);
         if (sp > 0) p.salePrice = sp;
@@ -114,16 +114,14 @@ export async function onRequestGet(context) {
         p.discountPct = (p.origPrice > p.salePrice && p.salePrice > 0)
           ? Math.max(1, Math.round((1 - p.salePrice / p.origPrice) * 100))
           : 0;
-      }
-      if (FORCE_SAPO_SKUS.has(c)) {
-        const sImgs = Array.isArray(p.sapoImages) ? p.sapoImages : [];
-        p.images = sImgs; p.image = sImgs[0] || ""; p.video = ""; p.sizeChart = "";
+      } else if (p.section !== "ATH" && !c.startsWith("ATH")) {
+        return false;
       }
       p.variants = filterVars(p.variants);
       return p.variants.length > 0 && calcTot(p) >= MIN_TOTAL_STOCK;
     });
   }
-  payload.sync_source = "v39_ath_discount_frame";
+  payload.sync_source = "v41_only_ath";
   return new Response(JSON.stringify(payload), {
     headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store, max-age=0" }
   });
